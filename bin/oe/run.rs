@@ -685,6 +685,7 @@ impl RunningClient {
 
 fn print_running_environment(data_dir: &str, dirs: &Directories, db_dirs: &DatabaseDirectories) {
     info!("Starting {}", Colour::White.bold().paint(version()));
+    info!("Hello!");
     info!(
         "Keys path {}",
         Colour::White
