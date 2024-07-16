@@ -10,6 +10,7 @@ authors = [
 ]
 
 [dependencies]
+rustc-serialize  = "0.3.25"
 blooms-db = { path = "crates/db/blooms-db" }
 log = "0.4"
 rustc-hex = "1.0"

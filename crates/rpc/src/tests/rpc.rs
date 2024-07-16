@@ -54,7 +54,7 @@ mod tests {
     use jsonrpc_core::{MetaIoHandler, Value};
     use v1::Metadata;
 
-    fn serve() -> (Server<::HttpServer>, ::std::net::SocketAddr) {
+    fn serve() -> (Server<::HttpServer>, std::net::SocketAddr) {
         let mut io = MetaIoHandler::default();
         io.add_method_with_meta("hello", |_, meta: Metadata| {
             Ok(Value::String(format!("{}", meta.origin)))

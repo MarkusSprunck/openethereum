@@ -367,7 +367,7 @@ pub struct PeerInfo {
     /// Block set requested
     block_set: Option<BlockSet>,
     /// Version of the software the peer is running
-    client_version: ClientVersion,
+    _client_version: ClientVersion,
 }
 
 impl PeerInfo {

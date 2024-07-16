@@ -16,7 +16,7 @@
 
 //! OpenEthereum JSON-RPC Servers (WS, HTTP, IPC).
 
-#![warn(missing_docs, unused_extern_crates)]
+#![warn(missing_docs)]
 #![cfg_attr(feature = "cargo-clippy", warn(clippy::all, clippy::pedantic))]
 #![cfg_attr(
 	feature = "cargo-clippy",
@@ -110,7 +110,7 @@ extern crate ethcore_io as io;
 extern crate tempdir;
 
 // #[cfg(test)]
-extern crate rpc_servers;
+// extern crate rpc_servers;
 
 extern crate rpc_common;
 

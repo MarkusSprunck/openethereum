@@ -8,11 +8,11 @@ brew install rustup
 ```
 
 ```shell
-rustup toolchain add 1.59 --profile minimal
+rustup toolchain add 1.61 --profile minimal
 ```
 
 ```shell
-rustup install 1.59
+rustup install 1.61
 ```
 
 ```shell
@@ -20,7 +20,7 @@ rustup update
 ```
 
 ```shell
-rustup override set 1.59
+rustup override set 1.61
 ```
 
 ```shell
@@ -39,10 +39,10 @@ brew install yasm
 
 ### Create OpenEthereum
 
-Use cimg/rust:1.59-node build image in IntelliJ
+Use cimg/rust:1.61-node build image in IntelliJ
 
 ```shell
-docker pull cimg/rust:1.59-node
+docker pull cimg/rust:1.61-node
 ```
 
 ### Create docker image
@@ -50,8 +50,9 @@ docker pull cimg/rust:1.59-node
 This creates an Ubuntu 24.10 image
 
 ```shell
-cp target/release/openethereum scripts/docker/ubuntu-latest/openethereum
-cd scripts/docker/ubuntu-latest
+cp target/release/openethereum scripts/docker/ubuntu-24.10/openethereum
+cd scripts/docker/ubuntu-24.10
 ./build.sh
+docker push ihkmuenchen/openethereum:3.3.6-rc0
 rm -f openethereum
 ```
