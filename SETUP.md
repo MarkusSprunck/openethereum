@@ -1,3 +1,23 @@
+## Build Docker
+
+### Create OpenEthereum
+
+Use cimg/rust:1.61-node build image in IntelliJ
+
+```shell
+docker pull cimg/rust:1.61-node
+```
+
+### Create docker image
+
+This creates an Ubuntu 24.10 image
+
+```shell
+./build.sh
+```
+
+## Setup Tools (macOS)
+
 
 ```shell
 brew uninstall rust
@@ -33,26 +53,4 @@ brew install perl
 
 ```shell
 brew install yasm
-```
-
-## Build
-
-### Create OpenEthereum
-
-Use cimg/rust:1.61-node build image in IntelliJ
-
-```shell
-docker pull cimg/rust:1.61-node
-```
-
-### Create docker image
-
-This creates an Ubuntu 24.10 image
-
-```shell
-cp target/release/openethereum scripts/docker/ubuntu-24.10/openethereum
-cd scripts/docker/ubuntu-24.10
-./build.sh
-docker push ihkmuenchen/openethereum:3.3.6-rc0
-rm -f openethereum
 ```
