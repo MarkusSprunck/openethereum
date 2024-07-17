@@ -19,3 +19,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: Dockerfile
           tags: "latest"
+          short-description: ${{ github.event.repository.description }}
+          readme-filepath: /home/openethereum/README.md
