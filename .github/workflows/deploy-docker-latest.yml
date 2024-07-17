@@ -9,14 +9,8 @@ jobs:
     name: Build Release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@master
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Deploy to docker hub
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
