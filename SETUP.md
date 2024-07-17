@@ -2,10 +2,10 @@
 
 ### Create OpenEthereum
 
-Use cimg/rust:1.66.1-node build image in IntelliJ
+Use cimg/rust:1.69.0-node build image in IntelliJ
 
 ```shell
-docker pull cimg/rust:1.61-node
+docker pull cimg/rust:1.69.0-node
 ```
 
 ### Create docker image
@@ -28,19 +28,9 @@ brew install rustup
 ```
 
 ```shell
-rustup toolchain add 1.66.1 --profile minimal
-```
-
-```shell
-rustup install 1.66.1
-```
-
-```shell
-rustup update
-```
-
-```shell
-rustup override set 1.66.1
+rustup toolchain add 1.62.1 --profile minimal
+rustup install 1.62.1
+rustup override set 1.62.1
 ```
 
 ```shell

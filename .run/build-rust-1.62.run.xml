@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="build-rust-1.66" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <target name="cimg/rust:1.66-node" />
+  <configuration default="false" name="build-rust-1.62" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <target name="cimg/rust:1.62-node" />
     <option name="command" value="build --release --features final" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs />
