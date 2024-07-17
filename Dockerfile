@@ -12,4 +12,5 @@ EXPOSE 8545
 WORKDIR /home/openethereum
 RUN mkdir -p /home/openethereum/.local/share/io.parity.ethereum/
 COPY --chown=openethereum:openethereum --from=builder ./build/target/release/openethereum /home/openethereum/openethereum
+COPY                                   --from=builder ./build/.github/workflows/README.md /home/openethereum/README.md
 ENTRYPOINT ["/home/openethereum/openethereum"]
