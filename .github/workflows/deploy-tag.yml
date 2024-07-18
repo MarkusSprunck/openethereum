@@ -28,4 +28,3 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           dockerfile: Dockerfile
           tags: "latest,${{ env.RELEASE_VERSION }}"
-          short-description: ${{ github.event.repository.description }}
