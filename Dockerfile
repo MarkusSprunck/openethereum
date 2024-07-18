@@ -4,7 +4,7 @@ WORKDIR /build
 
 COPY . /build
 
-# RUN cargo test --locked --all --release --features "json-tests"
+RUN cargo cargo test --color=always --no-run --features final
 
 RUN cargo build --color=always --release --features final
 
