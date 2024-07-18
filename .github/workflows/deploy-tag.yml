@@ -29,4 +29,3 @@ jobs:
           dockerfile: Dockerfile
           tags: "latest,${{ env.RELEASE_VERSION }}"
           short-description: ${{ github.event.repository.description }}
-          readme-filepath: /home/openethereum/README.md

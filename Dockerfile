@@ -1,8 +1,10 @@
-FROM cimg/rust:1.62.1-node@sha256:e23d78fd780ddb3600f172a31a3b7c76802db93c00d2606b64f04795121bd64e AS builder
+FROM cimg/rust:1.63-node@sha256:a091d3aba7a6d919f3e67d128039698851a2fb583441a7b6dfc7be4921aa8cdc AS builder
 
 WORKDIR /build
 
 COPY . /build
+
+# RUN cargo test --locked --all --release --features "json-tests"
 
 RUN cargo build --color=always --release --features final
 
@@ -19,6 +21,5 @@ WORKDIR /home/openethereum
 RUN mkdir -p /home/openethereum/.local/share/io.parity.ethereum/
 
 COPY --chown=openethereum:openethereum --from=builder ./build/target/release/openethereum /home/openethereum/openethereum
-COPY                                   --from=builder ./build/.github/workflows/README.md /home/openethereum/README.md
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
