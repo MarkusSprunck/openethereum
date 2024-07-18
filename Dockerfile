@@ -4,7 +4,7 @@ WORKDIR /build
 
 COPY . /build
 
-RUN cargo test --color=always --no-run --release --features final
+RUN cargo test --color=always --release --features final
 
 RUN cargo build --color=always --release --features final
 
