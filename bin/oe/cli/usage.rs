@@ -330,7 +330,7 @@ macro_rules! usage {
 				let args = match (fs::File::open(&config_file), raw_args.arg_config.clone()) {
 					// Load config file
 					(Ok(mut file), _) => {
-						eprintln!("Loading config file from {}", &config_file);
+						// eprintln!("Loading config file from {}", &config_file);
 						let mut config = String::new();
 						file.read_to_string(&mut config).map_err(|e| ArgsError::Config(config_file, e))?;
 						Ok(raw_args.into_args(Self::parse_config(&config)?))
