@@ -14,6 +14,11 @@ FROM --platform=linux/amd64 ubuntu:22.04
 
 RUN apt-get update && apt-get install libc6
 
+RUN groupadd -g 1000 openethereum; \
+	useradd -m -u 1000 -g openethereum -s /bin/sh openethereum
+
+USER openethereum
+
 EXPOSE 8545
 
 WORKDIR /home/openethereum
