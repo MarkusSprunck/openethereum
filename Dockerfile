@@ -10,7 +10,7 @@ RUN cargo build --color=always --release --features final
 
 RUN strip target/release/openethereum
 
-FROM --platform=linux/amd64 ubuntu:22.04
+FROM --platform=linux/amd64 ubuntu:22.10
 
 RUN apt-get update && apt-get install libc6
 
