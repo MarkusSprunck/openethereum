@@ -1,4 +1,4 @@
-name: Docker Image Latest
+name: Docker Image Main
 
 on:
   push:
@@ -31,4 +31,4 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: latest
+          tags: ${{ steps.meta.outputs.tags }}
