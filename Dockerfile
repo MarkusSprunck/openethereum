@@ -10,7 +10,7 @@ RUN cargo build --color=always --release --features final
 
 RUN strip target/release/openethereum
 
-FROM --platform=linux/amd64 docker.io/library/ubuntu:24.10
+FROM --platform=linux/amd64 docker.io/library/ubuntu:24.04
 
 RUN groupadd -g 10000 openethereum && useradd -m -u 10000 -g openethereum -s /bin/sh openethereum
 
