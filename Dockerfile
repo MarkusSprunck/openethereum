@@ -10,7 +10,7 @@ RUN cargo build --color=always --release --features final
 
 RUN strip target/release/openethereum
 
-FROM --platform=linux/amd64 ubuntu:22.10
+FROM --platform=linux/amd64 ubuntu:24.10
 
 RUN groupadd -g 1000 openethereum; \
 	useradd -m -u 1000 -g openethereum -s /bin/sh openethereum
