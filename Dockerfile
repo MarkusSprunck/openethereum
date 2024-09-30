@@ -12,6 +12,8 @@ RUN strip target/release/openethereum
 
 FROM --platform=linux/amd64 docker.io/library/ubuntu:24.04
 
+RUN apt-get -y update; apt-get -y install curl
+
 RUN groupadd -g 10000 openethereum && useradd -m -u 10000 -g openethereum -s /bin/sh openethereum
 
 USER openethereum
