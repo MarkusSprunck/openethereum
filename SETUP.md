@@ -9,6 +9,17 @@ brew install yasm
 xcode-select --install
 ```
 
+# Setup Tools [Ubuntu 24.04]
+
+## Install Tools (once)
+
+```shell
+sudo apt install rustup
+sudo apt install perl
+sudo apt install yasm
+sudo apt install cmake
+```
+
 ## Select Rust Version
 
 ```shell
