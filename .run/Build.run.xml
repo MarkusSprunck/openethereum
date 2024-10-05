@@ -1,10 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="build-rust-1.61" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <target name="cimg/rust:1.61-node" />
-    <option name="command" value="build --release --features final" />
+  <configuration default="false" name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="buildProfileId" value="release" />
+    <target name="cimg/rust:1.63-node" />
+    <option name="command" value="build --color=always  --features final" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs />
-    <option name="emulateTerminal" value="true" />
+    <option name="emulateTerminal" value="false" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="false" />
     <option name="allFeatures" value="false" />

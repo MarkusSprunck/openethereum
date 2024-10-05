@@ -28,8 +28,15 @@ rustup install 1.63
 rustup override set 1.63
 ```
 
-# Create local Docker Image
+# Create Docker Image
 
 ```shell
 ./docker-build.sh
+```
+
+# Build
+
+```shell
+./scripts/actions/clean-target.sh 
+./scripts/actions/build-linux.sh
 ```
