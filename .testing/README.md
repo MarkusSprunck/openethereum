@@ -46,23 +46,16 @@ Host 3. All other software components are used for monitoring the Leopold blockc
 
 ### 3.0 Create Symbolic Links for local testing
 
-Create needed folder
+
+Recreate secrets based on mnemonics.
 
 ```shell
-sudo mkdir /home/parity 
-mkdir /home/parity/chain
-mkdir /home/parity/data
+start_secrets_generation.sh
 ```
 
-Create symbolic links to run in local development environment.
+Create needed folder and symbolic links to run in local development environment.
 
 ```shell
-ln -sf  ${PWD}/dist/staging/authority.toml           /home/parity/authority.toml
-ln -sf  ${PWD}/dist/staging/reserved_peers           /home/parity/chain/reserved_peers
-ln -sf  ${PWD}/dist/staging/spec.json                /home/parity/chain/spec.json
-ln -sf  ${PWD}/dist/staging/password                 /home/parity/password
-ln -sf  ${PWD}/dist/staging/leopold                  /home/parity/data/keys/leopold
-ln -sf  ${PWD}/dist/staging/key.priv                 /home/parity/data/network/key/key.priv
-ln -sf  ${PWD}/dist/staging/data                     /home/parity/data
+./start_setup_of_folders.sh
 ```
 
