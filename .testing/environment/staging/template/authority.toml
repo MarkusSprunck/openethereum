@@ -1,0 +1,44 @@
+[parity]
+chain = "/home/parity/chain/spec.json"
+base_path = "/home/parity/data"
+no_persistent_txqueue = true
+
+[network]
+min_peers = 2
+max_peers = 10
+reserved_peers = "/home/parity/chain/reserved_peers"
+port = 30303
+reserved_only = true
+warp = false
+
+[rpc]
+interface = "0.0.0.0"
+cors = ["all"]
+hosts = ["none"]
+apis = ["web3", "eth", "net", "rpc", "parity"]
+
+[ipc]
+disable = true
+
+[websockets]
+disable = true
+
+[secretstore]
+disable = true
+
+[misc]
+color = true
+logging = "network=info,miner=info,own_tx=info,external_tx=info,poa=info,chain=info,discovery=info,network=info,local_store=info,txqueue=info"
+log_file = "/home/parity/data/logs"
+
+[account]
+password = ["/home/parity/password"]
+
+[mining]
+reseal_on_txs = "none"
+engine_signer = ""
+force_sealing = true
+gas_floor_target = "40000000"
+
+
+
