@@ -31,4 +31,4 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "latest"
+          tags: "ihkmuenchen/openethereum:latest"
