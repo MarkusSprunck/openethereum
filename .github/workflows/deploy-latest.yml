@@ -1,4 +1,4 @@
-name: Docker Image Main
+name: Docker Image Latest
 
 on:
   push:
