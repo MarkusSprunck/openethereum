@@ -31,4 +31,4 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: "latest"
