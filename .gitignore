@@ -46,3 +46,6 @@ rls/
 # cargo remote artifacts
 remote-target
 /artifacts/
+.testing/environment/staging/secrets/AccountMnemonic
+.testing/environment/staging/secrets/NetworkMnemonic
+.testing/dist
