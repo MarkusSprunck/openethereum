@@ -7,8 +7,9 @@ How can I access the Leopold test environment?
 ### 2.1 Two Secret Files will be needed
 
 ```shell
-echo "123" > /environment/staging/secrets/AccountMnemonic
-echo "456" > /environment/staging/secrets/NetworkMnemonic
+cd .testing/environment/staging/secrets
+echo "123" > AccountMnemonic
+echo "456" > NetworkMnemonic
 ```
 
 Please, get in contact with [sprunck@muenchen.ihk.de](mailto:sprunck@muenchen.ihk.de) for more details.
