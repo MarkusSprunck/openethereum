@@ -121,6 +121,14 @@ name = "openethereum"
 lto = false
 opt-level = 3 # makes tests slower to compile, but faster to run
 
+[profile.dev]
+debug = true
+opt-level = 0
+debug-assertions = true
+overflow-checks = true
+panic = 'abort'
+incremental = true
+
 [profile.release]
 debug = false
 lto = true
