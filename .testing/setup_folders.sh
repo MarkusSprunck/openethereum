@@ -13,3 +13,5 @@ ln -sf  ${PWD}/dist/staging/spec.json                /home/parity/chain/spec.jso
 ln -sf  ${PWD}/dist/staging/password                 /home/parity/password
 ln -sf  ${PWD}/dist/staging/leopold                  /home/parity/data/keys/leopold
 ln -sf  ${PWD}/dist/staging/key.priv                 /home/parity/data/network/key
+
+tree /home/parity/
