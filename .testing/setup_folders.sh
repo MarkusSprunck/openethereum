@@ -1,6 +1,4 @@
 
-sudo rm -rf /home/parity
-
 sudo mkdir -p /home/parity 
 sudo chown -R codespace:codespace /home/parity 
 
