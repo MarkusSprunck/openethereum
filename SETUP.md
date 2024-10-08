@@ -1,31 +1,21 @@
-# Setup Tools [macOS]
+# Setup Tools [Ubuntu 20.04.6 LTS] (Focal Fossa)
 
 ## Install Tools (once)
 
 ```shell
-brew install rustup
-brew install perl
-brew install yasm
-xcode-select --install
-```
-
-# Setup Tools [Ubuntu 24.04]
-
-## Install Tools (once)
-
-```shell
-sudo apt install rustup
-sudo apt install perl
+curl https://sh.rustup.rs -sSf | sh
+export PATH=$PATH:$HOME/.cargo/bin
+sudo apt update
+sudo apt upgrade
 sudo apt install yasm
-sudo apt install cmake
 ```
 
 ## Select Rust Version
 
 ```shell
-rustup toolchain add 1.63 --profile minimal
-rustup install 1.63
-rustup override set 1.63
+rustup toolchain add 1.81 --profile minimal
+rustup install 1.81
+rustup override set 1.81
 ```
 
 # Create Docker Image
@@ -37,6 +27,15 @@ rustup override set 1.63
 # Build
 
 ```shell
-./scripts/actions/clean-target.sh 
+./scripts/actions/clean-target.sh
+```
+
+Build for development, creates a debug build and does not optimize, such that the build is faster.
+
+```shell
+./scripts/actions/build-dev.sh
+```
+
+```shell
 ./scripts/actions/build-linux.sh
 ```
