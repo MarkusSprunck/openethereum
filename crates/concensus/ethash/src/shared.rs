@@ -15,6 +15,7 @@
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
 use primal::is_prime;
+use std::mem::MaybeUninit;
 
 pub const DATASET_BYTES_INIT: u64 = 1 << 30;
 pub const DATASET_BYTES_GROWTH: u64 = 1 << 23;
@@ -82,7 +83,8 @@ macro_rules! static_assert_size_eq {
 	};
 	(@inner $a:ty, $b:ty) => {
 		unsafe {
-			let val: $b = ::mem::MaybeUninit::uninit().assume_init();
+			let maybe_uninit_val: MaybeUninit<$b> = ::mem::MaybeUninit::uninit();
+			let initialized_val = maybe_uninit_val.assume_init();
 			let _: $a = ::std::mem::transmute(val);
 		}
 	};
