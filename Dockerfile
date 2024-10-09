@@ -1,4 +1,4 @@
-FROM cimg/rust:1.63-node@sha256:a091d3aba7a6d919f3e67d128039698851a2fb583441a7b6dfc7be4921aa8cdc AS builder
+FROM cimg/rust:1.70-node AS builder
 
 WORKDIR /build
 
