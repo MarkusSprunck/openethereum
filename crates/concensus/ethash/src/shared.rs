@@ -85,7 +85,7 @@ macro_rules! static_assert_size_eq {
 		unsafe {
 			let maybe_uninit_val: MaybeUninit<$b> = ::mem::MaybeUninit::uninit();
 			let initialized_val = maybe_uninit_val.assume_init();
-			let _: $a = ::std::mem::transmute(val);
+			let _: $a = ::std::mem::transmute(initialized_val);
 		}
 	};
 	($($rest:ty),*) => {
