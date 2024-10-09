@@ -8,7 +8,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
 log = "0.4"
-mio = "0.6.8"
+mio = "0.6.23"
 bytes = "0.4"
 rand = "0.7.3"
 tiny-keccak = "1.4"

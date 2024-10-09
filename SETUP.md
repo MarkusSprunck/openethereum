@@ -13,18 +13,18 @@ sudo apt install yasm
 ## Select Rust Version
 
 ```shell
-rustup toolchain add 1.81 --profile minimal
-rustup install 1.81
-rustup override set 1.81
+rustup toolchain add 1.70 --profile minimal
+rustup install 1.70
+rustup override set 1.70
 ```
 
-# Create Docker Image
+## Create Docker Image
 
 ```shell
 ./docker-build.sh
 ```
 
-# Build
+## Build
 
 ```shell
 ./scripts/actions/clean-target.sh

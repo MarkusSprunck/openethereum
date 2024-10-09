@@ -10,6 +10,8 @@ authors = [
 ]
 
 [dependencies]
+mio = "0.6.23"
+fs-swap = "0.2.6"
 rustc-serialize  = "0.3.25"
 blooms-db = { path = "crates/db/blooms-db" }
 log = "0.4"
@@ -77,6 +79,10 @@ prometheus = "0.9.0"
 
 # ethcore-secretstore = { path = "crates/util/secret-store", optional = true }
 
+# [patch.crates-io]
+# mio = { git = "https://github.com/tokio-rs/mio.git" }
+# fs-swap = { git = "https://github.com/paritytech/fs-swap.git"}
+
 [build-dependencies]
 rustc_version = "0.2"
 
@@ -127,7 +133,7 @@ opt-level = 0
 debug-assertions = true
 overflow-checks = true
 panic = 'abort'
-incremental = true
+incremental = false
 
 [profile.release]
 debug = false
