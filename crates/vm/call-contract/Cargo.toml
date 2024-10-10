@@ -1,10 +1,10 @@
 [package]
+edition = "2018"
 description = "Parity Ethereum (EthCore) Contract Calls and Blockchain Service & Registry Information"
 name = "ethcore-call-contract"
 version = "0.1.0"
 license = "GPL-3.0"
 authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2018"
 
 [dependencies]
 types = { path = "../../ethcore/types", package = "common-types" }

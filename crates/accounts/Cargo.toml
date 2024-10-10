@@ -1,11 +1,11 @@
 [package]
+edition = "2018"
 description = "OpenEthereum Account Management"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"
 name = "ethcore-accounts"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2018"
 
 [dependencies]
 common-types = { path = "../ethcore/types" }

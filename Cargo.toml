@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 description = "OpenEthereum"
 name = "openethereum"
 # NOTE Make sure to update util/version/Cargo.toml as well
@@ -133,7 +134,7 @@ opt-level = 0
 debug-assertions = true
 overflow-checks = true
 panic = 'abort'
-incremental = false
+incremental = true
 
 [profile.release]
 debug = false

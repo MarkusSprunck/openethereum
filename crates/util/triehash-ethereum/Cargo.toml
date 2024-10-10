@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "triehash-ethereum"
 version = "0.2.0"
 authors = ["Parity Technologies <admin@parity.io>"]

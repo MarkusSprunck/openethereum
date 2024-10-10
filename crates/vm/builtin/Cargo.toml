@@ -1,9 +1,9 @@
 [package]
+edition = "2018"
 description = "ethereum vm builtin"
 name = "ethcore-builtin"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
-edition = "2018"
 
 [dependencies]
 bn = { git = "https://github.com/paritytech/bn", default-features = false }

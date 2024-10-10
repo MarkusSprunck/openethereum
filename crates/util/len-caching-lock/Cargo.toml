@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 description = "Atomically cached len(), for use with collections contained in parking_lot Mutex and RwLock"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"

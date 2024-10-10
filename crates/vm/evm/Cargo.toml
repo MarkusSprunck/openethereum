@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 description = "Parity Ethereum Virtual Machine (EVM) Rust Implementation"
 name = "evm"
 version = "0.1.0"

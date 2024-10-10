@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [package]
+edition = "2018"
 name = "txpool"
 version = "1.0.0-alpha"
 authors = ["Dragan Rakita <dragan0rakita@gmail.com","Karim Agha <karim.agha@gnosis.io>"]
-edition = "2018"
 description = "Generic transaction pool."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

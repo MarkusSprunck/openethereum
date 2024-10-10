@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 description = "OpenEthereum Runtime"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"

@@ -50,7 +50,7 @@ impl VaultDiskDirectory {
     where
         P: AsRef<Path>,
     {
-        // check that vault directory does not exists
+        // check that vault directory does not exist
         let vault_dir_path = make_vault_dir_path(root, name, true)?;
         if vault_dir_path.exists() {
             return Err(Error::CreationFailed);

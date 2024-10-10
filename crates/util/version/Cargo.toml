@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "parity-version"
 # NOTE: this value is used for OpenEthereum version string (via env CARGO_PKG_VERSION)
 version = "3.3.6"

@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "keccak-hasher"
 version = "0.1.1"
 authors = ["Parity Technologies <admin@parity.io>"]
