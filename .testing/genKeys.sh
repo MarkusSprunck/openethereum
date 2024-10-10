@@ -33,14 +33,7 @@ if (( ${COUNTER} != 1 )); then
     exit 0
 fi
 
-OS=$(uname -s)
-echo "Detected:" $OS
-if [[ "$OS" == 'Linux' ]]; then
-    UTILS="ethUtils_ubuntu"
-elif [[ "$OS" == 'Darwin' ]]; then
-    UTILS="ethUtils_mac"
-fi
-
+UTILS="../.artifacts"
 BASE_DIR="."
 NETWORK_NAME="leopold"
 PASSWORD="password"

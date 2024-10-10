@@ -1,6 +1,8 @@
+echo "Recreate Configuration and Delete Blockchain Data"
+sudo rm -rf /home/parity
 
-sudo mkdir -p /home/parity 
-sudo chown -R codespace:codespace /home/parity 
+sudo mkdir -p /home/parity
+sudo chown -R ${USER}:${USER} /home/parity
 
 mkdir -p /home/parity/chain
 mkdir -p /home/parity/data
@@ -14,4 +16,4 @@ ln -sf  ${PWD}/dist/staging/password                 /home/parity/password
 ln -sf  ${PWD}/dist/staging/leopold                  /home/parity/data/keys
 ln -sf  ${PWD}/dist/staging/key.priv                 /home/parity/data/network/key
 
-tree /home/parity/
+tree -hup /home/parity/

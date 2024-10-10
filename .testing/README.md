@@ -2,34 +2,9 @@
 
 How can I access the Leopold test environment?
 
-## 2. Getting Started
+## 2. Contact
 
-### 2.1 Two Secret Files will be needed
-
-```shell
-cd .testing/environment/staging/secrets
-echo "123" > AccountMnemonic
-echo "456" > NetworkMnemonic
-```
-
-Please, get in contact with [sprunck@muenchen.ihk.de](mailto:sprunck@muenchen.ihk.de) for more details.
-
-### 2.2 Authorize executable files
-
-After downloading, the executable files under Linux must also be given appropriate rights. Since different binaries 
-are needed for Ubuntu and macOS, the genKeys.sh script decides which ones should be executed.
-
-```shell
-chmod +x *.sh
-chmod +x ./ethUtils_ubuntu/*
-chmod +x ./ethUtils_mac/*
-```
-
-### 2.3 Start the test node
-
-```shell
-./start_staging.sh
-```
+Please, get in contact with [sprunck@muenchen.ihk.de](mailto:sprunck@muenchen.ihk.de)
 
 ## 2. Architecture
 
@@ -47,18 +22,5 @@ Host 3. All other software components are used for monitoring the Leopold blockc
 ![](images/leopold-topologie-stag-6.2.1.png)
 
 
-### 3.0 Create Symbolic Links for local testing
 
-
-Recreate secrets based on mnemonics.
-
-```shell
-start_secrets_generation.sh
-```
-
-Create needed folder and symbolic links to run in local development environment.
-
-```shell
-./start_setup_of_folders.sh
-```
 

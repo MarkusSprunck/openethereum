@@ -13,29 +13,39 @@ sudo apt install yasm
 ## Select Rust Version
 
 ```shell
-rustup toolchain add 1.70 --profile minimal
-rustup install 1.70
-rustup override set 1.70
+./scripts/setup-rust-1.79.sh
 ```
 
-## Create Docker Image
+## Build Artifacts 
+
+Build all artifacts for testing.
 
 ```shell
-./docker-build.sh
+./scripts/build-artifacts.sh
 ```
 
-## Build
+## Setup for Leopold (Staging)
+
+### Two Secret Files will be needed
+
+Change your secrets to get a unique identity.
 
 ```shell
-./scripts/actions/clean-target.sh
+cd .testing/environment/staging/secrets
+echo "123" > AccountMnemonic
+echo "456" > NetworkMnemonic
 ```
 
-Build for development, creates a debug build and does not optimize, such that the build is faster.
+### Create secrets based on mnemonics. 
 
 ```shell
-./scripts/actions/build-dev.sh
+cd .testing
+./secrets_generation.sh
+./setup_folders.sh
 ```
 
+### Start Leopold Node 
+
 ```shell
-./scripts/actions/build-linux.sh
+scripts/run-leopold.sh
 ```

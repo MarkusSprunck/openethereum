@@ -1,4 +1,4 @@
-FROM cimg/rust:1.70-node AS builder
+FROM cimg/rust:1.79-node AS builder
 
 WORKDIR /build
 
