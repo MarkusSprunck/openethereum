@@ -18,6 +18,9 @@
 //!
 //! Contains small functions used by the AuRa engine that are not strictly limited to that scope.
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::fmt;
 
 use client::{traits::EngineClient, BlockChainClient};
@@ -81,7 +84,7 @@ impl<'a> BoundContract<'a> {
     /// state.
     pub fn call_const<D>(&self, call: (ethabi::Bytes, D)) -> Result<D::Output, CallError>
     where
-        D: ethabi::FunctionOutputDecoder,
+        D: FunctionOutputDecoder,
     {
         let (data, output_decoder) = call;
 

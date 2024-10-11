@@ -40,7 +40,6 @@ mod subscription_manager;
 mod work;
 
 pub use self::{
-    dispatch::{Dispatcher, FullDispatcher},
     network_settings::NetworkSettings,
     poll_filter::{limit_logs, PollFilter, SyncPollFilter},
     poll_manager::PollManager,

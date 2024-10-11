@@ -67,6 +67,8 @@
 //! emscripten.
 
 //TODO: use Poll from mio
+#![allow(dead_code)]
+#![allow(unused_variables)]
 #![allow(deprecated)]
 
 #[cfg(feature = "mio")]

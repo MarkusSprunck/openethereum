@@ -1,1 +1,4 @@
-cargo build --color=always --profile dev --features final
+#!/bin/bash
+
+set -e # fail on any error
+set -u # treat unset variables as errorcargo build --color=always --profile dev --features final

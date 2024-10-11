@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use crate::{account_utils::AccountProvider, sync::SyncProvider};
 use crypto::publickey::{Public, Secret};
 use dir::{default_data_path, helpers::replace_home};

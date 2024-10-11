@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use bytes::{Buf, BufMut};
 use crypto::{
     aes::{AesCtr256, AesEcb256},

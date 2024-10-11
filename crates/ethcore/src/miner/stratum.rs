@@ -16,6 +16,9 @@
 
 //! Client-side stratum job dispatcher and mining notifier handler
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::{
     fmt,
     net::{AddrParseError, SocketAddr},

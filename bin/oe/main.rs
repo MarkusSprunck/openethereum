@@ -91,7 +91,7 @@ fn main() -> Result<(), i32> {
     };
 
     // increase max number of open files
-    raise_fd_limit();
+    let _ = raise_fd_limit();
 
     let exit = Arc::new((
         Mutex::new(ExitStatus {

@@ -15,8 +15,8 @@
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
 use http::{self, hyper};
-use rpc_servers::{HttpServer, MetaIoHandler};
-
+use jsonrpc_core::MetaIoHandler;
+use rpc_servers::HttpServer;
 use tests::{helpers::Server, http_client};
 use v1::{extractors, Metadata};
 

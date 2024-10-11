@@ -29,7 +29,7 @@ use parity_rpc::{
 };
 use parity_runtime::Executor;
 
-pub use parity_rpc::{HttpServer, IpcServer, RequestMiddleware};
+pub use parity_rpc::{HttpServer, IpcServer};
 //pub use parity_rpc::ws::Server as WsServer;
 pub use parity_rpc::ws::{ws, Server as WsServer};
 

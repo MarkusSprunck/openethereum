@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 mod cipher;
 mod crypto;
 mod kdf;
@@ -23,7 +26,7 @@ mod version;
 pub use self::{
     cipher::{Aes128Ctr, Cipher},
     crypto::Crypto,
-    kdf::{Kdf, Pbkdf2, Prf, Scrypt},
+    kdf::{Kdf, Pbkdf2, Prf},
     safe_account::SafeAccount,
     version::Version,
 };

@@ -115,6 +115,7 @@ extern crate tempdir;
 extern crate rpc_common;
 
 pub extern crate jsonrpc_ws_server as ws;
+extern crate rpc_servers;
 
 mod authcodes;
 pub mod v1;

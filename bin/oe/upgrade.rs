@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
+#![allow(dead_code)]
+#![allow(unused_variables)]
 //! Parity upgrade logic
 
 use dir::{default_data_path, helpers::replace_home, home_dir, DatabaseDirectories};

@@ -82,7 +82,7 @@ prometheus = "0.13.4"
 rustc_version = "0.2"
 
 [dev-dependencies]
-pretty_assertions = "0.1"
+pretty_assertions = "0.1.2"
 ipnetwork = "0.12.8"# fixed minor
 tempdir = "0.3"
 fake-fetch = { path = "crates/net/fake-fetch" }
