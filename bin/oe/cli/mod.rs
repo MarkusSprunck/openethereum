@@ -732,6 +732,10 @@ usage! {
             "--no-color",
             "Don't use terminal color codes in output.",
 
+            FLAG flag_json_logging: (bool) = false, or |c: &Config| c.misc.as_ref()?.json.map(|c| c).clone(),
+            "--json-logging",
+            "Use json format in output.",
+
             FLAG flag_version: (bool) = false, or |_| None,
             "-v, --version",
             "Show information about version.",
@@ -1039,6 +1043,7 @@ struct Misc {
     color: Option<bool>,
     ports_shift: Option<u16>,
     unsafe_expose: Option<bool>,
+    json: Option<bool>
 }
 
 #[cfg(test)]
@@ -1450,6 +1455,7 @@ mod tests {
                 arg_log_file: Some("/var/log/openethereum.log".into()),
                 flag_no_color: false,
                 flag_no_config: false,
+                flag_json_logging: false
             }
         );
     }
@@ -1640,6 +1646,7 @@ mod tests {
                     color: Some(true),
                     ports_shift: Some(0),
                     unsafe_expose: Some(false),
+                    json:  None
                 }),
                 stratum: None,
             }

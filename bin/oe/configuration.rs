@@ -510,6 +510,7 @@ impl Configuration {
                 .arg_log_file
                 .as_ref()
                 .map(|log_file| replace_home(&self.directories().base, log_file)),
+            json: self.args.flag_json_logging,
         }
     }
 
@@ -949,8 +950,8 @@ impl Configuration {
 
     fn ws_config(&self) -> Result<WsConfiguration, String> {
         let support_token_api =
-			// enabled when not unlocking
-			self.args.arg_unlock.is_none();
+            // enabled when not unlocking
+            self.args.arg_unlock.is_none();
 
         let conf = WsConfiguration {
             enabled: self.ws_enabled(),
@@ -1062,7 +1063,7 @@ impl Configuration {
             "local" => "127.0.0.1",
             x => x,
         }
-        .into()
+            .into()
     }
 
     fn rpc_interface(&self) -> String {
@@ -1087,14 +1088,14 @@ impl Configuration {
 
     fn secretstore_self_secret(&self) -> Result<Option<NodeSecretKey>, String> {
         match self.args.arg_secretstore_secret {
-			Some(ref s) if s.len() == 64 => Ok(Some(NodeSecretKey::Plain(s.parse()
-				.map_err(|e| format!("Invalid secret store secret: {}. Error: {:?}", s, e))?))),
-			#[cfg(feature = "accounts")]
-			Some(ref s) if s.len() == 40 => Ok(Some(NodeSecretKey::KeyStore(s.parse()
-				.map_err(|e| format!("Invalid secret store secret address: {}. Error: {:?}", s, e))?))),
-			Some(_) => Err(format!("Invalid secret store secret. Must be either existing account address, or hex-encoded private key")),
-			None => Ok(None),
-		}
+            Some(ref s) if s.len() == 64 => Ok(Some(NodeSecretKey::Plain(s.parse()
+                .map_err(|e| format!("Invalid secret store secret: {}. Error: {:?}", s, e))?))),
+            #[cfg(feature = "accounts")]
+            Some(ref s) if s.len() == 40 => Ok(Some(NodeSecretKey::KeyStore(s.parse()
+                .map_err(|e| format!("Invalid secret store secret address: {}. Error: {:?}", s, e))?))),
+            Some(_) => Err(format!("Invalid secret store secret. Must be either existing account address, or hex-encoded private key")),
+            None => Ok(None),
+        }
     }
 
     fn secretstore_admin_public(&self) -> Result<Option<Public>, String> {
@@ -1496,7 +1497,7 @@ mod tests {
                     origins: Some(vec![
                         "parity://*".into(),
                         "chrome-extension://*".into(),
-                        "moz-extension://*".into()
+                        "moz-extension://*".into(),
                     ]),
                     hosts: Some(vec![]),
                     signer_path: expected.into(),
@@ -1508,7 +1509,8 @@ mod tests {
                     color: !cfg!(windows),
                     mode: None,
                     file: None,
-                }
+                    json: false,
+                },
             )
         );
     }
@@ -1540,7 +1542,12 @@ mod tests {
             pruning_history: 64,
             pruning_memory: 32,
             daemon: None,
-            logger_config: Default::default(),
+            logger_config: LogConfig {
+                color: !cfg!(windows),
+                mode: None,
+                file: None,
+                json: false,
+            },
             miner_options: Default::default(),
             gas_price_percentile: 50,
             poll_lifetime: 60,

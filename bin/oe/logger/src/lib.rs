@@ -48,6 +48,7 @@ pub struct Config {
     pub mode: Option<String>,
     pub color: bool,
     pub file: Option<String>,
+    pub json: bool,
 }
 
 impl Default for Config {
@@ -56,12 +57,29 @@ impl Default for Config {
             mode: None,
             color: !cfg!(windows),
             file: None,
+            json: !cfg!(windows),
         }
     }
 }
 
 lazy_static! {
     static ref ROTATING_LOGGER: Mutex<Weak<RotatingLogger>> = Mutex::new(Default::default());
+}
+
+
+// Ensure that string is not longer than max_chars
+fn truncate(s: &str, max_chars: usize) -> &str {
+    match s.char_indices().nth(max_chars) {
+        None => s,
+        Some((idx, _)) => &s[..idx],
+    }
+}
+
+/// Escapes multiline message string for json output, e.g. call stacks 
+fn escape(text: &String) -> String {
+    text.replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('"', "\\\"")
 }
 
 /// Sets up the logger
@@ -90,6 +108,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
 
     let isatty = atty::is(atty::Stream::Stderr);
     let enable_color = config.color && isatty;
+    let enable_json = config.json;
     let logs = Arc::new(RotatingLogger::new(levels));
     let logger = logs.clone();
     let mut open_options = fs::OpenOptions::new();
@@ -106,26 +125,36 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
     };
 
     let format = move |buf: &mut Formatter, record: &Record| {
-        let timestamp = time::strftime("%Y-%m-%d %H:%M:%S %Z", &time::now()).unwrap();
-
-        let with_color = if max_level() <= LevelFilter::Info {
-            format!(
-                "{} {}",
-                Colour::Black.bold().paint(timestamp),
-                record.args()
-            )
+        let with_color = if max_level() <= LevelFilter::Info && !enable_json {
+            let timestamp = time::strftime("%Y-%m-%d %H:%M:%S %Z", &time::now()).unwrap();
+            format!("{} {}", Colour::Black.bold().paint(timestamp), record.args())
         } else {
             let name = thread::current().name().map_or_else(Default::default, |x| {
-                format!("{}", Colour::Blue.bold().paint(x))
+                format!("{}", x)
             });
-            format!(
-                "{} {} {} {}  {}",
-                Colour::Black.bold().paint(timestamp),
-                name,
-                record.level(),
-                record.target(),
-                record.args()
-            )
+            if enable_json {
+                let timestamp = time::strftime("%Y-%m-%dT%H:%M:%S.%f", &time::now()).unwrap();
+                format!(
+                    "{{\"@timestamp\":\"{}Z\",\"service\":\"{}\",\"level\":\"{}\",\"step\":\"{}\",\"message\":\"{}\"}}",
+                    truncate(&timestamp, 23),
+                    name,
+                    record.level(),
+                    record.target(),
+                    escape(&record.args().to_string())
+                )
+            } else {
+                let timestamp = time::strftime("%Y-%m-%d %H:%M:%S %Z", &time::now()).unwrap();
+                let name = thread::current().name().map_or_else(Default::default, |x| {
+                    format!("{}", Colour::Blue.bold().paint(x))
+                });
+                format!(
+                    "{} {} {} {}  {}",
+                    Colour::Black.bold().paint(timestamp),
+                    name,
+                    record.level(),
+                    record.target(),
+                    record.args())
+            }
         };
 
         let removed_color = kill_color(with_color.as_ref());

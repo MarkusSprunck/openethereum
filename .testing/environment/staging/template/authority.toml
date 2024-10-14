@@ -27,7 +27,7 @@ disable = true
 disable = true
 
 [misc]
-color = true
+json = true
 logging = "network=info,miner=info,own_tx=info,external_tx=info,poa=info,chain=info,discovery=info,network=info,local_store=info,txqueue=info"
 log_file = "/home/parity/data/logs"
 
