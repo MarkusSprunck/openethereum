@@ -66,15 +66,6 @@ lazy_static! {
     static ref ROTATING_LOGGER: Mutex<Weak<RotatingLogger>> = Mutex::new(Default::default());
 }
 
-
-// Ensure that string is not longer than max_chars
-fn truncate(s: &str, max_chars: usize) -> &str {
-    match s.char_indices().nth(max_chars) {
-        None => s,
-        Some((idx, _)) => &s[..idx],
-    }
-}
-
 /// Escapes multiline message string for json output, e.g. call stacks 
 fn escape(text: &String) -> String {
     text.replace('\n', "\\n")
@@ -133,10 +124,10 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
                 format!("{}", x)
             });
             if enable_json {
-                let timestamp = time::strftime("%Y-%m-%dT%H:%M:%S.%f", &time::now()).unwrap();
+                let timestamp = time::strftime("%Y-%m-%dT%H:%M:%S.%fZ", &time::now()).unwrap();
                 format!(
-                    "{{\"@timestamp\":\"{}Z\",\"service\":\"{}\",\"level\":\"{}\",\"step\":\"{}\",\"message\":\"{}\"}}",
-                    truncate(&timestamp, 23),
+                    "{{\"@timestamp\":\"{}\",\"@version\":\"1\",\"service\":\"{}\",\"level\":\"{}\",\"step\":\"{}\",\"message\":\"{}\"}}",
+                    timestamp,
                     name,
                     record.level(),
                     record.target(),
