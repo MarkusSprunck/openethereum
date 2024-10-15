@@ -8,7 +8,7 @@ COPY . /build
 
 # RUN cargo test --all --features final
 
-RUN cargo build --release --features final --target x86_64-alpine-linux-musl --verbose
+RUN cargo build --release --features final --target x86_64-alpine-linux-musl
 
 RUN strip target/x86_64-alpine-linux-musl/release/openethereum
 
