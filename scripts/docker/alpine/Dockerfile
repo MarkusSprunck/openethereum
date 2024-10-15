@@ -16,7 +16,7 @@ FROM alpine:edge
 
 RUN apk add --no-cache libstdc++ eudev-libs libgcc curl jq
 
-RUN addgroup -g 1000 openethereum && adduser -u 1000 -G openethereum -s /bin/sh -D openethereum
+RUN addgroup -g 10000 openethereum && adduser -u 10000 -G openethereum -s /bin/sh -D openethereum
 
 USER openethereum
 
