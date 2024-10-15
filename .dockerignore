@@ -3,6 +3,9 @@
 target
 docs
 
+.artifacts
+.github
+
 *.swp
 *.swo
 *.swn

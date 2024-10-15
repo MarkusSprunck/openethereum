@@ -1,4 +1,4 @@
-name: Docker Image Latest
+name: Docker Image Latest (ubuntu)
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Docker Buildx
+      - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
@@ -31,4 +31,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:latest"
+          tags: "ihkmuenchen/openethereum:alpine"
+          file: ./scripts/docker/alpine/Dockerfile
