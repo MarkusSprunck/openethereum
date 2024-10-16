@@ -16,10 +16,6 @@
 
 //! General error types for use in ethcore.
 
-// Silence: `use of deprecated item 'std::error::Error::cause': replaced by Error::source, which can support downcasting`
-// https://github.com/openethereum/openethereum/issues/10302
-#![allow(deprecated)]
-
 use std::{error, fmt, time::SystemTime};
 
 use crypto::publickey::Error as EthkeyError;
