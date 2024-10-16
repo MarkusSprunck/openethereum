@@ -32,4 +32,4 @@ jobs:
           sbom: true
           push: true
           tags: "ihkmuenchen/openethereum:scratch"
-          file: ./scripts/docker/alpine/Dockerfile
+          file: ./scripts/docker/scratch/Dockerfile
