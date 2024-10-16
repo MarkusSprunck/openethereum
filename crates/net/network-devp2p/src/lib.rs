@@ -58,6 +58,11 @@
 //! 	// Drop the service
 //! }
 //! ```
+//!
+
+
+//TODO: use Poll from mio
+#![allow(deprecated)]
 
 extern crate bytes;
 extern crate crypto as rcrypto;
