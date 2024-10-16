@@ -6,7 +6,7 @@ WORKDIR /build
 
 COPY . /build
 
-# RUN cargo test --all --features final
+RUN cargo test --all --features final
 
 RUN cargo build --release --features final
 
