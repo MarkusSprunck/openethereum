@@ -16,7 +16,6 @@
 
 // Silence: `use of deprecated item 'std::error::Error::cause': replaced by Error::source, which can support downcasting`
 // https://github.com/openethereum/openethereum/issues/10302
-#![allow(deprecated)]
 
 use ethcore;
 use io;
