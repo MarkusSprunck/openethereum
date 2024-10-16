@@ -27,6 +27,8 @@ use std::{
     str::FromStr,
 };
 
+use substrate_bn as bn;
+
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use eip_152::compress;
 use eth_pairings::public_interface::eip2537::{

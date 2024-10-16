@@ -1,0 +1,32 @@
+[dependencies.crc]
+version = "1"
+
+[dependencies.ethereum-types]
+version = "0.9"
+
+[dependencies.maplit]
+version = "1"
+
+[dependencies.parity-util-mem]
+default-features = false
+features = ["ethereum-impls"]
+version = "0.7"
+
+[dependencies.rlp]
+version = "0.4"
+
+[dependencies.rlp-derive]
+version = "0.1"
+[dev-dependencies.hex-literal]
+version = "0.2"
+
+[package]
+authors = ["Artem Vorotnikov <artem@vorotnikov.me>"]
+description = "Ethereum fork identifier for chain compatibility checks"
+documentation = "https://docs.rs/ethereum-forkid"
+edition = "2018"
+keywords = ["ethereum"]
+license = "Apache-2.0"
+name = "ethereum-forkid"
+repository = "https://github.com/vorot93/ethereum-forkid"
+version = "0.2.1"
