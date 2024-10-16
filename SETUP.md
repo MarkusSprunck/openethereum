@@ -8,6 +8,13 @@ export PATH=$PATH:$HOME/.cargo/bin
 sudo apt update
 sudo apt upgrade
 sudo apt install yasm
+````
+
+# Setup musl
+```shell
+sudo apt install musl-tools
+sudo apt install libc6-dev
+sudo ln -s /bin/g++ /bin/musl-g++
 ```
 
 ## Select Rust Version

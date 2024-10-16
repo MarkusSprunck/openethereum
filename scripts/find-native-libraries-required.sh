@@ -1,0 +1,1 @@
+ cargo clean && cargo build -vv 2>/dev/null | grep 'rustc-link-lib'
