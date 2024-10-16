@@ -1313,8 +1313,7 @@ mod tests {
         }
     }
 
-    // TODO: clarify why this test fails
-    // #[test] 
+    #[test]
     fn packets() {
         let key = Random.generate();
         let ep = NodeEndpoint {
