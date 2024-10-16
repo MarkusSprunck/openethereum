@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use ansi_term::Colour;
 use host::Host;
 use io::*;
 use network::{
@@ -33,7 +32,7 @@ impl IoHandler<NetworkIoMessage> for HostHandler {
         if let NetworkIoMessage::NetworkStarted(ref public_url) = *message {
             let mut url = self.public_url.write();
             if url.as_ref().map_or(true, |uref| uref != public_url) {
-                info!(target: "network", "Public node URL: {}", Colour::White.bold().paint(AsRef::<str>::as_ref(public_url)));
+                info!(target: "network", "Public node URL: {}", AsRef::<str>::as_ref(public_url));
             }
             *url = Some(public_url.to_owned());
         }

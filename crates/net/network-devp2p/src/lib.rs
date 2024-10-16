@@ -59,10 +59,6 @@
 //! }
 //! ```
 
-//TODO: use Poll from mio
-#![allow(deprecated)]
-
-extern crate ansi_term; //TODO: remove this
 extern crate bytes;
 extern crate crypto as rcrypto;
 extern crate ethcore_io as io;
