@@ -30,6 +30,6 @@ pub mod keccak_256 {
     use super::hash;
 
     pub use self::hash::{
-        keccak256 as inplace, keccak256_range as inplace_range, keccak_256 as write,
+        keccak256 as inplace, keccak_256 as write,
     };
 }
