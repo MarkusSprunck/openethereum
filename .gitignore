@@ -7,9 +7,6 @@
 # Executables
 *.exe
 
-# Vendor
-**/vendor
-
 # Cargo lock in subs
 **/Cargo.lock
 
