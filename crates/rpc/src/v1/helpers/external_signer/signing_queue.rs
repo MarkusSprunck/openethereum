@@ -87,8 +87,6 @@ pub trait SigningQueue: Send + Sync {
     /// Returns number of requests awaiting confirmation.
     fn len(&self) -> usize;
 
-    /// Returns true if there are no requests awaiting confirmation.
-    fn is_empty(&self) -> bool;
 }
 
 /// Confirmation request information with result notifier.
@@ -234,10 +232,6 @@ impl SigningQueue for ConfirmationsQueue {
         queue.len()
     }
 
-    fn is_empty(&self) -> bool {
-        let queue = self.queue.read();
-        queue.is_empty()
-    }
 }
 
 #[cfg(test)]
