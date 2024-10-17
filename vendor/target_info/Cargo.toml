@@ -1,0 +1,6 @@
+[package]
+name = "target_info"
+version = "0.1.0"
+authors = ["Gav Wood <gav@ethcore.io>"]
+
+[dependencies]

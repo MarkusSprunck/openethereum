@@ -1,0 +1,31 @@
+[package]
+
+name = "primal"
+version = "0.2.3"
+authors = ["Huon Wilson <dbau.pp@gmail.com>"]
+
+homepage = "https://github.com/huonw/primal"
+repository = "https://github.com/huonw/primal"
+documentation = "http://huonw.github.io/primal/primal/"
+license = "MIT/Apache-2.0"
+keywords = ["math", "mathematics", "primes", "number-theory"]
+readme = "README.md"
+description = """
+`primal` puts raw power into prime numbers. This crates includes:
+optimised prime sieves, checking for primality, enumerating primes,
+factorising numbers, and state-of-the-art estimation of upper and
+lower bounds for π(n) (the number of primes below n) and p_k (the k-th
+prime).
+"""
+
+[dependencies]
+primal-check = { path = "primal-check", version = "0.2" }
+primal-estimate = { path = "primal-estimate", version = "0.2" }
+primal-sieve = { path = "primal-sieve", version = "0.2" }
+
+[dev-dependencies]
+primal-slowsieve = { path = "primal-slowsieve", version = "0.2" }
+time = "0.1"
+
+[features]
+unstable = ["primal-sieve/unstable"]
