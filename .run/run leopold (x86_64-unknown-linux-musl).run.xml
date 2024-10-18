@@ -1,6 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="run (dev)" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --profile dev --features final -- --config $PROJECT_DIR$/../../../parity/authority.toml" />
+  <configuration default="false" name="run leopold (x86_64-unknown-linux-musl)" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="buildProfileId" value="release" />
+    <option name="command" value="run --target x86_64-unknown-linux-musl -- --config $PROJECT_DIR$/../../../parity/authority.toml" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs />
     <option name="emulateTerminal" value="true" />
