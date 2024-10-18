@@ -79,7 +79,7 @@ extern crate mio;
 extern crate parity_bytes;
 extern crate parity_crypto as crypto;
 extern crate parity_path;
-extern crate parity_snappy as snappy;
+// extern crate parity_snappy as snappy;
 extern crate parking_lot;
 extern crate rand;
 extern crate rlp;

@@ -11,28 +11,28 @@ authors = ["Parity Technologies <admin@parity.io>"]
 # Only work_notify, consider a separate crate
 ethash = { path = "../../concensus/ethash", optional = true }
 fetch = { path = "../../net/fetch", optional = true }
-hyper = { version = "0.12", optional = true }
+hyper = { version = "1.5.0", optional = true }
 url = { version = "2", optional = true }
 
 # Miner
 ansi_term = "0.12.1"
 common-types = { path = "../../ethcore/types" }
 error-chain = "0.12.4"
-ethabi = "12.0.0"
+ethabi = "18.0.0"
 ethabi-derive = { git = 'https://github.com/rimrakhimov/ethabi', branch = 'rimrakhimov/remove-syn-export-span' }
-ethabi-contract = "11.0.0"
+ethabi-contract = "16.0.0"
 ethcore-call-contract = { path = "../../vm/call-contract" }
-ethereum-types = "0.9.2"
-futures = "0.1"
-keccak-hash = "0.5.0"
+ethereum-types = "0.15.1"
+futures = "0.3.31"
+keccak-hash = "0.11.0"
 linked-hash-map = "0.5"
 log = "0.4"
-parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
+parity-crypto = { version = "0.9.0", features = [ "publickey" ] }
 parity-runtime = { path = "../../runtime/runtime" }
-parity-util-mem = "0.7"
-parking_lot = "0.11.1"
+parity-util-mem = "0.12.0"
+parking_lot = "0.12.3"
 price-info = { path = "./price-info", optional = true }
-rlp = { version = "0.4.6" }
+rlp = { version = "0.6.1" }
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
@@ -40,9 +40,9 @@ trace-time = "0.1"
 txpool = { path = "../../transaction-pool" }
 
 [dev-dependencies]
-env_logger = "0.5"
+env_logger = "0.11.5"
 ethkey = { path = "../../accounts/ethkey" }
-rustc-hex = "1.0"
+rustc-hex = "2.1.0"
 
 [features]
 work-notify = ["ethash", "fetch", "hyper", "url"]

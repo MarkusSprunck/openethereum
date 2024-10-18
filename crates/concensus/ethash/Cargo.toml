@@ -6,19 +6,19 @@ version = "1.12.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-crunchy = "0.1.0"
+crunchy = "0.2.2"
 either = "1.0.0"
-ethereum-types = "0.9.2"
-keccak-hash = "0.5.0"
+ethereum-types = "0.15.1"
+keccak-hash = "0.11.0"
 tiny-keccak = "2.0.2"
 log = "0.4"
-memmap = "0.6"
-parking_lot = "0.11.1"
-primal = "0.2.3"
+memmap = "0.7.0"
+parking_lot = "0.12.3"
+primal = "0.3.3"
 
 [dev-dependencies]
-criterion = "0.2"
-rustc-hex = "1.0"
+criterion = "0.5.1"
+rustc-hex = "2.1.0"
 serde_json = "1.0"
 tempdir = "0.3"
 

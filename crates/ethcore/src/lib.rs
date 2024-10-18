@@ -46,7 +46,7 @@ extern crate memory_db;
 extern crate num_cpus;
 extern crate parity_bytes as bytes;
 extern crate parity_crypto as crypto;
-extern crate parity_snappy as snappy;
+// extern crate parity_snappy as snappy;
 extern crate parity_util_mem;
 extern crate parking_lot;
 extern crate patricia_trie_ethereum as ethtrie;

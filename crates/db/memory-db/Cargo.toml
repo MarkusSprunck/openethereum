@@ -24,13 +24,13 @@ name = "bench"
 harness = false
 
 [dependencies]
-hash-db = "0.11.0"
+hash-db = "0.16.0"
 
 [dev-dependencies.criterion]
-version = "0.2.8"
+version = "0.5.1"
 
 [dev-dependencies.keccak-hasher]
-version = "0.11.0"
+version = "0.16.0"
 
 [dependencies.parity-util-mem]
-version = "0.7"
+version = "0.12.0"
