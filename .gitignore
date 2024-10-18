@@ -48,3 +48,6 @@ artifacts
 .testing/environment/staging/secrets/AccountMnemonic
 .testing/environment/staging/secrets/NetworkMnemonic
 .testing/dist
+
+# Code Coverage
+tarpaulin-report.html
