@@ -34,8 +34,6 @@ USER openethereum
 
 EXPOSE 8545
 
-WORKDIR /home/openethereum
-
 COPY --chown=openethereum:openethereum --from=builder /build/target/x86_64-unknown-linux-musl/release/openethereum ./
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
