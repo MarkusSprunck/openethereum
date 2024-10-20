@@ -17,7 +17,7 @@ COPY . /build
 
 ENV RUST_BACKTRACE=1
 
-ENV RUSTFLAGS="-Ctarget-feature=-crt-static -Clink-args=-lm"
+ENV RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-args=-lm"
 
 RUN ln -s /bin/g++ /bin/musl-g++
 
