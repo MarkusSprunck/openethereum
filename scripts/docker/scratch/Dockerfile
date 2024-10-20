@@ -32,6 +32,8 @@ FROM scratch
 
 EXPOSE 8545
 
+COPY --from=builder /lib/ld-musl-x86_64.so.1 /lib/ld-musl-x86_64.so.1
+COPY --from=builder /bin/busybox /bin/busybox
 COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/openethereum /home/root/openethereum
 
 ENTRYPOINT ["/home/root/openethereum"]
