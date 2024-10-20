@@ -1,13 +1,13 @@
 ARG RUST_VERSION="1.79"
 
 # ------------------------------------------------------------------------------
-# Cargo Build Stage
+# Build Stage
 # ------------------------------------------------------------------------------
 FROM rust:${RUST_VERSION}-slim AS BUILDER
 
-RUN apt update -qq && apt install -y -qq --no-install-recommends musl-tools build-essential libc6-dev cmake musl-dev
+RUN apt update -qq && apt install -y -qq --no-install-recommends build-essential libc6-dev cmake
 
-RUN rustup set profile minimal && rustup target add x86_64-unknown-linux-musl
+RUN rustup set profile minimal && rustup target add x86_64-unknown-linux-gnu
 
 RUN apt install -y -qq llvm-dev libclang-dev clang
 
@@ -17,14 +17,16 @@ COPY . /build
 
 ENV RUST_BACKTRACE=1
 
-ENV RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-args=-lm"
+ENV RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-args=-lm -Clink-args=-lpthread"
 
-RUN ln -s /bin/g++ /bin/musl-g++
+RUN cargo build --release --target x86_64-unknown-linux-gnu
 
-RUN cargo build --release --target x86_64-unknown-linux-musl
-RUN strip target/x86_64-unknown-linux-musl/release/openethereum
+RUN strip target/x86_64-unknown-linux-gnu/release/openethereum
 
-FROM alpine:edge
+# ------------------------------------------------------------------------------
+# Runtime Stage
+# ------------------------------------------------------------------------------
+FROM alpine:3.20
 
 # show backtraces
 ENV RUST_BACKTRACE 1
@@ -32,16 +34,16 @@ ENV RUST_BACKTRACE 1
 # curl and jq are installed to help create health and readiness checks on Kubernetes
 RUN apk add --no-cache libstdc++ eudev-libs libgcc curl jq
 
-RUN addgroup -g 1000 openethereum \
-  && adduser -u 1000 -G openethereum -s /bin/sh -D openethereum
+RUN addgroup -g 1000 openethereum && adduser -u 1000 -G openethereum -s /bin/sh -D openethereum
 
 USER openethereum
 
-EXPOSE 8080 8545 8180
+EXPOSE 8545
 
 WORKDIR /home/openethereum
 
 RUN mkdir -p /home/openethereum/.local/share/io.parity.ethereum/
-COPY --chown=openethereum:openethereum --from=builder /build/target/x86_64-unknown-linux-musl/release/openethereum ./
+
+COPY --chown=openethereum:openethereum --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum ./
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
