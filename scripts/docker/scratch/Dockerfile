@@ -32,6 +32,6 @@ FROM scratch
 
 EXPOSE 8545
 
-COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/openethereum /home/
+COPY --from=builder /build/target/x86_64-unknown-linux-musl/release/openethereum /home/openethereum
 
 ENTRYPOINT ["/home/openethereum"]
