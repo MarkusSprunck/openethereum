@@ -54,7 +54,7 @@ use journaldb::Algorithm;
 use node_filter::NodeFilter;
 use parity_rpc::{informant, is_major_importing, NetworkSettings};
 use parity_runtime::Runtime;
-use parity_version::version;
+use parity_version::version_short;
 
 // How often we attempt to take a snapshot: only snapshot on blocknumbers that are multiples of this.
 const SNAPSHOT_PERIOD: u64 = 20000;
