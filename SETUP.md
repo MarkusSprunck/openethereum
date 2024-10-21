@@ -10,21 +10,13 @@ sudo apt upgrade
 sudo apt install yasm
 ````
 
-# Setup musl
-```shell
-sudo apt install musl-tools
-sudo apt install musl-dev 
-sudo apt install libc6-dev
-sudo ln -s /bin/g++ /bin/musl-g++
-```
-
 ## Select Rust Version
 
 ```shell
 ./scripts/setup-rust-1.79.sh
 ```
 
-## Build Artifacts 
+## Build Artifacts
 
 Build all artifacts for testing.
 
@@ -32,7 +24,7 @@ Build all artifacts for testing.
 ./scripts/build-artifacts.sh
 ```
 
-## Setup for Leopold (Staging)
+## Setup for Leopold (Staging) Tests
 
 ### Two Secret Files will be needed
 
@@ -44,7 +36,7 @@ echo "123" > AccountMnemonic
 echo "456" > NetworkMnemonic
 ```
 
-### Create secrets based on mnemonics. 
+### Create secrets based on mnemonics
 
 ```shell
 cd .testing
@@ -52,8 +44,8 @@ cd .testing
 ./setup_folders.sh
 ```
 
-### Start Leopold Node 
+### Start Leopold Node
 
 ```shell
-scripts/run-leopold.sh
+./scripts/test-leopold.sh
 ```
