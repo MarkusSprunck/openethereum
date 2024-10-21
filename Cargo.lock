@@ -1543,7 +1543,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "smallvec 0.6.13",
+ "smallvec 0.6.14",
  "tempdir",
  "time",
 ]
@@ -3474,7 +3474,7 @@ dependencies = [
  "libc",
  "rand 0.5.6",
  "rustc_version",
- "smallvec 0.6.13",
+ "smallvec 0.6.14",
  "winapi 0.3.9",
 ]
 
@@ -3489,7 +3489,7 @@ dependencies = [
  "libc",
  "redox_syscall 0.1.56",
  "rustc_version",
- "smallvec 0.6.13",
+ "smallvec 0.6.14",
  "winapi 0.3.9",
 ]
 
@@ -3660,7 +3660,7 @@ dependencies = [
  "hamming",
  "primal-bit",
  "primal-estimate",
- "smallvec 0.6.13",
+ "smallvec 0.6.14",
 ]
 
 [[package]]
@@ -4530,9 +4530,9 @@ checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
 
 [[package]]
 name = "smallvec"
-version = "0.6.13"
+version = "0.6.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
+checksum = "b97fcaeba89edba30f044a10c6a3cc39df9c3f17d7cd829dd1446cab35f890e0"
 dependencies = [
  "maybe-uninit",
 ]
@@ -5178,7 +5178,7 @@ version = "1.0.0-alpha"
 dependencies = [
  "ethereum-types 0.7.0",
  "log",
- "smallvec 0.6.13",
+ "smallvec 0.6.14",
  "trace-time",
 ]
 
@@ -5234,7 +5234,7 @@ version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "141339a08b982d942be2ca06ff8b076563cbe223d1befd5450716790d44e2426"
 dependencies = [
- "smallvec 0.6.13",
+ "smallvec 0.6.14",
 ]
 
 [[package]]
