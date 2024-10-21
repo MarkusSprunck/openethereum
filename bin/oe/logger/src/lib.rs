@@ -117,14 +117,16 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
 
     let format = move |buf: &mut Formatter, record: &Record| {
         let with_color = if max_level() <= LevelFilter::Info && !enable_json {
-            let timestamp = time::strftime("%Y-%m-%d %H:%M:%S %Z", &time::now()).unwrap();
+			let utc_time = chrono::Utc::now();
+			let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
             format!("{} {}", Colour::Black.bold().paint(timestamp), record.args())
         } else {
             let name = thread::current().name().map_or_else(Default::default, |x| {
                 format!("{}", x)
             });
             if enable_json {
-                let timestamp = time::strftime("%Y-%m-%dT%H:%M:%S.%fZ", &time::now()).unwrap();
+				let utc_time = chrono::Utc::now();
+				let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
                 format!(
                     "{{\"@timestamp\":\"{}\",\"@version\":\"1\",\"SERVICE\":\"{}\",\"level\":\"{}\",\"STEP\":\"{}\",\"message\":\"{}\"}}",
                     timestamp,
@@ -134,7 +136,8 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
                     escape(&record.args().to_string())
                 )
             } else {
-                let timestamp = time::strftime("%Y-%m-%d %H:%M:%S %Z", &time::now()).unwrap();
+				let utc_time = chrono::Utc::now();
+				let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
                 let name = thread::current().name().map_or_else(Default::default, |x| {
                     format!("{}", Colour::Blue.bold().paint(x))
                 });
