@@ -27,7 +27,7 @@ RUN strip target/x86_64-unknown-linux-gnu/release/openethereum
 # I can prove I'm running as that user inside the application.
 RUN addgroup openethereum &&  \
     adduser --ingroup openethereum --uid 1000 --shell /bin/false openethereum &&  \
-    cat /etc/passwd | grep openethereum > /etc/passwd_openethereum \
+    cat /etc/passwd | grep openethereum > /etc/passwd_openethereum
 
 
 # ------------------------------------------------------------------------------
@@ -37,10 +37,10 @@ FROM scratch
 
 EXPOSE 8545
 
+COPY --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum /openethereum
+
 # Copy the /etc/passwd file with the user I want to run as defined in it.
 COPY --from=builder /etc/passwd_openethereum /etc/passwd
-
-COPY --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum /openethereum
 
 USER openethereum
 
