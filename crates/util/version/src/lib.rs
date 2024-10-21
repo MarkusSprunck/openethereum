@@ -67,6 +67,17 @@ pub fn version() -> String {
     )
 }
 
+/// Get the standard version string for this software (short information for logging).
+pub fn version_short() -> String {
+	format!(
+		"OpenEthereum/v{}-{}/{}/rustc{}",
+		env!("CARGO_PKG_VERSION"),
+		THIS_TRACK,
+		platform(),
+		generated::rustc_version()
+	)
+}
+
 /// Get the standard version data for this software.
 pub fn version_data() -> Bytes {
     let mut s = RlpStream::new_list(4);
