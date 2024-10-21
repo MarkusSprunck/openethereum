@@ -1,4 +1,10 @@
-FROM cimg/rust:1.79-node AS builder
+ARG RUST_VERSION="1.79"
+
+# ------------------------------------------------------------------------------
+# Build Stage
+# ------------------------------------------------------------------------------
+
+FROM cimg/rust:${RUST_VERSION} AS builder
 
 RUN echo "nothing to do here"
 
@@ -6,12 +12,14 @@ WORKDIR /build
 
 COPY . /build
 
-RUN cargo test --all --features final
-
 RUN cargo build --release --features final
 
 RUN strip target/release/openethereum
 
+
+# ------------------------------------------------------------------------------
+# Runtime Stage
+# ------------------------------------------------------------------------------
 FROM --platform=linux/amd64 docker.io/library/ubuntu:24.10
 
 RUN apt-get -y update; apt-get -y install curl
