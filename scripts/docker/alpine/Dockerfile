@@ -3,7 +3,7 @@ ARG RUST_VERSION="1.79"
 # ------------------------------------------------------------------------------
 # Build Stage
 # ------------------------------------------------------------------------------
-FROM rust:${RUST_VERSION}-slim AS BUILDER
+FROM rust:${RUST_VERSION}-slim AS builder
 
 RUN apt update -qq && apt install -y -qq --no-install-recommends build-essential libc6-dev cmake
 

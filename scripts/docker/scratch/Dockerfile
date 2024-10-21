@@ -3,7 +3,7 @@ ARG RUST_VERSION="1.79"
 # ------------------------------------------------------------------------------
 # Build Stage
 # ------------------------------------------------------------------------------
-FROM rust:${RUST_VERSION}-slim AS BUILDER
+FROM rust:${RUST_VERSION}-slim AS builder
 
 RUN apt update -qq && apt install -y -qq --no-install-recommends build-essential libc6-dev cmake
 
@@ -38,7 +38,7 @@ FROM scratch
 EXPOSE 8545
 
 # Copy the /etc/passwd file with the user I want to run as defined in it.
-COPY --from=build-image /etc/passwd_openethereum /etc/passwd
+COPY --from=builder /etc/passwd_openethereum /etc/passwd
 
 COPY --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum /openethereum
 
