@@ -214,7 +214,8 @@ where
         event_loop: &mut EventLoop<IoManager<Message>>,
         handlers: Arc<RwLock<Slab<Arc<dyn IoHandler<Message>>>>>,
     ) -> Result<(), IoError> {
-        let (worker, stealer) = deque::fifo();
+        let worker = deque::Worker::new_fifo();
+		let stealer = worker.stealer();
         let num_workers = 4;
         let work_ready_mutex = Arc::new(Mutex::new(()));
         let work_ready = Arc::new(Condvar::new());
@@ -232,10 +233,10 @@ where
 
         let mut io = IoManager {
             timers: Arc::new(RwLock::new(HashMap::new())),
-            handlers: handlers,
+            handlers,
             worker_channel: worker,
-            workers: workers,
-            work_ready: work_ready,
+            workers,
+            work_ready,
         };
         event_loop.run(&mut io)?;
         Ok(())

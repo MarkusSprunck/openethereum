@@ -94,7 +94,7 @@ impl Worker {
 
                             while !deleting.load(AtomicOrdering::SeqCst) {
                                 match stealer.steal() {
-                                    deque::Steal::Data(work) => {
+                                    deque::Steal::Success(work) => {
                                         Worker::do_work(work, channel.clone())
                                     }
                                     deque::Steal::Retry => {}
