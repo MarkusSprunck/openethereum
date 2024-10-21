@@ -3,7 +3,7 @@ edition = "2015"
 description = "OpenEthereum"
 name = "openethereum"
 # NOTE Make sure to update util/version/Cargo.toml as well
-version = "3.3.6"
+version = "3.4.0"
 license = "GPL-3.0"
 authors = [
 	"OpenEthereum developers",

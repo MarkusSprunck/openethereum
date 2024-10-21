@@ -1,8 +1,9 @@
-name: Docker Image Latest (ubuntu)
+name: Docker Image Release
 
 on:
   push:
-    branches: ["main"]
+    tags:
+      - v*
 
 env:
   IMAGE_NAME: ihkmuenchen/openethereum
@@ -31,5 +32,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:latest"
-          file: ./scripts/docker/ubuntu/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          file: ./scripts/docker/scratch/Dockerfile

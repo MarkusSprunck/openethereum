@@ -31,9 +31,6 @@ FROM alpine:3.20
 # show backtraces
 ENV RUST_BACKTRACE 1
 
-# curl and jq are installed to help create health and readiness checks on Kubernetes
-RUN apk add --no-cache libstdc++ eudev-libs libgcc curl jq
-
 RUN addgroup -g 1000 openethereum && adduser -u 1000 -G openethereum -s /bin/sh -D openethereum
 
 USER openethereum

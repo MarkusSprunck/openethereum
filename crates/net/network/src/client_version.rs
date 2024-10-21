@@ -33,7 +33,7 @@ lazy_static! {
 
 /// Description of the software version running in a peer
 /// according to https://github.com/ethereum/wiki/wiki/Client-Version-Strings
-/// This structure as it is represents the format used by Parity clients. Other
+/// This structure as it is representing the format used by Parity clients. Other
 /// vendors may provide additional fields.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct ParityClientData {
