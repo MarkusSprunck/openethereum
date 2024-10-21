@@ -684,7 +684,7 @@ impl RunningClient {
 }
 
 fn print_running_environment(data_dir: &str, dirs: &Directories, db_dirs: &DatabaseDirectories) {
-    info!("Starting {}", Colour::White.bold().paint(version_short(()));
+    info!("Starting {}", Colour::White.bold().paint(version_short()));
     info!("Repository https://github.com/MarkusSprunck/openethereum");
     info!(
         "Keys path {}",
