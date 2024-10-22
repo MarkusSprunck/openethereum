@@ -24,7 +24,7 @@ FROM --platform=linux/amd64 docker.io/library/ubuntu:24.10
 
 RUN apt-get -y update; apt-get -y install curl jq
 
-RUN groupadd -g 1000 openethereum && useradd -m -u 1000 -g openethereum -s /bin/sh openethereum
+RUN groupadd -g 5093 openethereum && useradd -m -u 5093 -g openethereum -s /bin/sh openethereum
 
 USER openethereum
 
