@@ -15,6 +15,7 @@ mio = "0.6.23"     # fixed patch 0.6.23
 fs-swap = "0.2.6"             # fixed patch 0.2.6
 rustc-serialize  = "0.3.25"
 blooms-db = { path = "crates/db/blooms-db" }
+daemonize = "0.5.0"
 log = "0.4.22"
 rustc-hex = "1.0.0"
 docopt = "1.1.1"
@@ -60,7 +61,6 @@ node-filter = { path = "crates/net/node-filter" }
 parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
 rlp = { version = "0.4.6" }
 cli-signer= { path = "crates/util/cli-signer" }
-parity-daemonize = "0.3.0"
 parity-local-store = { path = "crates/concensus/miner/local-store" }
 parity-runtime = { path = "crates/runtime/runtime" }
 parity-rpc = { path = "crates/rpc" }
