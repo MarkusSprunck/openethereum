@@ -1,8 +1,9 @@
-name: Docker Image Scratch
+name: Docker Image Ubuntu (Release)
 
 on:
   push:
-    branches: ["main"]
+    tags:
+      - v*
 
 env:
   IMAGE_NAME: ihkmuenchen/openethereum
@@ -31,5 +32,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:scratch"
-          file: ./scripts/docker/scratch/Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          file: ./scripts/docker/ubuntu/Dockerfile
