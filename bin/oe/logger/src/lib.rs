@@ -126,7 +126,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
             });
             if enable_json {
 				let utc_time = chrono::Utc::now();
-				let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
+				let timestamp = utc_time.to_rfc3339_opts(SecondsFormat::Millis, true);
                 format!(
                     "{{\"@timestamp\":\"{}\",\"@version\":\"1\",\"SERVICE\":\"{}\",\"level\":\"{}\",\"STEP\":\"{}\",\"message\":\"{}\"}}",
                     timestamp,
