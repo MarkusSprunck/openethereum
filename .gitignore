@@ -49,5 +49,8 @@ artifacts
 .testing/environment/staging/secrets/NetworkMnemonic
 .testing/dist
 
+# cargo vendor
+vendor/
+
 # Code Coverage
 tarpaulin-report.html
