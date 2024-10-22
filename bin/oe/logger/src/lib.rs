@@ -38,8 +38,9 @@ use std::{
     env, fs,
     io::Write,
     sync::{Arc, Weak},
-    thread,
+    thread
 };
+use chrono::SecondsFormat;
 
 pub use rotating::{init_log, RotatingLogger};
 
