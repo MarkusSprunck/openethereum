@@ -26,10 +26,8 @@ RUN strip target/x86_64-unknown-linux-gnu/release/openethereum
 # Add a non-priveliged user account. I'm using a specific ID just so
 # I can prove I'm running as that user inside the application.
 RUN addgroup -gid 1000 openethereum &&  \
-    adduser --ingroup openethereum --uid 1000 --shell /bin/false openethereum &&  \
-    addgroup -gid 5093 ihk &&  \
-    adduser --ingroup ihk --uid 5093 --shell /bin/false ihk &&  \
-    cat /etc/passwd | grep -E "openethereum|ihk" > /etc/passwd_build
+    adduser --ingroup openethereum --uid 1000 --shell /bin/false openethereum \
+    cat /etc/passwd | grep -E "openethereum" > /etc/passwd_build
 
 
 # ------------------------------------------------------------------------------
@@ -39,11 +37,11 @@ FROM scratch
 
 EXPOSE 8545
 
-COPY --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum /openethereum
+COPY --chown=openethereum:openethereum --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum /openethereum
 
 # Copy the /etc/passwd file with the user I want to run as defined in it.
 COPY --from=builder /etc/passwd_build /etc/passwd
 
-USER ihk
+USER openethereum
 
 ENTRYPOINT ["/openethereum"]

@@ -1,4 +1,4 @@
-name: Docker Image Latest
+name: Docker Image Alpine
 
 on:
   push:
@@ -31,5 +31,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:scratch"
-          file: ./scripts/docker/scratch/Dockerfile
+          tags: "ihkmuenchen/openethereum:alpine"
+          file: ./scripts/docker/alpine/Dockerfile
