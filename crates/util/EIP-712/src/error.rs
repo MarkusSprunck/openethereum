@@ -14,97 +14,86 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use failure::{Backtrace, Context, Fail};
 use std::fmt::{self, Display};
 use validator::{ValidationErrors, ValidationErrorsKind};
 
 pub(crate) type Result<T> = ::std::result::Result<T, Error>;
+
 /// Error type
 #[derive(Debug)]
 pub struct Error {
-    inner: Context<ErrorKind>,
+    kind: ErrorKind,
 }
+
+impl Error {
+    /// Creates a new `Error` with the specified `ErrorKind`.
+    pub fn new(kind: ErrorKind) -> Self {
+        Error { kind }
+    }
+
+    /// extract the error kind
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.kind)
+    }
+}
+
+impl std::error::Error for Error {}
+
 /// Possible errors encountered while hashing/encoding an EIP-712 compliant data structure
-#[derive(Clone, Fail, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ErrorKind {
     /// if we fail to deserialize from a serde::Value as a type specified in message types
-    /// fail with this error.
-    #[fail(display = "Expected type '{}' for field '{}'", _0, _1)]
     UnexpectedType(String, String),
     /// the primary type supplied doesn't exist in the MessageTypes
-    #[fail(display = "The given primaryType wasn't found in the types field")]
     NonExistentType,
     /// an invalid address was encountered during encoding
-    #[fail(
-        display = "Address string should be a 0x-prefixed 40 character string, got '{}'",
-        _0
-    )]
     InvalidAddressLength(usize),
-    /// a hex parse error occured
-    #[fail(display = "Failed to parse hex '{}'", _0)]
+    /// a hex parse error occurred
     HexParseError(String),
-    /// the field was declared with a unknown type
-    #[fail(display = "The field '{}' has an unknown type '{}'", _0, _1)]
+    /// the field was declared with an unknown type
     UnknownType(String, String),
     /// Unexpected token
-    #[fail(display = "Unexpected token '{}' while parsing typename '{}'", _0, _1)]
     UnexpectedToken(String, String),
     /// the user has attempted to define a typed array with a depth > 10
-    #[fail(display = "Maximum depth for nested arrays is 10")]
     UnsupportedArrayDepth,
     /// FieldType validation error
-    #[fail(display = "{}", _0)]
     ValidationError(String),
     /// the typed array defined in message types was declared with a fixed length
-    /// that is of unequal length with the items to be encoded
-    #[fail(
-        display = "Expected {} items for array type {}, got {} items",
-        _0, _1, _2
-    )]
     UnequalArrayItems(u64, String, u64),
     /// Typed array length doesn't fit into a u64
-    #[fail(display = "Attempted to declare fixed size with length {}", _0)]
     InvalidArraySize(String),
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorKind::UnexpectedType(expected, field) => write!(f, "Expected type '{}' for field '{}'", expected, field),
+            ErrorKind::NonExistentType => write!(f, "The given primaryType wasn't found in the types field"),
+            ErrorKind::InvalidAddressLength(len) => write!(f, "Address string should be a 0x-prefixed 40 character string, got length {}", len),
+            ErrorKind::HexParseError(hex) => write!(f, "Failed to parse hex '{}'", hex),
+            ErrorKind::UnknownType(field, ty) => write!(f, "The field '{}' has an unknown type '{}'", field, ty),
+            ErrorKind::UnexpectedToken(token, typename) => write!(f, "Unexpected token '{}' while parsing typename '{}'", token, typename),
+            ErrorKind::UnsupportedArrayDepth => write!(f, "Maximum depth for nested arrays is 10"),
+            ErrorKind::ValidationError(msg) => write!(f, "{}", msg),
+            ErrorKind::UnequalArrayItems(expected, ty, got) => write!(f, "Expected {} items for array type {}, got {} items", expected, ty, got),
+            ErrorKind::InvalidArraySize(size) => write!(f, "Attempted to declare fixed size with length {}", size),
+        }
+    }
 }
 
 pub(crate) fn serde_error(expected: &str, field: Option<&str>) -> ErrorKind {
     ErrorKind::UnexpectedType(expected.to_owned(), field.unwrap_or("").to_owned())
 }
 
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl Error {
-    /// extract the error kind
-    pub fn kind(&self) -> ErrorKind {
-        self.inner.get_context().clone()
-    }
-}
-
 impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error {
-        Error { inner }
+    fn from(kind: ErrorKind) -> Self {
+        Error::new(kind)
     }
 }
 
