@@ -40,6 +40,7 @@ use log::{trace, warn};
 use num::Zero;
 use num_bigint::BigUint;
 use parity_bytes::BytesRef;
+use substrate_bn as bn;
 use parity_crypto::{
     digest,
     publickey::{recover_allowing_all_zero_message, Signature, ZeroesAllowedMessage},
