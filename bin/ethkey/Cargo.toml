@@ -6,7 +6,7 @@ version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-docopt = "1.0"
+docopt = "1.1.1"
 env_logger = "0.5"
 ethkey = { path = "../../crates/accounts/ethkey" }
 panic_hook = { path = "../../crates/util/panic-hook" }
