@@ -24,6 +24,7 @@ extern crate log as rlog;
 extern crate parking_lot;
 extern crate regex;
 extern crate time;
+extern crate chrono;    
 
 #[macro_use]
 extern crate lazy_static;
