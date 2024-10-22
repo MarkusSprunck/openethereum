@@ -911,6 +911,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "daemonize"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab8bfdaacb3c887a54d41bdf48d3af8873b3f5566469f8ba21b92057509f116e"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1741,28 +1750,6 @@ dependencies = [
  "serde_json",
  "tempdir",
  "vm",
-]
-
-[[package]]
-name = "failure"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d32e9bd16cc02eae7db7ef620b392808b89f6a5e16bb3497d159c6b92a0f4f86"
-dependencies = [
- "backtrace",
- "failure_derive",
-]
-
-[[package]]
-name = "failure_derive"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa4da3c766cd7a0db8242e326e9e4e081edd567072893ed320008189715366a4"
-dependencies = [
- "proc-macro2 1.0.87",
- "quote 1.0.37",
- "syn 1.0.109",
- "synstructure",
 ]
 
 [[package]]
@@ -3227,6 +3214,7 @@ dependencies = [
  "common-types",
  "crossbeam-channel",
  "ctrlc",
+ "daemonize",
  "dir",
  "docopt",
  "ethcore",
@@ -3267,7 +3255,6 @@ dependencies = [
  "panic_hook",
  "parity-bytes",
  "parity-crypto",
- "parity-daemonize",
  "parity-local-store",
  "parity-path",
  "parity-rpc",
@@ -3345,19 +3332,6 @@ dependencies = [
  "subtle 2.3.0",
  "tiny-keccak 2.0.2",
  "zeroize",
-]
-
-[[package]]
-name = "parity-daemonize"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69b1910b2793ff52713fca0a4ee92544ebec59ccd218ea74560be6f947b4ca77"
-dependencies = [
- "ansi_term 0.11.0",
- "failure",
- "libc",
- "log",
- "mio",
 ]
 
 [[package]]

@@ -26,10 +26,10 @@ extern crate log;
 extern crate ansi_term;
 extern crate openethereum;
 extern crate panic_hook;
-extern crate parity_daemonize;
 extern crate parking_lot;
 
 extern crate ethcore_logger;
+extern crate daemonize;
 #[cfg(windows)]
 extern crate winapi;
 
@@ -47,8 +47,8 @@ use ctrlc::CtrlC;
 use ethcore_logger::setup_log;
 use fdlimit::raise_fd_limit;
 use openethereum::{start, ExecutionAction};
-use parity_daemonize::AsHandle;
 use parking_lot::{Condvar, Mutex};
+use daemonize::Daemonize;
 
 #[derive(Debug)]
 /// Status used to exit or restart the program.
@@ -70,22 +70,26 @@ fn main() -> Result<(), i32> {
         process::exit(2)
     });
 
-    // FIXME: `pid_file` shouldn't need to cloned here
-    // see: `https://github.com/paritytech/parity-daemonize/pull/13` for more info
-    let handle = if let Some(pid) = conf.args.arg_daemon_pid_file.clone() {
+    if let Some(pid) = conf.args.arg_daemon_pid_file.clone() {
         info!(
             "{}",
             Colour::Blue.paint("starting in daemon mode").to_string()
         );
         let _ = std::io::stdout().flush();
 
-        match parity_daemonize::daemonize(pid) {
-            Ok(h) => Some(h),
-            Err(e) => {
-                error!("{}", Colour::Red.paint(format!("{}", e)));
-                return Err(1);
-            }
-        }
+		let daemonize = Daemonize::new()
+			.pid_file(pid);
+
+		match daemonize.start() {
+			Ok(_) => {
+				info!("{}", Colour::Green.paint("Daemonization succeeded"));
+				Some(())
+			}
+			Err(e) => {
+				error!("{}", Colour::Red.paint(format!("Daemonization failed: {}", e)));
+				return Err(1);
+			}
+		}
     } else {
         None
     };
@@ -146,12 +150,6 @@ fn main() -> Result<(), i32> {
                     }
                 });
 
-                // so the client has started successfully
-                // if this is a daemon, detach from the parent process
-                if let Some(mut handle) = handle {
-                    handle.detach()
-                }
-
                 // Wait for signal
                 let mut lock = exit.0.lock();
                 if !lock.should_exit {
@@ -166,11 +164,6 @@ fn main() -> Result<(), i32> {
             }
         },
         Err(err) => {
-            // error occured during start up
-            // if this is a daemon, detach from the parent process
-            if let Some(mut handle) = handle {
-                handle.detach_with_msg(format!("{}", Colour::Red.paint(&err)))
-            }
             eprintln!("{}", err);
             return Err(1);
         }
