@@ -589,7 +589,7 @@ impl Miner {
                 _ => {}
             }
 
-            debug!(target: "miner", "Adding tx {:?} took {} ms", hash, took_ms(&took));
+            info!(target: "miner", "Adding tx {:?} took {} ms", hash, took_ms(&took));
             match result {
                 Err(Error(
                     ErrorKind::Execution(ExecutionError::BlockGasLimitReached {
