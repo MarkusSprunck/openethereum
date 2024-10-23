@@ -2,7 +2,7 @@ ARG RUST_VERSION="1.79"
 ARG RUST_FEATURES="--features final"
 
 # ------------------------------------------------------------------------------
-# Build Stage - builds release client with testing
+# Build Stage - builds with testing
 # ------------------------------------------------------------------------------
 
 FROM cimg/rust:${RUST_VERSION} AS builder

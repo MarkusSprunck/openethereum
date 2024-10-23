@@ -2,7 +2,7 @@ ARG RUST_VERSION="1.79"
 ARG RUST_FEATURES=""
 
 # ------------------------------------------------------------------------------
-# Build Stage - builds test client without testing
+# Build Stage - builds without testing
 # ------------------------------------------------------------------------------
 
 FROM rust:${RUST_VERSION}-slim AS builder
