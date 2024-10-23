@@ -417,6 +417,7 @@ impl TestBlockChainClient {
         self.disabled.load(AtomicOrder::SeqCst)
     }
 
+    /// Sets new transaction
     pub fn set_new_transaction_hashes_producer(
         &self,
         new_transaction_hashes: crossbeam_channel::Sender<H256>,

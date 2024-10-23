@@ -2,7 +2,7 @@ echo "Recreate Configuration and Delete Blockchain Data"
 sudo rm -rf /home/parity
 
 sudo mkdir -p /home/parity
-sudo chown -R ${USER}:${USER} /home/parity
+sudo chown -R ${USER}:${GROUP} /home/parity
 
 mkdir -p /home/parity/chain
 mkdir -p /home/parity/data
