@@ -54,3 +54,4 @@ vendor/
 
 # Code Coverage
 tarpaulin-report.html
+/.artifacts/
