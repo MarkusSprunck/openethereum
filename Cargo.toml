@@ -13,7 +13,6 @@ authors = [
 [dependencies]
 mio = "0.6.23"     # fixed patch 0.6.23
 fs-swap = "0.2.6"             # fixed patch 0.2.6
-rustc-serialize  = "0.3.25"
 blooms-db = { path = "crates/db/blooms-db" }
 daemonize = "0.5.0"
 log = "0.4.22"
