@@ -13,7 +13,7 @@ COPY . /build
 
 ENV RUST_BACKTRACE=1
 
-RUN cargo cargo test --all
+RUN cargo test --all
 
 RUN cargo build --release ${RUST_FEATURES}
 
