@@ -1620,7 +1620,7 @@ impl Engine<EthereumMachine> for AuthorityRound {
         let our_addr = match *self.signer.read() {
             Some(ref signer) => signer.address(),
             None => {
-                warn!(target: "engine", "Not preparing block; cannot sign.");
+                info!(target: "engine", "Not preparing block; cannot sign.");
                 return SealingState::NotReady;
             }
         };
