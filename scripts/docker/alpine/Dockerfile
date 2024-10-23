@@ -1,8 +1,10 @@
 ARG RUST_VERSION="1.79"
+ARG RUST_FEATURES=""
 
 # ------------------------------------------------------------------------------
-# Build Stage
+# Build Stage - builds test client without testing
 # ------------------------------------------------------------------------------
+
 FROM rust:${RUST_VERSION}-slim AS builder
 
 RUN apt update -qq && apt install -y -qq --no-install-recommends build-essential libc6-dev cmake
@@ -17,31 +19,29 @@ COPY . /build
 
 ENV RUST_BACKTRACE=1
 
-ENV RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-args=-lm -Clink-args=-lpthread"
+ENV RUSTFLAGS="-Ctarget-feature=+crt-static"
 
-RUN cargo build --release --features final --target x86_64-unknown-linux-gnu
-
-RUN strip target/x86_64-unknown-linux-gnu/release/openethereum
+RUN cargo build --release ${RUST_FEATURES} --target x86_64-unknown-linux-gnu
 
 # ------------------------------------------------------------------------------
 # Runtime Stage
 # ------------------------------------------------------------------------------
+
 FROM alpine:3.20
 
-# curl and jq are installed to help create health and readiness checks on Kubernetes
-RUN apk add --no-cache libstdc++ eudev-libs libgcc curl jq
+RUN apk add --no-cache curl jq
 
 ENV RUST_BACKTRACE=1
 
-RUN addgroup -g 1000 openethereum && adduser -u 1000 -G openethereum -s /bin/sh -D openethereum
+RUN addgroup -g 5093 openethereum && adduser -u 5093 -G openethereum -s /bin/sh -D openethereum
 
 USER openethereum
 
-EXPOSE 8545
+#      rpc  ws   listener  discovery
+#      ↓    ↓    ↓         ↓
+EXPOSE 8545 8546 30303/tcp 30303/udp
 
 WORKDIR /home/openethereum
-
-RUN mkdir -p /home/openethereum/.local/share/io.parity.ethereum/
 
 COPY --chown=openethereum:openethereum --from=builder /build/target/x86_64-unknown-linux-gnu/release/openethereum ./
 
