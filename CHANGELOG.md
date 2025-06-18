@@ -1,4 +1,4 @@
-## OpenEthereum v3.4.0
+## OpenEthereum v3.5.0-rc0
 
 This release is based on the last stable version, v3.3.5, and serves as a maintenance
 update with various improvements, security patches, and enhancements. Key highlights

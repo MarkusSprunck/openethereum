@@ -10,7 +10,7 @@ Fork of OpenEthereum (v3.3.5)
 - security updates of toolchain
 - updates of dependencies
 - working CI pipeline
-- create new version v3.4.0 and continuous maintenance
+- create new version v3.5.0-rc0 and continuous maintenance
 
 ## Contact
 

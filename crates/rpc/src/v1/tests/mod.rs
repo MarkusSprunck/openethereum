@@ -28,6 +28,7 @@ pub mod helpers;
 //     `extract_chain!("Folder/File", "with_name")` will load Folder/File.json and
 //     extract the chain with that name. This will panic if no chain by that name
 //     is found.
+
 macro_rules! extract_chain {
 	(iter $file:expr) => {{
 		const RAW_DATA: &'static [u8] =

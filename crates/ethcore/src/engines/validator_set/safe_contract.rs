@@ -861,7 +861,7 @@ mod tests {
         use types::{header::Header, log_entry::LogEntry};
 
         let client = generate_dummy_client_with_spec(Spec::new_validator_safe_contract);
-        let engine = client.engine().clone();
+        let engine = client.engine();
         let validator_contract = "0000000000000000000000000000000000000005"
             .parse::<Address>()
             .unwrap();
@@ -900,7 +900,7 @@ mod tests {
         use types::header::Header;
 
         let client = generate_dummy_client_with_spec(Spec::new_validator_safe_contract);
-        let engine = client.engine().clone();
+        let engine = client.engine();
 
         let mut new_header = Header::default();
         new_header.set_number(0); // so the validator set doesn't look for a log

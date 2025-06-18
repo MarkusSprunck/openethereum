@@ -334,6 +334,7 @@ fn run_call<T: Informant>(args: Args, informant: T) {
     T::finish(result, &mut sink);
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct Args {
     cmd_stats: bool,

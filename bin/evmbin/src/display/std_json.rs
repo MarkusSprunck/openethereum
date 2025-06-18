@@ -27,25 +27,16 @@ use info as vm;
 
 pub trait Writer: io::Write + Send + Sized {
     fn clone(&self) -> Self;
-    fn default() -> Self;
 }
 
 impl Writer for io::Stdout {
     fn clone(&self) -> Self {
         io::stdout()
     }
-
-    fn default() -> Self {
-        io::stdout()
-    }
 }
 
 impl Writer for io::Stderr {
     fn clone(&self) -> Self {
-        io::stderr()
-    }
-
-    fn default() -> Self {
         io::stderr()
     }
 }
@@ -299,9 +290,6 @@ pub mod tests {
     impl Writer for TestWriter {
         fn clone(&self) -> Self {
             Clone::clone(self)
-        }
-        fn default() -> Self {
-            Default::default()
         }
     }
 

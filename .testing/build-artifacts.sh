@@ -5,6 +5,10 @@ set -u # treat unset variables as error
 
 cd ..
 
+echo "_____ Set GCC-12 and G++-12 as default compiler _____"
+export CC=/usr/bin/gcc-12
+export CXX=/usr/bin/g++-12
+
 #strip ON
 export RUSTFLAGS=" -Clink-arg=-s -Ctarget-feature=+aes,+ssse3"
 

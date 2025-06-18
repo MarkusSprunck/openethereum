@@ -27,6 +27,15 @@ Host 3. All other software components are used for monitoring the Leopold blockc
 Before testing we have to create target folders and 
 configuration on local machine.
 
+#### Install GCC-12 and G++-12 and set environment
+
+```shell
+sudo apt install gcc-12 g++-12
+export CC=/usr/bin/gcc-12
+export CXX=/usr/bin/g++-12
+```
+
+
 #### Build Artefacts (once)
 
 For the generation of secrets we need two applications, i.e. *ethkey* and *ethstore*
@@ -56,16 +65,15 @@ Expected result:
 ###################################################################################
 # 1. Create Secrets and Configuration
 ###################################################################################
-mkdir: cannot create directory ‘./dist/’: File exists
 Generating key material for validator node
 
-NETWORK_MNEMONIC -> '123456'
-ACCOUNT_MNEMONIC -> '234567'
-PRIV_KEY         -> 6c7bc97139b896a9f6df20555e45693bcecee2a4efb0f55cea690fe5ceff6759
-ADDR             -> 0x00c65f03c7e086894ddd72e02bc93d74a969a7b7
+NETWORK_MNEMONIC -> '5678'
+ACCOUNT_MNEMONIC -> '1234'
+PRIV_KEY         -> 5bdbac19375a24cac7fea60830773f1c9497012394c7b059efd2c9a3669810fa
+ADDR             -> 0x0012a3c9f542a2753a7d46f8b2df7fe5762a548a
 
 Generating password for keystore file for node 
-0x00c65f03c7e086894ddd72e02bc93d74a969a7b7
+0x0012a3c9f542a2753a7d46f8b2df7fe5762a548a
 ```
 
 #### Start local Leopold Node
@@ -87,12 +95,12 @@ Expected result:
    Compiling ethcore-service v0.1.0 (/home/parallels/RustroverProjects/openethereum/crates/ethcore/service)
    Compiling parity-rpc-client v1.4.0 (/home/parallels/RustroverProjects/openethereum/crates/util/cli-signer/rpc-client)
    Compiling cli-signer v1.4.0 (/home/parallels/RustroverProjects/openethereum/crates/util/cli-signer)
-   Compiling openethereum v3.4.0 (/home/parallels/RustroverProjects/openethereum)
+   Compiling openethereum v3.5.0-rc0 (/home/parallels/RustroverProjects/openethereum)
     Finished `release` profile [optimized] target(s) in 7m 16s
 warning: the following packages contain code that will be rejected by a future version of Rust: protobuf v2.16.2
 note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
      Running `target/release/openethereum --config /home/parity/authority.toml`
-{"@timestamp":"2024-10-23T06:25:48.645Z","@version":"1","SERVICE":"main","level":"INFO","STEP":"openethereum::run","message":"Starting OpenEthereum/v3.4.0-stable/x86_64-linux-gnu/rustc1.79.0"}
+{"@timestamp":"2024-10-23T06:25:48.645Z","@version":"1","SERVICE":"main","level":"INFO","STEP":"openethereum::run","message":"Starting OpenEthereum/v3.5.0-rc0-stable/x86_64-linux-gnu/rustc1.79.0"}
 {"@timestamp":"2024-10-23T06:25:48.645Z","@version":"1","SERVICE":"main","level":"INFO","STEP":"openethereum::run","message":"Repository https://github.com/MarkusSprunck/openethereum"}
 {"@timestamp":"2024-10-23T06:25:48.645Z","@version":"1","SERVICE":"main","level":"INFO","STEP":"openethereum::run","message":"Keys path /home/parity/data/keys/leopold"}
 {"@timestamp":"2024-10-23T06:25:48.645Z","@version":"1","SERVICE":"main","level":"INFO","STEP":"openethereum::run","message":"DB path /home/parity/data/chains/leopold/db/024f447b30f5b4b8"}

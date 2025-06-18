@@ -50,8 +50,7 @@ impl<'a> BuiltinBenchmark<'a> {
 
         let builtin = builtins
             .get(&H160::from_str(builtin_address).unwrap())
-            .unwrap()
-            .clone();
+            .unwrap();
         let input = FromHex::from_hex(input).unwrap();
         let expected = FromHex::from_hex(expected).unwrap();
 
