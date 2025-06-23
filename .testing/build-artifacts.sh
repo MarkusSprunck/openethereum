@@ -10,7 +10,7 @@ export CC=/usr/bin/gcc-12
 export CXX=/usr/bin/g++-12
 
 #strip ON
-export RUSTFLAGS=" -Clink-arg=-s -Ctarget-feature=+aes,+ssse3"
+export RUSTFLAGS=" -Clink-arg=-s -Ctarget-feature=+aes"
 
 echo "_____ Build tools _____"
 
