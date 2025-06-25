@@ -4,7 +4,7 @@
         {
             "label": "build with final features (dev)",
             "type": "shell",
-            "command": "export CC=/usr/bin/gcc-12; export CXX=/usr/bin/g++-12; ~/.cargo/bin/cargo build --color=always --profile dev --features final",
+            "command": "export CC=/usr/bin/gcc-12 && export CXX=/usr/bin/g++-12 && ~/.cargo/bin/cargo build --color=always --profile dev --features final",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -16,7 +16,7 @@
         {
             "label": "test with final features (dev)",
             "type": "shell",
-            "command": "export CC=/usr/bin/gcc-12; export CXX=/usr/bin/g++-12; ~/.cargo/bin/cargo test --color=always --profile dev --features final",
+            "command": "export CC=/usr/bin/gcc-12 && export CXX=/usr/bin/g++-12 && ~/.cargo/bin/cargo test --color=always --profile dev --features final",
             "group": {
                 "kind": "test",
                 "isDefault": true
@@ -28,7 +28,7 @@
         {
             "label": "run leopold with final features (dev)",
             "type": "shell",
-            "command": "export CC=/usr/bin/gcc-12; export CXX=/usr/bin/g++-12; ~/.cargo/bin/cargo run --color=always --profile dev --features final -- --config /home/parity/authority.toml",
+            "command": "export CC=/usr/bin/gcc-12 && export CXX=/usr/bin/g++-12 && ~/.cargo/bin/cargo run --color=always --profile dev --features final -- --config /home/parity/authority.toml",
             "group": {
                 "kind": "test",
                 "isDefault": true

@@ -145,3 +145,7 @@ members = [
 	"bin/evmbin",
 	"bin/chainspec"
 ]
+
+[env]
+CC="/usr/bin/gcc-12"
+CXX="/usr/bin/g++-12"
