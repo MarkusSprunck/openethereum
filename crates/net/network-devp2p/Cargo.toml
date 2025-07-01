@@ -24,7 +24,7 @@ parity-crypto = { version = "0.7.0", features = ["publickey"] }
 ethcore-network = { path = "../network" }
 ethereum-types = "0.10.0"
 ethkey = { path = "../../../crates/accounts/ethkey" }
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 parity-path = "0.1"
 ipnetwork = "0.12.6"
 keccak-hash = "0.6.0"

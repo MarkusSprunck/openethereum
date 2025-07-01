@@ -35,7 +35,7 @@ parity-util-mem = "0.7"
 parking_lot = "0.12.3"
 rand = "0.7.3"
 rand_xorshift = "0.2.0"
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 trace-time = "0.1"
 triehash-ethereum = { version = "0.2", path = "../../util/triehash-ethereum" }
 stats = { path = "../../util/stats" }

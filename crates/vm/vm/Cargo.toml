@@ -10,5 +10,5 @@ parity-bytes = "0.1"
 ethereum-types = "0.10.0"
 patricia-trie-ethereum = { path = "../../db/patricia-trie-ethereum" }
 ethjson = { path = "../../ethjson" }
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 keccak-hash = "0.6.0"

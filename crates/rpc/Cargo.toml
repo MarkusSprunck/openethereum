@@ -53,7 +53,7 @@ fetch = { path = "../net/fetch" }
 keccak-hash = "0.6.0"
 parity-runtime = { path = "../runtime/runtime" }
 parity-version = { path = "../util/version" }
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 stats = { path = "../util/stats" }
 vm = { path = "../vm/vm" }
 rpc-servers = { path = "../rpc-servers", package = "oe-rpc-servers" }

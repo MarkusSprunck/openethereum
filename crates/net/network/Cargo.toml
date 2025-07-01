@@ -15,7 +15,7 @@ ethereum-types = "0.10.0"
 ethkey = { path = "../../../crates/accounts/ethkey" }
 ipnetwork = "0.12.6"
 lazy_static = "1.0"
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 libc = "0.2"
 parity-snappy = "0.1"
 semver = { version = "0.9.0", features = ["serde"] }

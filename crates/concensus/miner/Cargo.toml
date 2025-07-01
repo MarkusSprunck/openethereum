@@ -32,7 +32,7 @@ parity-runtime = { path = "../../runtime/runtime" }
 parity-util-mem = "0.7"
 parking_lot = "0.12.3"
 price-info = { path = "./price-info", optional = true }
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"

@@ -18,7 +18,7 @@ memory-db = { path = "../memory-db" }
 parity-util-mem = "0.7"
 parking_lot = "0.12.3"
 fastmap = { path = "../../util/fastmap" }
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
 
 [dev-dependencies]
 env_logger = "0.5"

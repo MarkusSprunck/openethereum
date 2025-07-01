@@ -8,7 +8,6 @@ license = "GPL-3.0"
 authors = ["OpenEthereum developers", "Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-rlp = "0.5.2"
 primitive-types = "0.8.0"
 # ring = "0.16.19"
 mio = "0.6.23"                                                              # fixed patch 0.6.23
