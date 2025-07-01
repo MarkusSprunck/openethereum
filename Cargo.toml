@@ -8,6 +8,7 @@ license = "GPL-3.0"
 authors = ["OpenEthereum developers", "Parity Technologies <admin@parity.io>"]
 
 [dependencies]
+rlp = "0.5.2"
 primitive-types = "0.8.0"
 # ring = "0.16.19"
 mio = "0.6.23"                                                              # fixed patch 0.6.23
@@ -60,7 +61,6 @@ ethstore = { path = "crates/accounts/ethstore" }
 fetch = { path = "crates/net/fetch" }
 node-filter = { path = "crates/net/node-filter" }
 parity-crypto = { version = "0.7.0", features = ["publickey"] }
-rlp = { version = "0.4.6" }
 cli-signer = { path = "crates/util/cli-signer" }
 parity-local-store = { path = "crates/concensus/miner/local-store" }
 parity-runtime = { path = "crates/runtime/runtime" }

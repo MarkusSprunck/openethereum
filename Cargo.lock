@@ -3509,7 +3509,7 @@ dependencies = [
  "primitive-types 0.8.0",
  "prometheus 0.13.4",
  "regex",
- "rlp 0.4.6",
+ "rlp 0.5.2",
  "rpassword",
  "rustc-hex 1.0.0",
  "rustc_version",
