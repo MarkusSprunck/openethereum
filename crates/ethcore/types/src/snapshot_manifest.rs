@@ -48,7 +48,7 @@ impl ManifestData {
         stream.append(&self.block_number);
         stream.append(&self.block_hash);
 
-        stream.out()
+        stream.out().to_vec()
     }
 
     /// Try to restore manifest data from raw bytes, interpreted as RLP.

@@ -263,7 +263,7 @@ impl Block {
         stream.append_raw(header.rlp().as_raw(), 1);
         stream.append_raw(body.transactions_rlp().as_raw(), 1);
         stream.append_raw(body.uncles_rlp().as_raw(), 1);
-        Block::new(stream.out())
+        Block::new(stream.out().to_vec())
     }
 
     /// Get a borrowed view of the whole block.
