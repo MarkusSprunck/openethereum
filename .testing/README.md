@@ -32,8 +32,6 @@ configuration on local machine.
 ```shell
 sudo apt install cmake
 sudo apt install gcc-12 g++-12
-export CC=/usr/bin/gcc-12
-export CXX=/usr/bin/g++-12
 ```
 
 
@@ -41,8 +39,8 @@ export CXX=/usr/bin/g++-12
 
 For the generation of secrets we need two applications, i.e. *ethkey* and *ethstore*
 
-```shell
-./build-artifacts.sh
+```bash
+.scripts/build-artifacts-cli-tools.sh
 ```
 
 #### Create Secrets (once)
