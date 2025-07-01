@@ -43,8 +43,12 @@ ACCOUNT_MNEMONIC_FILE="./environment/$STAGE/secrets/AccountMnemonic"
 NETWORK_MNEMONIC_FILE="./environment/$STAGE/secrets/NetworkMnemonic"
 MACHINE_DIR="$BASE_DIR/dist/$STAGE/"
 
-mkdir $BASE_DIR"/dist/"
-mkdir $MACHINE_DIR
+mkdir -p $BASE_DIR"/dist/"
+mkdir -p $MACHINE_DIR
+mkdir -p $MACHINE_DIR"chain"
+mkdir -p $MACHINE_DIR"data"
+mkdir -p $MACHINE_DIR"data/keys"
+mkdir -p $MACHINE_DIR"data/network"
 
 # read mnemonic from file
 ACCOUNT_MNEMONIC=$(cat $ACCOUNT_MNEMONIC_FILE | head -1 | tail -1)
@@ -59,7 +63,7 @@ echo "ACCOUNT_MNEMONIC -> '$ACCOUNT_MNEMONIC'"
 
 PRIV_KEY=$($UTILS/ethkey info -b -s "$NETWORK_MNEMONIC")
 PUB_KEY=$($UTILS/ethkey info -b -p  "$NETWORK_MNEMONIC")
-echo $PRIV_KEY > "$MACHINE_DIR/key.priv"
+echo $PRIV_KEY > "${MACHINE_DIR}data/network/key"
 
 # generating private key for keystore file
 PRIV_KEY=$($UTILS/ethkey info -b -s "$ACCOUNT_MNEMONIC")
@@ -73,8 +77,8 @@ echo
 echo "Generating password for keystore file for node $i"
 openssl rand -hex 40 > "$MACHINE_DIR/$PASSWORD"
 
-cp -f $BASE_DIR"/environment/$STAGE/template/reserved_peers" $MACHINE_DIR"/reserved_peers"
-cp -f $BASE_DIR"/environment/$STAGE/template/spec.json" $MACHINE_DIR"/spec.json"
+cp -f $BASE_DIR"/environment/$STAGE/template/reserved_peers" $MACHINE_DIR"chain/reserved_peers"
+cp -f $BASE_DIR"/environment/$STAGE/template/spec.json" $MACHINE_DIR"chain/spec.json"
 
 #replace mining address in cofig toml
 cp -f $CONFIG_FILE_TEMPLATE $MACHINE_DIR
@@ -82,8 +86,8 @@ sed -i'' -e "s/engine_signer = \"\"/engine_signer = \"$ADDR\"/g" "$MACHINE_DIR/$
 rm -f "$MACHINE_DIR/$CONFIG_FILE-e"
 
 # remove all old keystore files
-rm -f "$MACHINE_DIR$NETWORK_NAME/UTC"*
+rm -f "$MACHINE_DIR/data/keys/UTC"*
 # generate keystore file
-$UTILS/ethstore insert $PRIV_KEY "$MACHINE_DIR/$PASSWORD" --dir "$MACHINE_DIR/$NETWORK_NAME"
+$UTILS/ethstore insert $PRIV_KEY "$MACHINE_DIR/$PASSWORD" --dir "$MACHINE_DIR/data/keys/"
 
 

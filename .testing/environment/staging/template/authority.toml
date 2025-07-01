@@ -1,12 +1,12 @@
 [parity]
-chain = "/home/parity/chain/spec.json"
-base_path = "/home/parity/data"
+chain = "/workspaces/openethereum/.testing/dist/staging/chain/spec.json"
+base_path = "/workspaces/openethereum/.testing/dist/staging/data"
 no_persistent_txqueue = true
 
 [network]
 min_peers = 2
 max_peers = 10
-reserved_peers = "/home/parity/chain/reserved_peers"
+reserved_peers = "/workspaces/openethereum/.testing/dist/staging/chain/reserved_peers"
 port = 30303
 reserved_only = true
 warp = false
@@ -29,10 +29,10 @@ disable = true
 [misc]
 json = true
 logging = "network=info,miner=info,own_tx=info,external_tx=info,poa=info,chain=info,discovery=info,network=info,local_store=info,txqueue=info"
-log_file = "/home/parity/data/logs"
+log_file = "/workspaces/openethereum/.testing/dist/staging/data/logs"
 
 [account]
-password = ["/home/parity/password"]
+password = ["/workspaces/openethereum/.testing/dist/staging/password"]
 
 [mining]
 reseal_on_txs = "none"
