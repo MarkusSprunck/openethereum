@@ -1,5 +1,4 @@
 ARG RUST_VERSION="1.79"
-ARG RUST_FEATURES="--features final"
 
 # ------------------------------------------------------------------------------
 # Build Stage - builds with testing
@@ -15,7 +14,7 @@ ENV RUST_BACKTRACE=1
 
 RUN cargo test --all
 
-RUN cargo build --release ${RUST_FEATURES}
+RUN cargo build --release --features final
 
 RUN strip target/release/openethereum
 

@@ -1,57 +1,71 @@
-# Setup Development Environment [Ubuntu 24.04 LTS]
+# 1. Setup Development Environment
 
-This fork of OpenEthereum project is developed and tested under Ubuntu. 
-The current state will not work under macOS and Windows is not tested.
+## 1.. Ubuntu 24.04 LTS
 
-## Check OS version
+This fork of OpenEthereum project is developed and tested under Ubuntu.
 
-```shell
+### Check OS version (ubuntu)
+
+```bash
 lsb_release -a
 ```
 
-Expected:
-```
-No LSB modules are available.
+```result
 Distributor ID: Ubuntu
 Description:    Ubuntu 24.04.2 LTS
 Release:        24.04
 Codename:       noble
 ```
 
+### Install Tools
 
-## Install Tools
-
-```shell
+```bash
 curl https://sh.rustup.rs -sSf | sh
 export PATH=$PATH:$HOME/.cargo/bin
 ```
 
-```shell
+```bash
 sudo apt update
-```
-
-```shell
 sudo apt upgrade
-```
-
-```shell
 sudo apt install yasm
-```
-
-```shell
 sudo apt install tree
+sudo apt install gcc-12 g++-12
 ````
 
 ## Select Rust Version
 
-```shell
+```bash
 ./scripts/setup-rust-1.79.sh
 ```
 
-## Install GCC-12 and G++-12 and set environment
 
-```shell
-sudo apt install gcc-12 g++-12
-export CC=/usr/bin/gcc-12
-export CXX=/usr/bin/g++-12
+
+## 1.2. MacOS
+
+The current state will not work under macOS and Windows is not tested.
+
+### Install GCC-12 and G++-12
+
+```bash
+ brew install gcc
+```
+
+### Install CMake 3.28.3
+
+```bash
+curl --silent --location --retry 3 "https://gith`b.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-macos-universal.dmg" --output cmake-macos.dmg
+```
+
+Then open dmg file and manually install.
+
+Verify:
+
+```bash
+cmake --version
+```
+
+```result
+cmake version 3.28.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
 ```

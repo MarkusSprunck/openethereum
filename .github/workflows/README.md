@@ -1,7 +1,7 @@
 # OpenEthereum
 
 Find sources here:
-https://github.com/MarkusSprunck/openethereum
+[https://github.com/MarkusSprunck/openethereum](https://github.com/MarkusSprunck/openethereum)
 
 Fork of OpenEthereum (v3.3.5)
 
@@ -14,7 +14,7 @@ Fork of OpenEthereum (v3.3.5)
 
 ## Contact
 
-To get in contact with Markus Sprunck (sprunck.markus@gmail.com)
+To get in contact with Markus Sprunck (<sprunck.markus@gmail.com>)
 
 ## Status
 
