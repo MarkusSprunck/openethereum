@@ -38,10 +38,10 @@ BASE_DIR="."
 NETWORK_NAME="leopold"
 PASSWORD="password"
 CONFIG_FILE="authority.toml"
-CONFIG_FILE_TEMPLATE="./environment/$STAGE/template/authority.toml"
-ACCOUNT_MNEMONIC_FILE="./environment/$STAGE/secrets/AccountMnemonic"
-NETWORK_MNEMONIC_FILE="./environment/$STAGE/secrets/NetworkMnemonic"
-MACHINE_DIR="$BASE_DIR/dist/$STAGE/"
+CONFIG_FILE_TEMPLATE="./template/authority.toml"
+ACCOUNT_MNEMONIC_FILE="./secrets/AccountMnemonic"
+NETWORK_MNEMONIC_FILE="./secrets/NetworkMnemonic"
+MACHINE_DIR="$BASE_DIR/dist/"
 
 mkdir -p $BASE_DIR"/dist/"
 mkdir -p $MACHINE_DIR
@@ -77,8 +77,8 @@ echo
 echo "Generating password for keystore file for node $i"
 openssl rand -hex 40 > "$MACHINE_DIR/$PASSWORD"
 
-cp -f $BASE_DIR"/environment/$STAGE/template/reserved_peers" $MACHINE_DIR"chain/reserved_peers"
-cp -f $BASE_DIR"/environment/$STAGE/template/spec.json" $MACHINE_DIR"chain/spec.json"
+cp -f $BASE_DIR"/template/reserved_peers" $MACHINE_DIR"chain/reserved_peers"
+cp -f $BASE_DIR"/template/spec.json" $MACHINE_DIR"chain/spec.json"
 
 #replace mining address in cofig toml
 cp -f $CONFIG_FILE_TEMPLATE $MACHINE_DIR

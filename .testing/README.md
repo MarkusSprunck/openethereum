@@ -46,8 +46,8 @@ For the generation of secrets we need two applications, i.e. *ethkey* and *ethst
 #### Create Secrets (once)
 
 ```bash
-echo "1234" > environment/staging/secrets/AccountMnemonic
-echo "5678" > environment/staging/secrets/NetworkMnemonic
+echo "1234" > ./secrets/AccountMnemonic
+echo "5678" > ./secrets/NetworkMnemonic
 ```
 
 ```bash
