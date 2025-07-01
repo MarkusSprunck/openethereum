@@ -8,10 +8,10 @@ authors = ["Parity Technologies <admin@parity.io>"]
 [dependencies]
 common-types = { path = "../../../ethcore/types" }
 ethcore-io = { path = "../../../runtime/io" }
-ethcore-db = { path = "../../../db/db"}
+ethcore-db = { path = "../../../db/db" }
 kvdb = "0.1"
 log = "0.4"
-parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
+parity-crypto = { version = "0.7.0", features = ["publickey"] }
 rlp = { version = "0.4.6" }
 serde = "1.0"
 serde_derive = "1.0"

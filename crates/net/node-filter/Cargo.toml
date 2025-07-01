@@ -8,10 +8,10 @@ version = "1.12.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-ethcore = { path = "../../ethcore"}
+ethcore = { path = "../../ethcore" }
 ethcore-network = { path = "../network" }
 ethcore-network-devp2p = { path = "../network-devp2p" }
-ethereum-types = "0.9.2"
+ethereum-types = "0.10.0"
 log = "0.4"
 parking_lot = "0.12.3"
 ethabi = "12.0.0"
