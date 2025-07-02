@@ -1,5 +1,5 @@
 [package]
-edition = "2015"
+edition = "2021"
 description = "Parity Ethereum Logger Implementation"
 name = "ethcore-logger"
 version = "1.12.0"

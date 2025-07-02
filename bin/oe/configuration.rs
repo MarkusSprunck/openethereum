@@ -504,7 +504,7 @@ impl Configuration {
     pub fn logger_config(&self) -> LogConfig {
         LogConfig {
             mode: self.args.arg_logging.clone(),
-            color: !self.args.flag_no_color && !cfg!(windows),
+            color: !self.args.flag_no_color,
             file: self
                 .args
                 .arg_log_file
@@ -1387,7 +1387,7 @@ mod tests {
                 fat_db: Default::default(),
                 vm_type: VMType::Interpreter,
                 check_seal: true,
-                with_color: !cfg!(windows),
+                with_color: true,
                 verifier_settings: Default::default(),
                 max_round_blocks_to_import: 1,
             }))
@@ -1506,7 +1506,7 @@ mod tests {
                     max_payload: 5,
                 },
                 LogConfig {
-                    color: !cfg!(windows),
+                    color: true,
                     mode: None,
                     file: None,
                     json: false,
@@ -1543,7 +1543,7 @@ mod tests {
             pruning_memory: 32,
             daemon: None,
             logger_config: LogConfig {
-                color: !cfg!(windows),
+                color: true,
                 mode: None,
                 file: None,
                 json: false,

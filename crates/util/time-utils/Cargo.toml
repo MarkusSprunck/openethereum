@@ -1,5 +1,5 @@
 [package]
-edition = "2018"
+edition = "2021"
 name = "time-utils"
 version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]

@@ -1,5 +1,5 @@
 [package]
-edition = "2018"
+edition = "2021"
 description = "Parity Ethereum (EthCore) Contract Calls and Blockchain Service & Registry Information"
 name = "ethcore-call-contract"
 version = "0.1.0"

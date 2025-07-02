@@ -1,5 +1,5 @@
 [package]
-edition = "2015"
+edition = "2018"
 description = "OpenEthereum CLI Signer Tool"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"

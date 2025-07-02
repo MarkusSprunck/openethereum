@@ -379,7 +379,6 @@ mod test {
         assert!(!check_vault_name("*"));
         assert!(!check_vault_name("../.bash_history"));
         assert!(!check_vault_name("/etc/passwd"));
-        assert!(!check_vault_name("c:\\windows"));
     }
 
     #[test]

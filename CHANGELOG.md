@@ -1,7 +1,9 @@
+# CHANGELOG
+
 ## OpenEthereum v3.5.0
 
 This release is based on the last stable version, v3.4.0, and serves as a maintenance
-update with various improvements, security patches, and enhancements. 
+update with various improvements, security patches, and enhancements.
 
 Enhancements
 
@@ -9,11 +11,12 @@ Enhancements
 
 DevOps
 
-* TODO
+* Remove alpine image build
+* Simplify testing and debugging with Leopold blockchain (Staging)
 
 Cleanup
 
-* TODO
+* Remove support for windows operating system
 
 Security fixes
 
@@ -22,7 +25,6 @@ Security fixes
 Bug fixes
 
 * TODO
-
 
 ## OpenEthereum v3.4.0
 
@@ -36,7 +38,7 @@ Enhancements
 * Introduced JSON logging
 * Added debug configurations for VSCode Debugging
 * Prepared code coverage tool _cargo-tarpaulin_
-* Added quality-of-life scripts for building, testing, and running the client 
+* Added quality-of-life scripts for building, testing, and running the client
 * Add testing support for Leopold PoA blockchain
 
 DevOps
@@ -66,6 +68,7 @@ Bug fixes
 * Resolved issues with test case in version 1.79.0
 * Fix build for alpine images
 
+<!-- markdownlint-disable -->
 ## OpenEthereum v3.3.5
 
 Enhancements:

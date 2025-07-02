@@ -77,9 +77,7 @@ impl Default for IpcConfiguration {
     fn default() -> Self {
         IpcConfiguration {
             enabled: true,
-            socket_addr: if cfg!(windows) {
-                r"\\.\pipe\jsonrpc.ipc".into()
-            } else {
+            socket_addr: {
                 let data_dir = ::dir::default_data_path();
                 parity_ipc_path(&data_dir, "$BASE/jsonrpc.ipc", 0)
             },
@@ -272,17 +270,14 @@ pub fn new_ipc<D: rpc_apis::Dependencies>(
     let handler = setup_apis(conf.apis, dependencies);
     let path = PathBuf::from(&conf.socket_addr);
     // Make sure socket file can be created on unix-like OS.
-    // Windows pipe paths are not on the FS.
-    if !cfg!(windows) {
-        if let Some(dir) = path.parent() {
-            ::std::fs::create_dir_all(&dir).map_err(|err| {
-                format!(
-                    "Unable to create IPC directory at {}: {}",
-                    dir.display(),
-                    err
-                )
-            })?;
-        }
+    if let Some(dir) = path.parent() {
+        ::std::fs::create_dir_all(&dir).map_err(|err| {
+            format!(
+                "Unable to create IPC directory at {}: {}",
+                dir.display(),
+                err
+            )
+        })?;
     }
 
     match rpc_servers::start_ipc(&conf.socket_addr, handler, rpc::RpcExtractor) {

@@ -30,8 +30,6 @@ extern crate parking_lot;
 
 extern crate ethcore_logger;
 extern crate daemonize;
-#[cfg(windows)]
-extern crate winapi;
 
 use std::{
     io::Write,

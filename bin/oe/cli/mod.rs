@@ -492,7 +492,7 @@ usage! {
             "--no-ipc",
             "Disable JSON-RPC over IPC service.",
 
-            ARG arg_ipc_path: (String) = if cfg!(windows) { r"\\.\pipe\jsonrpc.ipc" } else { "$BASE/jsonrpc.ipc" }, or |c: &Config| c.ipc.as_ref()?.path.clone(),
+            ARG arg_ipc_path: (String) = { "$BASE/jsonrpc.ipc" }, or |c: &Config| c.ipc.as_ref()?.path.clone(),
             "--ipc-path=[PATH]",
             "Specify custom path for JSON-RPC over IPC service.",
 
