@@ -62,7 +62,7 @@ sudo apt install gcc-12 g++-12
 ### 2.3 Select Rust Version
 
 ```bash
-./scripts/setup-rust-1.79.sh
+./scripts/setup-rust-1.85.sh
 ```
 
 ## 3.0 Setup Development Machine (MacOS)

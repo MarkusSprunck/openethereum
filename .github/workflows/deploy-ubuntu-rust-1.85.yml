@@ -1,4 +1,4 @@
-name: Docker Image Ubuntu
+name: Docker Image Ubuntu (Rust 1.85)
 
 on:
   push:
@@ -31,5 +31,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:latest"
-          file: ./scripts/docker/ubuntu/Dockerfile
+          tags: "ihkmuenchen/openethereum:latest-rust-1.85"
+          file: ./scripts/docker/ubuntu-rust-1.85/Dockerfile
