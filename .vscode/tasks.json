@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build (dev)",
+            "label": "openethereum build",
             "type": "shell",
             "command": "export CC=$(which gcc-12) && export CXX=$(which g++-12) && ~/.cargo/bin/cargo build --color=always --profile dev --features final",
             "group": {
@@ -14,7 +14,7 @@
             ]
         },
         {
-            "label": "test (dev)",
+            "label": "openethereum test (all)",
             "type": "shell",
             "command": "export CC=$(which gcc-12) && export CXX=$(which g++-12) && ~/.cargo/bin/cargo test --all --color=always --profile dev --features final",
             "group": {
@@ -26,7 +26,7 @@
             ]
         },
         {
-            "label": "run leopold (dev)",
+            "label": "openethereum test (leopold)",
             "type": "shell",
             "command": "export CC=$(which gcc-12) && export CXX=$(which g++-12) && ~/.cargo/bin/cargo run --color=always --profile dev --features final -- --config ${workspaceRoot}/.testing/dist/authority.toml",
             "group": {
@@ -34,8 +34,17 @@
                 "isDefault": true
             }
         },
+                {
+            "label": "openethereum check",
+            "type": "shell",
+            "command": "export CC=$(which gcc-12) && export CXX=$(which g++-12) && ~/.cargo/bin/cargo check",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
         {
-            "label": "clean",
+            "label": "openethereum clean",
             "type": "shell",
             "command": "~/.cargo/bin/cargo clean",
             "group": {
