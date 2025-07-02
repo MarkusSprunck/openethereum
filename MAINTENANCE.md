@@ -38,8 +38,6 @@ sudo apt install gcc-12 g++-12
 ./scripts/setup-rust-1.79.sh
 ```
 
-
-
 ## 1.2. MacOS
 
 The current state will not work under macOS and Windows is not tested.

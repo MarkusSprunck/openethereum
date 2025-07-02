@@ -47,6 +47,7 @@ fn miner_service() -> Arc<TestMinerService> {
     Arc::new(TestMinerService::default())
 }
 
+#[allow(dead_code)]
 struct EthTester {
     pub runtime: Runtime,
     pub client: Arc<TestBlockChainClient>,

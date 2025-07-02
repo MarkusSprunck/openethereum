@@ -16,7 +16,7 @@
         {
             "label": "test (dev)",
             "type": "shell",
-            "command": "export CC=$(which gcc-12) && export CXX=$(which g++-12) && ~/.cargo/bin/cargo test --color=always --profile dev --features final",
+            "command": "export CC=$(which gcc-12) && export CXX=$(which g++-12) && ~/.cargo/bin/cargo test --all --color=always --profile dev --features final",
             "group": {
                 "kind": "test",
                 "isDefault": true

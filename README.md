@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # OpenEthereum
 
 Fast and feature-rich multi-network Ethereum client.

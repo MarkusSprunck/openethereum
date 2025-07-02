@@ -40,6 +40,7 @@ use serde_json;
 use dispatch::FullDispatcher;
 use types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
 
+#[allow(dead_code)]
 struct SigningTester {
     pub runtime: Runtime,
     pub signer: Arc<SignerService>,

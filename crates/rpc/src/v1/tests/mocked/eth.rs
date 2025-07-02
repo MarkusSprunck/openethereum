@@ -76,6 +76,7 @@ fn snapshot_service() -> Arc<TestSnapshotService> {
     Arc::new(TestSnapshotService::new())
 }
 
+#[allow(dead_code)]
 struct EthTester {
     pub runtime: Runtime,
     pub client: Arc<TestBlockChainClient>,
