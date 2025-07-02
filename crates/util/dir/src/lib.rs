@@ -56,18 +56,10 @@ use platform::*;
 
 pub use home::home_dir;
 
-/// Platform-specific chains path for standard client - Windows only
-#[cfg(target_os = "windows")]
-pub const CHAINS_PATH: &str = "$LOCAL/chains";
 /// Platform-specific chains path for standard client
-#[cfg(not(target_os = "windows"))]
 pub const CHAINS_PATH: &str = "$BASE/chains";
 
-/// Platform-specific cache path - Windows only
-#[cfg(target_os = "windows")]
-pub const CACHE_PATH: &str = "$LOCAL/cache";
 /// Platform-specific cache path
-#[cfg(not(target_os = "windows"))]
 pub const CACHE_PATH: &str = "$BASE/cache";
 
 // this const is irrelevent cause we do have migrations now,
@@ -319,13 +311,7 @@ mod platform {
     pub const PARITY_AUTHOR: &str = "Parity";
     pub const PARITY_PRODUCT: &str = "io.parity.ethereum";
 }
-#[cfg(windows)]
-mod platform {
-    pub const LOWERCASE: bool = false;
-    pub const PARITY_AUTHOR: &str = "Parity";
-    pub const PARITY_PRODUCT: &str = "Ethereum";
-}
-#[cfg(not(any(target_os = "macos", windows)))]
+#[cfg(not(target_os = "macos"))]
 mod platform {
     pub const LOWERCASE: bool = true;
     pub const PARITY_AUTHOR: &str = "parity";
@@ -346,18 +332,14 @@ mod tests {
             db: replace_home_and_local(
                 &data_dir,
                 &local_dir,
-                if cfg!(target_os = "windows") {
-                    "$LOCAL/chains"
-                } else {
+                {
                     "$BASE/chains"
                 },
             ),
             cache: replace_home_and_local(
                 &data_dir,
                 &local_dir,
-                if cfg!(target_os = "windows") {
-                    "$LOCAL/cache"
-                } else {
+                {
                     "$BASE/cache"
                 },
             ),

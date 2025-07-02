@@ -57,9 +57,9 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             mode: None,
-            color: !cfg!(windows),
+            color: true,
             file: None,
-            json: !cfg!(windows),
+            json: true,
         }
     }
 }

@@ -87,9 +87,6 @@ tempdir = "0.3"
 fake-fetch = { path = "crates/net/fake-fetch" }
 lazy_static = "1.5.0"
 
-[target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.4", features = ["winsock2", "winuser", "shellapi"] }
-
 [features]
 default = ["accounts"]
 accounts = ["ethcore-accounts", "parity-rpc/accounts"]
