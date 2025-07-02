@@ -31,7 +31,7 @@ toml = "0.8.19"
 serde = "1.0.210"
 serde_json = "1.0.128"
 serde_derive = "1.0.210"
-futures = "0.1.31"
+futures = "0.3.31"
 hyper = { version = "0.14.12" }
 fdlimit = "0.3.0"
 ctrlc = { git = "https://github.com/paritytech/rust-ctrlc.git" }
