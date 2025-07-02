@@ -1,12 +1,12 @@
 [parity]
-chain = "/workspaces/openethereum/.testing/dist/chain/spec.json"
-base_path = "/workspaces/openethereum/.testing/dist/data"
+chain = "BASE_DIRECTORYchain/spec.json"
+base_path = "BASE_DIRECTORYdata"
 no_persistent_txqueue = true
 
 [network]
 min_peers = 2
 max_peers = 10
-reserved_peers = "/workspaces/openethereum/.testing/dist/chain/reserved_peers"
+reserved_peers = "BASE_DIRECTORYchain/reserved_peers"
 port = 30303
 reserved_only = true
 warp = false
@@ -29,10 +29,10 @@ disable = true
 [misc]
 json = true
 logging = "network=info,miner=info,own_tx=info,external_tx=info,poa=info,chain=info,discovery=info,network=info,local_store=info,txqueue=info"
-log_file = "/workspaces/openethereum/.testing/dist/data/logs"
+log_file = "BASE_DIRECTORYdata/logs"
 
 [account]
-password = ["/workspaces/openethereum/.testing/dist/password"]
+password = ["BASE_DIRECTORYpassword"]
 
 [mining]
 reseal_on_txs = "none"

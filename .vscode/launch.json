@@ -10,7 +10,7 @@
 			"request": "launch",
 			"program": "${workspaceRoot}/target/debug/openethereum",
 			"sourceLanguages": ["rust"],
-			"args": ["--config", "/home/parity/authority.toml"]
+			"args": ["--config", "${workspaceRoot}/.testing/dist/authority.toml"]
 		}
 	]
 }

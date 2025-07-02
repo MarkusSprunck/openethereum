@@ -1,41 +1,31 @@
-# OpenEthereum Test Client for Leopold Blockchain 
+# OpenEthereum Test Client for Leopold Blockchain
 
 How can I access the Leopold test environment?
 
-## 2. Contact
+## 1. Contact
 
 Please, get in contact with [sprunck@muenchen.ihk.de](mailto:sprunck@muenchen.ihk.de)
 
 ## 2. Architecture
 
-The following diagram shows the Leopold staging environment. Within the IHK Munich (green box), there are 
-three OpenEthereum nodes that represent the actual blockchain. Two of these nodes are validator nodes, namely 
-Host 1 and 2. A third node serves only as an API interface, providing an RPC interface to the outside, namely 
+The following diagram shows the Leopold staging environment. Within the IHK Munich (green box), there are
+three OpenEthereum nodes that represent the actual blockchain. Two of these nodes are validator nodes, namely
+Host 1 and 2. A third node serves only as an API interface, providing an RPC interface to the outside, namely
 Host 3. All other software components are used for monitoring the Leopold blockchain.
 
 ### 2.1 Deployment
 
-![](images/leopold-infrastructure-view-staging.png)
+![Leopold staging environment infrastructure diagram](images/leopold-infrastructure-view-staging.png)
 
 ### 2.2 Topology
 
-![](images/leopold-topologie-stag-6.2.1.png)
+![Leopold staging environment topology diagram](images/leopold-topologie-stag-6.2.1.png)
 
+## 3.0 Getting Started
 
-### 3.0 Getting Started
+Before testing we have to create target folders and configuration on local machine.
 
-Before testing we have to create target folders and 
-configuration on local machine.
-
-#### Install GCC-12 and G++-12 and set environment
-
-```shell
-sudo apt install cmake
-sudo apt install gcc-12 g++-12
-```
-
-
-#### Build Artefacts (once)
+### 3.1 Build Artefacts (once)
 
 For the generation of secrets we need two applications, i.e. *ethkey* and *ethstore*
 
@@ -43,7 +33,11 @@ For the generation of secrets we need two applications, i.e. *ethkey* and *ethst
 .scripts/build-artifacts-cli-tools.sh
 ```
 
-#### Create Secrets (once)
+### 3.2 Create Secrets (once)
+
+These mnmonics determine the identiy of the blockchain client, there should be not
+two identical clients at the same time, so in the case you work without knowing that
+the node is already running, pease change the content of the mnemonic files.
 
 ```bash
 echo "1234" > ./secrets/AccountMnemonic
@@ -51,15 +45,13 @@ echo "5678" > ./secrets/NetworkMnemonic
 ```
 
 ```bash
-cd .testing
+cd .testing - /dev/null
 ./secrets_generation.sh
 ```
 
-Expected result:
-
-#### Start local Leopold Node
+### 3.3 Start local Leopold Node
 
 ```bash
-cd .testing
+cd .testing - /dev/null
 ./test-leopold.sh
 ```
