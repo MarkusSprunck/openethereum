@@ -11,7 +11,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 # Only work_notify, consider a separate crate
 ethash = { path = "../../concensus/ethash", optional = true }
 fetch = { path = "../../net/fetch", optional = true }
-hyper = { version = "0.12", optional = true }
+hyper = { version = "0.14.12", optional = true }
 url = { version = "2", optional = true }
 
 # Miner
@@ -27,7 +27,7 @@ futures = "0.1"
 keccak-hash = "0.5.0"
 linked-hash-map = "0.5"
 log = "0.4"
-parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
+parity-crypto = { version = "0.6.2", features = ["publickey"] }
 parity-runtime = { path = "../../runtime/runtime" }
 parity-util-mem = "0.7"
 parking_lot = "0.12.3"

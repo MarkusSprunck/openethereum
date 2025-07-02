@@ -33,10 +33,7 @@ pub extern crate fetch;
 use std::{cmp, fmt, io, str};
 
 use fetch::{Client as FetchClient, Fetch};
-use futures::{
-    future::{self, Either},
-    Future, Stream,
-};
+use futures::{FutureExt, StreamExt, TryFutureExt};
 use parity_runtime::Executor;
 use serde_json::Value;
 
@@ -105,20 +102,24 @@ impl<F: Fetch> Client<F> {
 
     /// Gets the current ETH price and calls `set_price` with the result.
     pub fn get<G: FnOnce(PriceInfo) + Sync + Send + 'static>(&self, set_price: G) {
-        let future = self
-            .fetch
-            .get(&self.api_endpoint, fetch::Abort::default())
-            .from_err()
-            .and_then(|response| {
+        let fetch = self.fetch.clone();
+        let api_endpoint = self.api_endpoint.clone();
+
+        let future = async move {
+            let response = fetch.get(&api_endpoint, fetch::Abort::default()).await.map_err(Error::Fetch)?;
                 if !response.is_success() {
-                    let s = Error::StatusCode(
+                    return Err(Error::StatusCode(
                         response.status().canonical_reason().unwrap_or("unknown"),
-                    );
-                    return Either::A(future::err(s));
+                    ));
                 }
-                Either::B(response.concat2().from_err())
-            })
-            .and_then(move |body| {
+
+                let mut body = Vec::new();
+                let mut stream = response;
+                while let Some(chunk) = stream.next().await {
+                    let chunk = chunk.map_err(Error::Fetch)?;
+                    body.extend_from_slice(&chunk);
+                }
+
                 let body_str = str::from_utf8(&body).ok();
                 let value: Option<Value> = body_str.and_then(|s| serde_json::from_str(s).ok());
 
@@ -135,23 +136,23 @@ impl<F: Fetch> Client<F> {
                     }
                     None => Err(Error::UnexpectedResponse(body_str.map(From::from))),
                 }
-            })
-            .map_err(|err| {
-                warn!("Failed to auto-update latest ETH price: {:?}", err);
-            });
-        self.pool.spawn(future)
+
+        }.map_err(|err: Error| {
+            warn!("Failed to update latest ETH price {:?}", err);
+        });
+        self.pool.spawn(future.boxed().compat())
     }
 }
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use fake_fetch::FakeFetch;
     use parity_runtime::{Executor, Runtime};
     use std::sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     };
-    use Client;
 
     fn price_info_ok(response: &str, executor: Executor) -> Client<FakeFetch<String>> {
         Client::new(
