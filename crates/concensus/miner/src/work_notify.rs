@@ -24,11 +24,12 @@ extern crate url;
 
 use self::{
     ethash::SeedHashCompute,
-    fetch::{Client as FetchClient, Fetch, Method, Request},
+    fetch::{Client as FetchClient, ClientCompatExt, Method, Request},
     hyper::header::{self, HeaderValue},
     parity_runtime::Executor,
     url::Url,
 };
+
 
 use ethereum_types::{H256, U256};
 use parking_lot::Mutex;
@@ -86,7 +87,7 @@ impl NotifyWork for WorkPoster {
             let u = u.clone();
             self.executor.spawn(
                 self.client
-                    .fetch(
+                .fetch_compat(
                         Request::new(u.clone(), Method::POST)
                             .with_header(
                                 header::CONTENT_TYPE,
@@ -94,8 +95,7 @@ impl NotifyWork for WorkPoster {
                             )
                             .with_body(body.clone()),
                         Default::default(),
-                    )
-                    .map_err(move |e| {
+                    ).map_err(move |e| {
                         warn!("Error sending HTTP notification to {} : {}, retrying", u, e);
                     })
                     .map(|_| ()),

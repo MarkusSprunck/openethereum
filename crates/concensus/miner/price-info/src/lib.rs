@@ -34,7 +34,8 @@ use std::{cmp, fmt, io, str};
 
 use fetch::{Client as FetchClient, Fetch};
 use futures::{FutureExt, StreamExt, TryFutureExt};
-use parity_runtime::Executor;
+use log::warn;
+use parity_runtime::{Executor};
 use serde_json::Value;
 
 /// Current ETH price information.
@@ -104,42 +105,43 @@ impl<F: Fetch> Client<F> {
     pub fn get<G: FnOnce(PriceInfo) + Sync + Send + 'static>(&self, set_price: G) {
         let fetch = self.fetch.clone();
         let api_endpoint = self.api_endpoint.clone();
-
         let future = async move {
             let response = fetch.get(&api_endpoint, fetch::Abort::default()).await.map_err(Error::Fetch)?;
-                if !response.is_success() {
-                    return Err(Error::StatusCode(
-                        response.status().canonical_reason().unwrap_or("unknown"),
-                    ));
+            if !response.is_success() {
+                return Err(Error::StatusCode(
+                    response.status().canonical_reason().unwrap_or("unknown"),
+                ));
+            }
+
+            let mut body = Vec::new();
+            let mut stream = response;
+            
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk.map_err(Error::Fetch)?;
+                body.extend_from_slice(&chunk);
+            }
+
+            let body_str = str::from_utf8(&body).ok();
+            let value: Option<Value> = body_str.and_then(|s| serde_json::from_str(s).ok());
+
+            let ethusd = value
+                .as_ref()
+                .and_then(|value| value.pointer("/result/ethusd"))
+                .and_then(|obj| obj.as_str())
+                .and_then(|s| s.parse().ok());
+
+            match ethusd {
+                Some(ethusd) => {
+                    set_price(PriceInfo { ethusd });
+                    Ok(())
                 }
-
-                let mut body = Vec::new();
-                let mut stream = response;
-                while let Some(chunk) = stream.next().await {
-                    let chunk = chunk.map_err(Error::Fetch)?;
-                    body.extend_from_slice(&chunk);
-                }
-
-                let body_str = str::from_utf8(&body).ok();
-                let value: Option<Value> = body_str.and_then(|s| serde_json::from_str(s).ok());
-
-                let ethusd = value
-                    .as_ref()
-                    .and_then(|value| value.pointer("/result/ethusd"))
-                    .and_then(|obj| obj.as_str())
-                    .and_then(|s| s.parse().ok());
-
-                match ethusd {
-                    Some(ethusd) => {
-                        set_price(PriceInfo { ethusd });
-                        Ok(())
-                    }
-                    None => Err(Error::UnexpectedResponse(body_str.map(From::from))),
-                }
-
-        }.map_err(|err: Error| {
-            warn!("Failed to update latest ETH price {:?}", err);
+                None => Err(Error::UnexpectedResponse(body_str.map(From::from))),
+            }
+        }
+        .map_err(|err: Error| {
+            warn!("Failed to auto-update latest ETH price: {:?}", err);
         });
+
         self.pool.spawn(future.boxed().compat())
     }
 }

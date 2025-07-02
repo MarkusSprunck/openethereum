@@ -5,14 +5,11 @@ name = "openethereum"
 # NOTE Make sure to update util/version/Cargo.toml as well
 version = "3.5.0-rc0"
 license = "GPL-3.0"
-authors = [
-	"OpenEthereum developers",
-	"Parity Technologies <admin@parity.io>"
-]
+authors = ["OpenEthereum developers", "Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-mio = "0.6.23"     # fixed patch 0.6.23
-fs-swap = "0.2.6"             # fixed patch 0.2.6
+mio = "0.6.23"                                                            # fixed patch 0.6.23
+fs-swap = "0.2.6"                                                         # fixed patch 0.2.6
 blooms-db = { path = "crates/db/blooms-db" }
 daemonize = "0.5.0"
 log = "0.4.22"
@@ -20,11 +17,11 @@ rustc-hex = "1.0.0"
 docopt = "1.1.1"
 clap = "2.34.0"
 term_size = "1.0.0-beta1"
-textwrap = "0.9.0" # fixed
+textwrap = "0.9.0"                                                        # fixed
 num_cpus = "1.16.0"
-number_prefix = "0.2.8" # fixed
+number_prefix = "0.2.8"                                                   # fixed
 rpassword = "1.0.2"
-semver = "0.9.0"   # fixed
+semver = "0.9.0"                                                          # fixed
 ansi_term = "0.12.1"
 parking_lot = "0.12.3"
 crossbeam-channel = "0.5.13"
@@ -35,7 +32,7 @@ serde = "1.0.210"
 serde_json = "1.0.128"
 serde_derive = "1.0.210"
 futures = "0.1.31"
-hyper = { version = "0.12.36" }
+hyper = { version = "0.14.12" }
 fdlimit = "0.3.0"
 ctrlc = { git = "https://github.com/paritytech/rust-ctrlc.git" }
 jsonrpc-core = "15.0.0"
@@ -44,7 +41,7 @@ common-types = { path = "crates/ethcore/types" }
 ethcore = { path = "crates/ethcore", features = ["parity"] }
 ethcore-accounts = { path = "crates/accounts", optional = true }
 ethcore-blockchain = { path = "crates/ethcore/blockchain" }
-ethcore-call-contract = { path = "crates/vm/call-contract"}
+ethcore-call-contract = { path = "crates/vm/call-contract" }
 ethcore-db = { path = "crates/db/db" }
 ethcore-io = { path = "crates/runtime/io" }
 ethcore-logger = { path = "bin/oe/logger" }
@@ -57,9 +54,9 @@ ethkey = { path = "crates/accounts/ethkey" }
 ethstore = { path = "crates/accounts/ethstore" }
 fetch = { path = "crates/net/fetch" }
 node-filter = { path = "crates/net/node-filter" }
-parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
+parity-crypto = { version = "0.6.2", features = ["publickey"] }
 rlp = { version = "0.4.6" }
-cli-signer= { path = "crates/util/cli-signer" }
+cli-signer = { path = "crates/util/cli-signer" }
 parity-local-store = { path = "crates/concensus/miner/local-store" }
 parity-runtime = { path = "crates/runtime/runtime" }
 parity-rpc = { path = "crates/rpc" }
@@ -82,7 +79,7 @@ rustc_version = "0.2"
 
 [dev-dependencies]
 pretty_assertions = "0.1.2"
-ipnetwork = "0.12.8"# fixed minor
+ipnetwork = "0.12.8"                            # fixed minor
 tempdir = "0.3"
 fake-fetch = { path = "crates/net/fake-fetch" }
 lazy_static = "1.5.0"
@@ -139,9 +136,4 @@ lto = true
 # This should only list projects that are not
 # in the dependency tree in any other way
 # (i.e. pretty much only standalone CLI tools)
-members = [
-	"bin/ethkey",
-	"bin/ethstore",
-	"bin/evmbin",
-	"bin/chainspec"
-]
+members = ["bin/ethkey", "bin/ethstore", "bin/evmbin", "bin/chainspec"]

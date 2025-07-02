@@ -34,7 +34,13 @@ extern crate url;
 
 /// Fetch client implementation.
 pub mod client;
+#[cfg(feature = "compat")]
+/// Compatibility layer for futures 0.1
+pub mod compat;
 
 pub use self::client::{Abort, BodyReader, Client, Error, Fetch, Request, Response};
 pub use hyper::Method;
 pub use url::Url;
+
+#[cfg(feature = "compat")]
+pub use self::compat::{ClientCompat, ClientCompatExt, FetchResult01};
