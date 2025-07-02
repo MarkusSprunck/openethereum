@@ -31,5 +31,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:ubuntu"
+          tags: "ihkmuenchen/openethereum:latest"
           file: ./scripts/docker/ubuntu/Dockerfile
