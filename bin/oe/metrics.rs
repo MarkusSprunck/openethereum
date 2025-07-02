@@ -4,7 +4,7 @@ use crate::{futures::Future, rpc, rpc_apis};
 
 use parking_lot::Mutex;
 
-use hyper::{service::service_fn_ok, Body, Method, Request, Response, Server, StatusCode};
+use hyper::{Body, Method, Request, Response, Server, StatusCode};
 
 use stats::{
     prometheus::{self, Encoder},
@@ -78,40 +78,40 @@ fn handle_request(
     }
 }
 
-/// Start the prometheus metrics server accessible via GET <host>:<port>/metrics
-pub fn start_prometheus_metrics(
-    conf: &MetricsConfiguration,
-    deps: &rpc::Dependencies<rpc_apis::FullDependencies>,
-) -> Result<(), String> {
-    if !conf.enabled {
-        return Ok(());
-    }
+// TODO Start the prometheus metrics server accessible via GET <host>:<port>/metrics
+// pub fn start_prometheus_metrics(
+//     conf: &MetricsConfiguration,
+//     deps: &rpc::Dependencies<rpc_apis::FullDependencies>,
+// ) -> Result<(), String> {
+//     if !conf.enabled {
+//         return Ok(());
+//     }
 
-    let addr = format!("{}:{}", conf.interface, conf.port);
-    let addr = addr
-        .parse()
-        .map_err(|err| format!("Failed to parse address '{}': {}", addr, err))?;
+//     let addr = format!("{}:{}", conf.interface, conf.port);
+//     let addr = addr
+//         .parse()
+//         .map_err(|err| format!("Failed to parse address '{}': {}", addr, err))?;
 
-    let state = State {
-        rpc_apis: deps.apis.clone(),
-    };
-    let state = Arc::new(Mutex::new(state));
-    let conf = Arc::new(conf.to_owned());
-    let server = Server::bind(&addr)
-        .serve(move || {
-            // This is the `Service` that will handle the connection.
-            // `service_fn_ok` is a helper to convert a function that
-            // returns a Response into a `Service`.
-            let state = state.clone();
-            let conf = conf.clone();
-            service_fn_ok(move |req: Request<Body>| {
-                handle_request(req, conf.clone(), state.clone())
-            })
-        })
-        .map_err(|e| eprintln!("server error: {}", e));
-    info!("Started prometeus metrics at http://{}/metrics", addr);
+//     let state = State {
+//         rpc_apis: deps.apis.clone(),
+//     };
+//     let state = Arc::new(Mutex::new(state));
+//     let conf = Arc::new(conf.to_owned());
+//     let server = Server::bind(&addr)
+//         .serve(move || {
+//             // This is the `Service` that will handle the connection.
+//             // `service_fn_ok` is a helper to convert a function that
+//             // returns a Response into a `Service`.
+//             let state = state.clone();
+//             let conf = conf.clone();
+//             service_fn_ok(move |req: Request<Body>| {
+//                 handle_request(req, conf.clone(), state.clone())
+//             })
+//         })
+//         .map_err(|e| eprintln!("server error: {}", e));
+//     info!("Started prometeus metrics at http://{}/metrics", addr);
 
-    deps.executor.spawn(server);
+//     deps.executor.spawn(server);
 
-    Ok(())
-}
+//     Ok(())
+// }
