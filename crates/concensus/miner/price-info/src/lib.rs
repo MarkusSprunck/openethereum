@@ -22,7 +22,6 @@ extern crate futures;
 extern crate parity_runtime;
 extern crate serde_json;
 
-#[macro_use]
 extern crate log;
 
 #[cfg(test)]

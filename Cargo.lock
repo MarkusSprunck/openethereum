@@ -1751,8 +1751,9 @@ name = "fake-fetch"
 version = "0.0.1"
 dependencies = [
  "fetch",
- "futures 0.1.31",
- "hyper 0.12.36",
+ "futures 0.3.31",
+ "http 0.2.12",
+ "hyper 0.14.32",
 ]
 
 [[package]]

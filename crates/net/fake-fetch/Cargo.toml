@@ -8,5 +8,6 @@ authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
 fetch = { path = "../fetch" }
-futures = "0.1"
-hyper = "0.12"
+futures = "0.3"
+hyper = { version = "0.14.12", features = ["http1", "http2"] }
+http = "0.2"
