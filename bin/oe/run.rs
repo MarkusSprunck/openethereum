@@ -28,7 +28,7 @@ use crate::{
     db,
     helpers::{execute_upgrades, passwords_from_files, to_client_config},
     informant::{FullNodeInformantData, Informant},
-    metrics::{MetricsConfiguration},
+    metrics::{MetricsConfiguration, start_prometheus_metrics},
     miner::{external::ExternalMiner, work_notify::WorkPoster},
     modules,
     params::{
@@ -524,7 +524,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     let ipc_server = rpc::new_ipc(cmd.ipc_conf, &dependencies)?;
 
     // start the prometheus metrics server
-    // start_prometheus_metrics(&cmd.metrics_conf, &dependencies)?;
+    start_prometheus_metrics(&cmd.metrics_conf, &dependencies)?;
 
     let http_server = rpc::new_http(
         "HTTP JSON-RPC",
