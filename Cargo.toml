@@ -1,5 +1,5 @@
 [package]
-edition = "2015"
+edition = "2021"
 description = "OpenEthereum"
 name = "openethereum"
 # NOTE Make sure to update util/version/Cargo.toml as well

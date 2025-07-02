@@ -1,5 +1,5 @@
 [package]
-edition = "2015"
+edition = "2021"
 description = "HTTP/HTTPS fetching library"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"

@@ -11,7 +11,7 @@
 # will likely look very different (and much more reasonable)
 
 [package]
-edition = "2015"
+edition = "2021"
 name = "memory-db"
 version = "0.11.0"
 authors = ["Parity Technologies <admin@parity.io>"]

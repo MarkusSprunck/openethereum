@@ -1,5 +1,5 @@
 [package]
-edition = "2018"
+edition = "2021"
 description = "OpenEthereum Account Management"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"
