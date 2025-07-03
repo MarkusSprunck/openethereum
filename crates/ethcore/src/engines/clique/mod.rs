@@ -168,6 +168,7 @@ pub struct Clique {
     signer: RwLock<Option<Box<dyn EngineSigner>>>,
 }
 
+#[allow(missing_docs)]
 #[cfg(test)]
 /// Test version of `CliqueEngine` to make all fields public
 pub struct Clique {

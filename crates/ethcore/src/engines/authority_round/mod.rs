@@ -1093,7 +1093,7 @@ impl AuthorityRound {
     fn epoch_set<'a>(
         &'a self,
         header: &Header,
-    ) -> Result<(CowLike<dyn ValidatorSet, SimpleList>, BlockNumber), Error> {
+    ) -> Result<(CowLike<'a, dyn ValidatorSet, SimpleList>, BlockNumber), Error> {
         Ok(if self.immediate_transitions {
             (CowLike::Borrowed(&*self.validators), header.number())
         } else {

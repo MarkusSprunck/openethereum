@@ -59,6 +59,7 @@ pub type SharedTransaction = Arc<Transaction>;
 
 type TestPool = Pool<Transaction, DummyScoring>;
 
+#[allow(missing_docs)]
 impl TestPool {
     pub fn with_limit(max_count: usize) -> Self {
         Self::with_options(Options {

@@ -778,6 +778,7 @@ impl TransactionQueue {
         self.cached_enforced_pending.read().pending.is_some()
     }
 
+	#[allow(missing_docs)]
     #[cfg(test)]
     pub fn is_non_enforced_pending_cached(&self) -> bool {
         self.cached_non_enforced_pending.read().pending.is_some()

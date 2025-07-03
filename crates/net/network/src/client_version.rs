@@ -256,6 +256,7 @@ fn get_number_from_version(version: &str) -> Option<&str> {
     None
 }
 
+#[allow(missing_docs)]
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -309,6 +310,7 @@ pub mod tests {
         )
     }
 
+	#[allow(missing_docs)]
     #[test]
     pub fn client_version_when_from_empty_string_then_default() {
         let default = ClientVersion::default();
@@ -316,6 +318,7 @@ pub mod tests {
         assert_eq!(ClientVersion::from(""), default);
     }
 
+	#[allow(missing_docs)]
     #[test]
     pub fn get_number_from_version_when_valid_then_number() {
         let version_string = format!("v{}", PARITY_CLIENT_SEMVER);
@@ -326,6 +329,7 @@ pub mod tests {
         );
     }
 
+	#[allow(missing_docs)]
     #[test]
     pub fn client_version_when_str_parity_format_and_valid_then_all_fields_match() {
         let client_version_string = make_default_version_string();
@@ -345,6 +349,7 @@ pub mod tests {
         }
     }
 
+	#[allow(missing_docs)]
     #[test]
     pub fn client_version_when_str_parity_long_format_and_valid_then_all_fields_match() {
         let client_version_string = make_default_long_version_string();
@@ -365,6 +370,7 @@ pub mod tests {
         }
     }
 
+	#[allow(missing_docs)]
     #[test]
     pub fn client_version_when_str_parity_long_format_and_valid_and_identity_multiple_tokens_then_all_fields_match(
     ) {
@@ -409,8 +415,9 @@ pub mod tests {
     }
 
     #[test]
-    pub fn client_version_when_parity_format_and_invalid_then_equals_parity_unknown_client_version_string(
-    ) {
+	#[allow(missing_docs)]
+	pub fn client_version_when_parity_format_and_invalid_then_equals_parity_unknown_client_version_string(
+	) {
         // This is invalid because version has no leading 'v'
         let client_version_string = format!(
             "{}/{}/{}/{}",

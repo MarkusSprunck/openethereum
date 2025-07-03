@@ -164,11 +164,12 @@ error_chain! {
     }
 }
 
+#[allow(non_snake_case)]
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         match err.raw_os_error() {
             Some(ENFILE) => ErrorKind::ProcessTooManyFiles.into(),
-            Some(EMFILE) => ErrorKind::SystemTooManyFiles.into(),
+			Some(EMFILE) => ErrorKind::SystemTooManyFiles.into(),
             _ => Error::from_kind(ErrorKind::Io(err)),
         }
     }
