@@ -1,11 +1,10 @@
-use std::{sync::Arc, time::Instant};
-
-use crate::{futures::Future, rpc, rpc_apis};
-
+use std::{convert::Infallible, sync::Arc, time::Instant};
+use crate::{rpc, rpc_apis};
 use parking_lot::Mutex;
-
-use hyper::{service::service_fn_ok, Body, Method, Request, Response, Server, StatusCode};
-
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Body, Method, Request, Response, Server, StatusCode,
+};
 use stats::{
     prometheus::{self, Encoder},
     PrometheusMetrics, PrometheusRegistry,
@@ -38,20 +37,23 @@ struct State {
     rpc_apis: Arc<rpc_apis::FullDependencies>,
 }
 
-fn handle_request(
+async fn handle_request(
     req: Request<Body>,
     conf: Arc<MetricsConfiguration>,
     state: Arc<Mutex<State>>,
-) -> Response<Body> {
+) -> Result<Response<Body>, Infallible> {
     let (parts, _body) = req.into_parts();
+    
     match (parts.method, parts.uri.path()) {
         (Method::GET, "/metrics") => {
             let start = Instant::now();
-
             let mut reg = PrometheusRegistry::new(conf.prefix.clone());
+            
             let state = state.lock();
+            
             state.rpc_apis.client.prometheus_metrics(&mut reg);
             state.rpc_apis.sync.prometheus_metrics(&mut reg);
+            
             let elapsed = start.elapsed();
             reg.register_gauge(
                 "metrics_time",
@@ -62,18 +64,17 @@ fn handle_request(
             let mut buffer = vec![];
             let encoder = prometheus::TextEncoder::new();
             let metric_families = reg.registry().gather();
-
             encoder
                 .encode(&metric_families, &mut buffer)
                 .expect("all source of metrics are static; qed");
-            let text = String::from_utf8(buffer).expect("metrics encoding is ASCII; qed");
 
-            Response::new(Body::from(text))
+            let text = String::from_utf8(buffer).expect("metrics encoding is ASCII; qed");
+            Ok(Response::new(Body::from(text)))
         }
         (_, _) => {
             let mut res = Response::new(Body::from("not found"));
             *res.status_mut() = StatusCode::NOT_FOUND;
-            res
+            Ok(res)
         }
     }
 }
@@ -87,31 +88,54 @@ pub fn start_prometheus_metrics(
         return Ok(());
     }
 
-    let addr = format!("{}:{}", conf.interface, conf.port);
-    let addr = addr
-        .parse()
-        .map_err(|err| format!("Failed to parse address '{}': {}", addr, err))?;
+    let conf = conf.clone();
+    let apis = deps.apis.clone();
 
-    let state = State {
-        rpc_apis: deps.apis.clone(),
-    };
-    let state = Arc::new(Mutex::new(state));
-    let conf = Arc::new(conf.to_owned());
-    let server = Server::bind(&addr)
-        .serve(move || {
-            // This is the `Service` that will handle the connection.
-            // `service_fn_ok` is a helper to convert a function that
-            // returns a Response into a `Service`.
-            let state = state.clone();
-            let conf = conf.clone();
-            service_fn_ok(move |req: Request<Body>| {
-                handle_request(req, conf.clone(), state.clone())
-            })
-        })
-        .map_err(|e| eprintln!("server error: {}", e));
-    info!("Started prometeus metrics at http://{}/metrics", addr);
+    // Spawn in a separate thread with its own tokio runtime
+    std::thread::spawn(move || {
+        // Create a new tokio runtime for this thread
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => {
+                eprintln!("Failed to create tokio runtime for metrics server: {}", e);
+                return;
+            }
+        };
 
-    deps.executor.spawn(server);
+        rt.block_on(async move {
+            let addr = format!("{}:{}", conf.interface, conf.port);
+            let addr = match addr.parse() {
+                Ok(addr) => addr,
+                Err(e) => {
+                    eprintln!("Failed to parse address '{}': {}", addr, e);
+                    return;
+                }
+            };
+
+            let state = State { rpc_apis: apis };
+            let state = Arc::new(Mutex::new(state));
+            let conf = Arc::new(conf);
+
+            let make_svc = make_service_fn(move |_conn| {
+                let state = state.clone();
+                let conf = conf.clone();
+                
+                async move {
+                    Ok::<_, Infallible>(service_fn(move |req| {
+                        handle_request(req, conf.clone(), state.clone())
+                    }))
+                }
+            });
+
+            let server = Server::bind(&addr).serve(make_svc);
+            
+            info!("Started prometheus metrics at http://{}/metrics", addr);
+
+            if let Err(e) = server.await {
+                eprintln!("Metrics server error: {}", e);
+            }
+        });
+    });
 
     Ok(())
 }

@@ -1,5 +1,5 @@
 [package]
-edition = "2015"
+edition = "2021"
 description = "Fetch current ETH price"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"
@@ -9,7 +9,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
 fetch = { path = "../../../net/fetch" }
-futures = "0.1"
+futures = { version = "0.3.0", features = ["compat"] }
 parity-runtime = { path = "../../../runtime/runtime" }
 log = "0.4"
 serde_json = "1.0"

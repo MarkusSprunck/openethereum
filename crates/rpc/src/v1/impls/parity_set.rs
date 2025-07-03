@@ -23,7 +23,7 @@ use ethcore::{
     miner::{self, MinerService},
 };
 use ethereum_types::{H160, H256, U256};
-use fetch::{self, Fetch};
+use fetch::{self, Fetch, ClientCompatExt};
 use hash::keccak_buffer;
 use sync::ManageNetwork;
 
@@ -106,7 +106,7 @@ impl<C, M, F> ParitySet for ParitySetClient<C, M, F>
 where
     C: BlockChainClient + 'static,
     M: MinerService + 'static,
-    F: Fetch + 'static,
+    F: Fetch + ClientCompatExt + 'static,
 {
     fn set_min_gas_price(&self, gas_price: U256) -> Result<bool> {
         self.miner
@@ -217,9 +217,10 @@ where
     }
 
     fn hash_content(&self, url: String) -> BoxFuture<H256> {
+
         let future = self
             .fetch
-            .get(&url, Default::default())
+            .get_compat(&url, Default::default())
             .then(move |result| {
                 result
                     .map_err(errors::fetch)
