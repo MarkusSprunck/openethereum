@@ -866,31 +866,32 @@ mod test {
         let abort = Abort::default().with_max_size(3);
         
         runtime.block_on(async {
-            let resp = client
-                .get(&format!("http://{}/?1234", server.addr()), abort)
-                .await
-                .expect("Request failed");
-            
-            assert!(resp.is_success(), "Response unsuccessful");
-            
-            let mut body = Vec::new();
-            let mut resp_stream = resp;
-            let mut result = Ok(());
-            
-            while let Some(chunk) = resp_stream.next().await {
-                match chunk {
-                    Ok(chunk_data) => body.extend_from_slice(&chunk_data),
-                    Err(Error::SizeLimit) => {
-                        result = Err(Error::SizeLimit);
-                        break;
-                    }
-                    Err(e) => panic!("unexpected error: {:?}", e),
-                }
-            }
-            
-            match result {
+            match client.get(&format!("http://{}/?1234", server.addr()), abort).await {
                 Err(Error::SizeLimit) => {},
-                _ => panic!("expected size limit error"),
+                Ok(resp) => {
+                    assert!(resp.is_success(), "Response unsuccessful");
+                    
+                    let mut body = Vec::new();
+                    let mut resp_stream = resp;
+                    let mut result = Ok(());
+                    
+                    while let Some(chunk) = resp_stream.next().await {
+                        match chunk {
+                            Ok(chunk_data) => body.extend_from_slice(&chunk_data),
+                            Err(Error::SizeLimit) => {
+                                result = Err(Error::SizeLimit);
+                                break;
+                            }
+                            Err(e) => panic!("unexpected error: {:?}", e),
+                        }
+                    }
+                    
+                    match result {
+                        Err(Error::SizeLimit) => {},
+                        _ => panic!("expected size limit error"),
+                    }
+                }
+                other => panic!("Expected `Error::SizeLimit`, got: {:?}", other),
             }
         });
     }
