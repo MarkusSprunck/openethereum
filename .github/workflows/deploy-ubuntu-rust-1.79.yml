@@ -1,8 +1,8 @@
-name: Docker Image Ubuntu (Rust 1.79)
+name: Docker Image Ubuntu (Rust 1.79) (inactive)
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main-xxx"]
 
 env:
   IMAGE_NAME: ihkmuenchen/openethereum
