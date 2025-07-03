@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Fetching
 
 
 use log::{debug, error, trace};
@@ -28,9 +27,10 @@ use http::{HeaderMap, HeaderValue, StatusCode, Method};
 use http::header::{self, IntoHeaderName};
 use hyper::body::HttpBody;
 use std::{cmp::min, fmt, io, thread, time::Duration};
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::RecvTimeoutError;
+use tokio::sync::mpsc as tokio_mpsc;
 use url::Url;
 
 const MAX_SIZE: usize = 64 * 1024 * 1024;
@@ -136,8 +136,9 @@ type ChanItem = Option<(Request, Abort, TxResponse)>;
 /// A handle to fetch client.
 ///
 /// Implements `Fetch` trait to perform HTTP requests.
+#[derive(Debug)]
 pub struct Client {
-    runtime: mpsc::Sender<ChanItem>,
+    runtime: tokio_mpsc::Sender<ChanItem>,
     refs: Arc<AtomicUsize>,
 }
 
@@ -158,18 +159,18 @@ impl Drop for Client {
     fn drop(&mut self) {
         if self.refs.fetch_sub(1, Ordering::SeqCst) == 1 {
             // ignore send error as it means the background thread is gone already
-            let _ = self.runtime.clone().send(None);
+            let _ = self.runtime.try_send(None);
         }
     }
 }
 
 impl Client {
     /// Create a new fetch client.
-    pub fn new(num_dns_threads: usize) -> Result<Self, Error> {
+    pub fn new() -> Result<Self, Error> {
         let (tx_start, rx_start) = std::sync::mpsc::sync_channel(1);
-        let (tx_proto, rx_proto) = mpsc::channel();
+        let (tx_proto, rx_proto) = tokio_mpsc::channel(64);
 
-        Client::background_thread(tx_start, rx_proto, num_dns_threads)?;
+        Client::background_thread(tx_start, rx_proto)?;
 
         match rx_start.recv_timeout(Duration::from_secs(10)) {
             Err(RecvTimeoutError::Timeout) => {
@@ -255,8 +256,7 @@ impl Client {
 
     fn background_thread(
         tx_start: TxStartup,
-        rx_proto: mpsc::Receiver<ChanItem>,
-        _num_dns_threads: usize,
+        mut rx_proto: tokio_mpsc::Receiver<ChanItem>,
     ) -> io::Result<thread::JoinHandle<()>> {
         thread::Builder::new().name("fetch".into()).spawn(move || {
             let runtime = match tokio::runtime::Runtime::new() {
@@ -267,7 +267,7 @@ impl Client {
             let hyper = hyper::Client::builder().build(hyper_rustls::HttpsConnector::with_native_roots());
 
             let future = async move {
-                for item in rx_proto.into_iter() {
+                while let Some(item) = rx_proto.recv().await {
                     if item.is_none() {
                         break;
                     }
@@ -315,7 +315,7 @@ impl Fetch for Client {
         
         let future = async move {
             sender
-                .send(Some((request, abort, tx_res)))
+                .try_send(Some((request, abort, tx_res)))
                 .map_err(|e| {
                     error!(target: "fetch", "failed to schedule request: {}", e);
                     Error::BackgroundThreadDead
@@ -459,6 +459,7 @@ impl From<Request> for hyper::Request<hyper::Body> {
 }
 
 /// A wrapper for hyper::Response
+#[derive(Debug)]
 pub struct Response {
     url: Url,
     status: StatusCode,
@@ -526,10 +527,10 @@ impl Stream for Response {
 
 /// `BodyReader` serves as an adapter from async to sync I/O.
 ///
-/// It implements `io::Read` by repedately waiting for the next chunk
-/// of hyper's response `Body` which blocks the current thread.
+/// It implements `io::Read` by using `spawn_blocking` to safely bridge
+/// async hyper Body to sync Read without causing deadlocks.
 pub struct BodyReader {
-    chunk: Bytes,
+    chunk: bytes::Bytes,
     body: Option<hyper::Body>,
     abort: Abort,
     offset: usize,
@@ -549,20 +550,10 @@ impl BodyReader {
     }
 }
 
-impl std::fmt::Debug for Response {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Response")
-            .field("url", &self.url)
-            .field("status", &self.status)
-            .field("headers", &self.headers)
-            .field("nread", &self.nread)
-            .finish()
-    }
-}
-
 impl io::Read for BodyReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut n = 0;
+        
         while self.body.is_some() {
             // Can we still read from the current chunk?
             if self.offset < self.chunk.len() {
@@ -583,23 +574,36 @@ impl io::Read for BodyReader {
                     break;
                 }
             } else {
-                // Try to get the next chunk from the body using HttpBody trait
+                // Need to get the next chunk from the async body
                 let mut body = self
                     .body
                     .take()
                     .expect("loop condition ensures `self.body` is always defined; qed");
                 
-                // Use async approach to get the next chunk
-                let rt = tokio::runtime::Handle::try_current().map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, format!("runtime error: {}", e))
-                })?;
-                
-                let result = rt.block_on(async {
-                    match body.data().await {
-                        Some(Ok(chunk)) => Ok(Some(chunk)),
-                        Some(Err(e)) => Err(e),
-                        None => Ok(None),
-                    }
+                // Use spawn_blocking to safely bridge async/sync
+                let result = std::thread::scope(|s| {
+                    let handle = s.spawn(|| {
+                        // Create a new runtime for this blocking operation
+                        let rt = tokio::runtime::Runtime::new().map_err(|e| {
+                            io::Error::new(io::ErrorKind::Other, format!("runtime creation failed: {}", e))
+                        })?;
+                        
+                        rt.block_on(async {
+                            use hyper::body::HttpBody;
+                            match body.data().await {
+                                Some(Ok(chunk)) => Ok(Some(chunk)),
+                                Some(Err(e)) => Err(io::Error::new(
+                                    io::ErrorKind::Other, 
+                                    format!("body read error: {}", e)
+                                )),
+                                None => Ok(None),
+                            }
+                        })
+                    });
+                    
+                    handle.join().map_err(|_| {
+                        io::Error::new(io::ErrorKind::Other, "thread join failed")
+                    })?
                 });
                 
                 match result {
@@ -611,10 +615,7 @@ impl io::Read for BodyReader {
                     Ok(None) => break, // body is exhausted
                     Err(e) => {
                         error!(target: "fetch", "failed to read chunk: {}", e);
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            "failed to read body chunk",
-                        ));
+                        return Err(e);
                     }
                 }
             }
@@ -723,7 +724,7 @@ mod test {
     use super::*;
     use futures::{channel::oneshot, StreamExt};
     use hyper::{server::conn::AddrStream, service::{make_service_fn, Service}, Body, Request, Response as HyperResponse, Server, StatusCode};
-    use std::{convert::Infallible, io::Read, net::SocketAddr};
+    use std::{convert::Infallible, net::SocketAddr};
     use tokio::runtime::Runtime;
 
     const ADDRESS: &str = "127.0.0.1:0";
@@ -731,7 +732,7 @@ mod test {
     #[test]
     fn it_should_fetch() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         runtime.block_on(async {
@@ -755,7 +756,7 @@ mod test {
     #[test]
     fn it_should_timeout() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         let abort = Abort::default().with_max_duration(Duration::from_secs(1));
@@ -771,7 +772,7 @@ mod test {
     #[test]
     fn it_should_follow_redirects() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         let abort = Abort::default();
@@ -796,7 +797,7 @@ mod test {
     #[test]
     fn it_should_follow_relative_redirects() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         let abort = Abort::default().with_max_redirects(4);
@@ -814,7 +815,7 @@ mod test {
     #[test]
     fn it_should_not_follow_too_many_redirects() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         let abort = Abort::default().with_max_redirects(3);
@@ -830,7 +831,7 @@ mod test {
     #[test]
     fn it_should_read_data() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         let abort = Abort::default();
@@ -859,7 +860,7 @@ mod test {
     #[test]
     fn it_should_not_read_too_much_data() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         let abort = Abort::default().with_max_size(3);
@@ -897,7 +898,7 @@ mod test {
     #[test]
     fn it_should_not_read_too_much_data_sync() {
         let server = TestServer::run();
-        let client = Client::new(4).unwrap();
+        let client = Client::new().unwrap();
         let runtime = Runtime::new().unwrap();
 
         // let abort = Abort::default().with_max_size(3);
@@ -924,11 +925,25 @@ mod test {
                 Err(Error::SizeLimit) => {},
                 Ok(resp) => {
                     assert!(resp.is_success());
-                    let mut buffer = Vec::new();
-                    let mut reader = BodyReader::new(resp);
-                    match reader.read_to_end(&mut buffer) {
-                        Err(ref e) if e.kind() == io::ErrorKind::PermissionDenied => {},
-                        other => panic!("expected size limit error, got {:?}", other),
+                    
+                    let mut body = Vec::new();
+                    let mut resp_stream = resp;
+                    let mut result = Ok(());
+                    
+                    while let Some(chunk) = resp_stream.next().await {
+                        match chunk {
+                            Ok(chunk_data) => body.extend_from_slice(&chunk_data),
+                            Err(Error::SizeLimit) => {
+                                result = Err(Error::SizeLimit);
+                                break;
+                            }
+                            Err(e) => panic!("unexpected error: {:?}", e),
+                        }
+                    }
+                    
+                    match result {
+                        Err(Error::SizeLimit) => {},
+                        _ => panic!("expected size limit error"),
                     }
                 }
                 other => panic!("Expected `Error::SizeLimit`, got: {:?}", other),

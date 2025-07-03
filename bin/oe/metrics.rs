@@ -51,18 +51,8 @@ async fn handle_request(
             
             let state = state.lock();
             
-            // If these are synchronous calls (most likely case)
             state.rpc_apis.client.prometheus_metrics(&mut reg);
             state.rpc_apis.sync.prometheus_metrics(&mut reg);
-            
-            // If they return futures 0.1, uncomment and use this instead:
-            // if let Ok(client_future) = std::panic::catch_unwind(|| {
-            //     state.rpc_apis.client.prometheus_metrics_async(&mut reg)
-            // }) {
-            //     if let Ok(_) = client_future.compat().await {
-            //         // metrics collected successfully
-            //     }
-            // }
             
             let elapsed = start.elapsed();
             reg.register_gauge(
@@ -89,7 +79,7 @@ async fn handle_request(
     }
 }
 
-/// Start the prometheus metrics server accessible via GET :/metrics
+/// Start the prometheus metrics server accessible via GET <host>:<port>/metrics
 pub fn start_prometheus_metrics(
     conf: &MetricsConfiguration,
     deps: &rpc::Dependencies<rpc_apis::FullDependencies>,

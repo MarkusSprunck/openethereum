@@ -41,4 +41,4 @@ pub use hyper::Method;
 pub use url::Url;
 
 #[cfg(feature = "compat")]
-pub use self::compat::{ClientCompat, ClientCompatExt, FetchResult01};
+pub use self::compat::{ClientCompatExt, FetchResult01};

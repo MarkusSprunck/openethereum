@@ -8,9 +8,6 @@ license = "GPL-3.0"
 authors = ["OpenEthereum developers", "Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
-tokio-compat-02 = "0.2"
-futures-util = "0.3"
 mio = "0.6.23"                                                              # fixed patch 0.6.23
 fs-swap = "0.2.6"                                                           # fixed patch 0.2.6
 blooms-db = { path = "crates/db/blooms-db" }
@@ -35,6 +32,9 @@ serde = "1.0.210"
 serde_json = "1.0.128"
 serde_derive = "1.0.210"
 futures = "0.3.31"
+futures-util = "0.3"
+tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio-compat-02 = "0.2"
 hyper = { version = "0.14.12" }
 fdlimit = "0.3.0"
 ctrlc = { git = "https://github.com/paritytech/rust-ctrlc.git" }

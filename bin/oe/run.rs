@@ -28,7 +28,7 @@ use crate::{
     db,
     helpers::{execute_upgrades, passwords_from_files, to_client_config},
     informant::{FullNodeInformantData, Informant},
-    metrics::{MetricsConfiguration, start_prometheus_metrics},
+    metrics::{start_prometheus_metrics, MetricsConfiguration},
     miner::{external::ExternalMiner, work_notify::WorkPoster},
     modules,
     params::{
@@ -62,8 +62,8 @@ const SNAPSHOT_PERIOD: u64 = 20000;
 // Start snapshoting from `tip`-`history, with this we want to bypass reorgs. Should be smaller than prunning history.
 const SNAPSHOT_HISTORY: u64 = 50;
 
-// Full client number of DNS threads
-const FETCH_FULL_NUM_DNS_THREADS: usize = 4;
+// Note: DNS thread configuration removed when upgradying hyper: v0.14 uses system default DNS resolution
+
 
 #[derive(Debug, PartialEq)]
 pub struct RunCmd {
@@ -269,7 +269,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     let runtime = Runtime::with_default_thread_count();
 
     // fetch service
-    let fetch = fetch::Client::new(FETCH_FULL_NUM_DNS_THREADS)
+    let fetch = fetch::Client::new()
         .map_err(|e| format!("Error starting fetch client: {:?}", e))?;
 
     let txpool_size = cmd.miner_options.pool_limits.max_count;

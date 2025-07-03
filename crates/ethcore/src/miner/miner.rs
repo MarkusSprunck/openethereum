@@ -2181,7 +2181,7 @@ mod tests {
 
         // Don't really care about any of these settings since
         // the gas pricer is never actually going to be used
-        let fetch = FetchClient::new(1).unwrap();
+        let fetch = FetchClient::new().unwrap();
         let p = Executor::new_sync();
 
         GasPricer::new_calibrated(GasPriceCalibrator::new(
