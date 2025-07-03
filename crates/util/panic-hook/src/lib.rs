@@ -16,10 +16,11 @@
 
 //! Custom panic hook with bug report link
 
+extern crate backtrace;
 
 use backtrace::Backtrace;
 use std::{
-    panic,
+    panic::{self, PanicInfo},
     process, thread,
 };
 
@@ -53,7 +54,7 @@ This is a bug. Please report it at:
     https://github.com/openethereum/openethereum/issues/new
 ";
 
-fn gen_panic_msg(info: &panic::PanicHookInfo) -> String {
+fn gen_panic_msg(info: &PanicInfo) -> String {
     let location = info.location();
     let file = location.as_ref().map(|l| l.file()).unwrap_or("<unknown>");
     let line = location.as_ref().map(|l| l.line()).unwrap_or(0);
