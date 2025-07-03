@@ -18,8 +18,8 @@ extern crate fetch;
 extern crate futures;
 extern crate hyper;
 
-use fetch::{Fetch, Request, Url};
-use futures::{future, Future};
+use fetch::{ClientCompatExt, Fetch, FetchResult01, Request, Url};
+use futures::{future, Future, TryFutureExt};
 use hyper::Body;
 use http::StatusCode;
 use std::pin::Pin;
@@ -45,7 +45,8 @@ impl<T: 'static> Fetch for FakeFetch<T>
 where
     T: Clone + Send + Sync,
 {
-    type Result = Pin<Box<dyn Future<Output = Result<fetch::Response, fetch::Error>> + Send + 'static>>;
+    type Result =
+        Pin<Box<dyn Future<Output = Result<fetch::Response, fetch::Error>> + Send + 'static>>;
 
     fn fetch(&self, request: Request, abort: fetch::Abort) -> Self::Result {
         let u = request.url().clone();
@@ -75,5 +76,18 @@ where
             Err(e) => return Box::pin(future::ready(Err(e.into()))),
         };
         self.fetch(Request::post(url), abort)
+    }
+}
+
+impl<T: 'static> ClientCompatExt for FakeFetch<T>
+where
+    T: Clone + Send + Sync,
+{
+    fn get_compat(&self, url: &str, abort: fetch::Abort) -> FetchResult01 {
+        Box::new(self.get(url, abort).compat())
+    }
+
+    fn fetch_compat(&self, request: Request, abort: fetch::Abort) -> FetchResult01 {
+        Box::new(self.fetch(request, abort).compat())
     }
 }
