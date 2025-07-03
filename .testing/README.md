@@ -2,11 +2,11 @@
 
 How can I access the Leopold test environment?
 
-## 1. Contact
+## 1.0 Contact
 
 Please, get in contact with [sprunck@muenchen.ihk.de](mailto:sprunck@muenchen.ihk.de)
 
-## 2. Architecture
+## 2.0 Architecture
 
 The following diagram shows the Leopold staging environment. Within the IHK Munich (green box), there are
 three OpenEthereum nodes that represent the actual blockchain. Two of these nodes are validator nodes, namely
@@ -40,8 +40,8 @@ two identical clients at the same time, so in the case you work without knowing 
 the node is already running, pease change the content of the mnemonic files.
 
 ```bash
-echo "1234" > ./secrets/AccountMnemonic
-echo "5678" > ./secrets/NetworkMnemonic
+echo "<your 1st random string>" > ./secrets/AccountMnemonic
+echo "<your 2nd random string>" > ./secrets/NetworkMnemonic
 ```
 
 ```bash
