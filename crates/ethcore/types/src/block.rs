@@ -58,7 +58,7 @@ impl Block {
         block_rlp.append(&self.header);
         TypedTransaction::rlp_append_list(&mut block_rlp, &self.transactions);
         block_rlp.append_list(&self.uncles);
-        block_rlp.out()
+        block_rlp.out().to_vec()
     }
 
     pub fn decode_rlp(rlp: &Rlp, eip1559_transition: BlockNumber) -> Result<Self, DecoderError> {

@@ -14,4 +14,4 @@ quote = "0.6"
 proc-macro2 = "0.4"
 
 [dev-dependencies]
-rlp = { version = "0.4.6" }
+rlp = { version = "0.5.2" }
