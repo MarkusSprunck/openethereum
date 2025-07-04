@@ -13,7 +13,7 @@ lazy_static = "1.0"
 log = "0.4"
 vm = { path = "../vm" }
 keccak-hash = "0.6.0"
-parity-util-mem = "0.7"
+parity-util-mem = "0.8"
 parking_lot = "0.12.3"
 memory-cache = { path = "../../util/memory-cache" }
 ethcore-builtin = { path = "../builtin" }

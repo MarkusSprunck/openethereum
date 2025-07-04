@@ -264,7 +264,12 @@ impl Client {
                 Err(e) => return tx_start.send(Err(e)).unwrap_or(()),
             };
 
-            let hyper = hyper::Client::builder().build(hyper_rustls::HttpsConnector::with_native_roots());
+            let https_connector = hyper_rustls::HttpsConnectorBuilder::new()
+                .with_native_roots()
+                .https_or_http()
+                .enable_http1()
+                .build();
+            let hyper = hyper::Client::builder().build(https_connector);
 
             let future = async move {
                 while let Some(item) = rx_proto.recv().await {

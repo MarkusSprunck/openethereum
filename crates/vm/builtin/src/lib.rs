@@ -43,7 +43,7 @@ use parity_bytes::BytesRef;
 use substrate_bn as bn;
 use parity_crypto::{
     digest,
-    publickey::{recover_allowing_all_zero_message, Signature, ZeroesAllowedMessage},
+    publickey::{recover, Signature},
 };
 
 /// Native implementation of a built-in contract.
@@ -833,13 +833,13 @@ impl Implementation for EcRecover {
 
         let s = Signature::from_rsv(&r, &s, bit);
         if s.is_valid() {
-            // The builtin allows/requires all-zero messages to be valid to
-            // recover the public key. Use of such messages is disallowed in
-            // `rust-secp256k1` and this is a workaround for that. It is not an
-            // openethereum-level error to fail here; instead we return all
-            // zeroes and let the caller interpret that outcome.
-            let recovery_message = ZeroesAllowedMessage(hash);
-            if let Ok(p) = recover_allowing_all_zero_message(&s, recovery_message) {
+            // COMPATIBILITY NOTE: parity-crypto 0.7.0 upgrade
+            // Prior to parity-crypto 0.7.0, we used specialized functions:
+            //   - `ZeroesAllowedMessage(hash)` wrapper type
+            //   - `recover_allowing_all_zero_message()` function
+            // In parity-crypto 0.7.0+, the standard `recover()` function now handles
+            // zero messages properly, eliminating the need for specialized variants.
+            if let Ok(p) = recover(&s, &hash) {
                 let r = keccak(p);
                 output.write(0, &[0; 12]);
                 output.write(12, &r.as_bytes()[12..]);

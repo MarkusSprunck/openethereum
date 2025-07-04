@@ -96,7 +96,7 @@ pub fn version_data() -> Bytes {
     s.append(&"OpenEthereum");
     s.append(&generated::rustc_version());
     s.append(&&Target::os()[0..2]);
-    s.out()
+    s.out().to_vec()
 }
 
 /// Provide raw information on the package.
