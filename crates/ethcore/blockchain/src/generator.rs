@@ -72,7 +72,7 @@ impl Block {
     /// Get RLP encoding of this block
     #[inline]
     pub fn encoded(&self) -> encoded::Block {
-        encoded::Block::new(encode(self))
+        encoded::Block::new(encode(self).to_vec())
     }
 
     /// Get block difficulty

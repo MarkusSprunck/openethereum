@@ -407,7 +407,11 @@ impl<'a> Discovery<'a> {
         node.endpoint.to_rlp_list(&mut rlp);
         append_expiration(&mut rlp);
         let old_parity_hash = keccak(rlp.as_raw());
-        let hash = self.send_packet(PACKET_PING, &node.endpoint.udp_address(), &rlp.drain())?;
+        let hash = self.send_packet(
+            PACKET_PING,
+            &node.endpoint.udp_address(),
+            &rlp.out().to_vec(),
+        )?;
 
         self.in_flight_pings.insert(
             node.id,
@@ -428,7 +432,11 @@ impl<'a> Discovery<'a> {
         let mut rlp = RlpStream::new_list(2);
         rlp.append(target);
         append_expiration(&mut rlp);
-        self.send_packet(PACKET_FIND_NODE, &node.endpoint.udp_address(), &rlp.drain())?;
+        self.send_packet(
+            PACKET_FIND_NODE,
+            &node.endpoint.udp_address(),
+            &rlp.out().to_vec(),
+        )?;
 
         self.in_flight_find_nodes.insert(
             node.id,
@@ -597,7 +605,7 @@ impl<'a> Discovery<'a> {
 
         response.append(&echo_hash);
         append_expiration(&mut response);
-        self.send_packet(PACKET_PONG, from, &response.drain())?;
+        self.send_packet(PACKET_PONG, from, &response.out().to_vec())?;
 
         let entry = NodeEntry {
             id: *node_id,
@@ -773,7 +781,7 @@ impl<'a> Discovery<'a> {
                 rlp.append(&n.id);
             }
             append_expiration(&mut rlp);
-            rlp.out()
+            rlp.out().to_vec()
         });
         packets.collect()
     }
@@ -1274,7 +1282,8 @@ mod tests {
             .collect::<Vec<_>>();
 
         let secret_hex = "6c71d1b8930d29e6371be1081f2c909c64b46440a1716314c3c9df995cb3aed1";
-        let key = Secret::from_str(secret_hex)
+        let secret_bytes = FromHex::from_hex(secret_hex).unwrap();
+        let key = Secret::import_key(&secret_bytes)
             .and_then(|secret| KeyPair::from_secret(secret))
             .unwrap();
         let mut discovery = Discovery::new(&key, ep.clone(), IpFilter::default());
@@ -1461,7 +1470,7 @@ mod tests {
         incorrect_pong_rlp.append(&H256::default());
         append_expiration(&mut incorrect_pong_rlp);
         let incorrect_pong_data =
-            assemble_packet(PACKET_PONG, &incorrect_pong_rlp.drain(), &discovery2.secret).unwrap();
+            assemble_packet(PACKET_PONG, &incorrect_pong_rlp.out(), &discovery2.secret).unwrap();
         if let Some(_) = discovery1
             .on_packet(&incorrect_pong_data, ep2.address.clone())
             .unwrap()
@@ -1495,7 +1504,7 @@ mod tests {
         unexpected_pong_rlp.append(&H256::default());
         append_expiration(&mut unexpected_pong_rlp);
         let unexpected_pong =
-            assemble_packet(PACKET_PONG, &unexpected_pong_rlp.drain(), key3.secret()).unwrap();
+            assemble_packet(PACKET_PONG, &unexpected_pong_rlp.out(), key3.secret()).unwrap();
         if let Some(_) = discovery1
             .on_packet(&unexpected_pong, ep3.address.clone())
             .unwrap()

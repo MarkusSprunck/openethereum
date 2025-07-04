@@ -19,6 +19,7 @@ use ethereum_types::H256;
 use hash::keccak;
 use mio::{deprecated::EventLoop, tcp::*, udp::*, *};
 use rlp::{Encodable, RlpStream};
+use rustc_hex::FromHex;
 use std::{
     cmp::{max, min},
     collections::{HashMap, HashSet},
@@ -1480,7 +1481,11 @@ fn load_key(path: &Path) -> Option<Secret> {
             return None;
         }
     }
-    match Secret::from_str(&buf) {
+    match FromHex::from_hex(&buf.trim())
+        .map_err(|e| format!("Invalid hex: {:?}", e))
+        .and_then(|bytes| {
+            Secret::import_key(&bytes).map_err(|e| format!("Invalid secret: {:?}", e))
+        }) {
         Ok(key) => Some(key),
         Err(e) => {
             warn!("Error parsing key file: {:?}", e);
@@ -1503,9 +1508,10 @@ fn key_save_load() {
 #[test]
 fn host_client_url() {
     let mut config = NetworkConfiguration::new_local();
-    let key = "6f7b0d801bc7b5ce7bbd930b84fd0369b3eb25d09be58d64ba811091046f3aa2"
-        .parse()
-        .unwrap();
+    let key_bytes =
+        FromHex::from_hex("6f7b0d801bc7b5ce7bbd930b84fd0369b3eb25d09be58d64ba811091046f3aa2")
+            .unwrap();
+    let key = Secret::import_key(&key_bytes).unwrap();
     config.use_secret = Some(key);
     let host: Host = Host::new(config, None).unwrap();
     assert!(host.local_url().starts_with("enode://101b3ef5a4ea7a1c7928e24c4c75fd053c235d7b80c22ae5c03d145d0ac7396e2a4ffff9adee3133a7b05044a5cee08115fd65145e5165d646bde371010d803c@"));

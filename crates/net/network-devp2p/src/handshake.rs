@@ -366,7 +366,7 @@ impl Handshake {
         let pad = &pad_array[0..100 + random::<usize>() % 100];
         rlp.append_raw(pad, 0);
 
-        let encoded = rlp.drain();
+        let encoded = rlp.out().to_vec();
         let len = (encoded.len() + ECIES_OVERHEAD) as u16;
         let prefix = [(len >> 8) as u8, (len & 0xff) as u8];
         let message = ecies::encrypt(&self.id, &prefix, &encoded)?;

@@ -1913,7 +1913,7 @@ impl BlockChain {
         let block_view = view!(BlockView, block);
         body.append_raw(block_view.transactions_rlp().as_raw(), 1);
         body.append_raw(block_view.uncles_rlp().as_raw(), 1);
-        body.out()
+        body.out().to_vec()
     }
 
     /// Returns general blockchain information
