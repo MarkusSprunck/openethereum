@@ -3328,7 +3328,6 @@ dependencies = [
 name = "oe-rpc-servers"
 version = "0.0.0"
 dependencies = [
- "generic-array",
  "jsonrpc-core",
  "jsonrpc-http-server",
  "jsonrpc-ipc-server",
