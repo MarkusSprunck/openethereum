@@ -220,7 +220,7 @@ mod accounts {
     }
 
     fn insert_dev_account(account_provider: &AccountProvider) {
-        let secret = publickey::Secret::from_str(
+        let secret = publickey::Secret::copy_from_str(
             "4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7",
         )
         .expect("Valid account;qed");
