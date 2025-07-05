@@ -10,7 +10,7 @@ build = "build.rs"
 
 [dependencies]
 parity-bytes = "0.1"
-rlp = { version = "0.5.2" }
+rlp = { version = "0.4.6" }
 target_info = "0.1"
 
 [build-dependencies]

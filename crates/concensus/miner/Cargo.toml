@@ -22,17 +22,17 @@ ethabi = "12.0.0"
 ethabi-derive = { git = 'https://github.com/rimrakhimov/ethabi', branch = 'rimrakhimov/remove-syn-export-span' }
 ethabi-contract = "11.0.0"
 ethcore-call-contract = { path = "../../vm/call-contract" }
-ethereum-types = "0.10.0"
+ethereum-types = "0.9.2"
 futures = "0.1"
-keccak-hash = "0.6.0"
+keccak-hash = "0.5.0"
 linked-hash-map = "0.5"
 log = "0.4"
-parity-crypto = { version = "0.7.0", features = ["publickey"] }
+parity-crypto = { version = "0.6.2", features = ["publickey"] }
 parity-runtime = { path = "../../runtime/runtime" }
-parity-util-mem = "0.8"
+parity-util-mem = "0.7"
 parking_lot = "0.12.3"
 price-info = { path = "./price-info", optional = true }
-rlp = { version = "0.5.2" }
+rlp = { version = "0.4.6" }
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"

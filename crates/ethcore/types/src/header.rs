@@ -334,7 +334,7 @@ impl Header {
     fn rlp(&self, with_seal: Seal) -> Bytes {
         let mut s = RlpStream::new();
         self.stream_rlp(&mut s, with_seal);
-        s.out().to_vec()
+        s.out()
     }
 
     /// Place this header into an RLP stream `s`, optionally `with_seal`.

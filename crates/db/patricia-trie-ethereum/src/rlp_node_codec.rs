@@ -96,14 +96,14 @@ impl NodeCodec<KeccakHasher> for RlpNodeCodec<KeccakHasher> {
     fn empty_node() -> Vec<u8> {
         let mut stream = RlpStream::new();
         stream.append_empty_data();
-        stream.out().to_vec()
+        stream.drain()
     }
 
     fn leaf_node(partial: &[u8], value: &[u8]) -> Vec<u8> {
         let mut stream = RlpStream::new_list(2);
         stream.append(&partial);
         stream.append(&value);
-        stream.out().to_vec()
+        stream.drain()
     }
 
     fn ext_node(
@@ -119,7 +119,7 @@ impl NodeCodec<KeccakHasher> for RlpNodeCodec<KeccakHasher> {
                 stream.append_raw(bytes, 1)
             }
         };
-        stream.out().to_vec()
+        stream.drain()
     }
 
     // fn branch_node<I>(children: I, value: Option<Vec<u8>>) -> Vec<u8>
@@ -145,6 +145,6 @@ impl NodeCodec<KeccakHasher> for RlpNodeCodec<KeccakHasher> {
         } else {
             stream.append_empty_data();
         }
-        stream.out().to_vec()
+        stream.drain()
     }
 }

@@ -1,2 +1,26 @@
-[unstable]
-features = ["rustc-attrs"]
+[target.x86_64-unknown-linux-gnu]
+rustflag = [
+	"-Clink-arg=-s",
+	"-Ctarget-feature=+aes,+ssse3"
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+	"-L native=/opt/homebrew/opt/bzip2/lib",
+	"-L native=/opt/homebrew/opt/lz4/lib",
+	"-L native=/opt/homebrew/opt/zstd/lib",
+	"-L/opt/homebrew/Cellar/snappy/1.2.2/lib",
+	"-L/opt/homebrew/Cellar/rocksdb/10.2.1/lib",
+	"-Clink-arg=-lbz2",
+	"-Clink-arg=-llz4",
+	"-Clink-arg=-lzstd",
+	"-Clink-arg=-lz",
+	"-Ctarget-feature=+aes"
+]
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+	"-L/opt/homebrew/Cellar/snappy/1.2.2/lib",
+	"-L/opt/homebrew/Cellar/rocksdb/10.2.1/lib",
+	"-Ctarget-feature=+aes"
+]

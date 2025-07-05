@@ -118,8 +118,7 @@ impl ServiceTransactionChecker {
         contract_address: Address,
         sender: Address,
     ) -> Result<bool, String> {
-        let sender_bytes: [u8; 20] = sender.into();
-        let (data, decoder) = service_transaction::functions::certified::call(sender_bytes);
+        let (data, decoder) = service_transaction::functions::certified::call(sender);
         let value = client.call_contract(BlockId::Latest, contract_address, data)?;
         decoder.decode(&value).map_err(|e| e.to_string())
     }

@@ -440,12 +440,10 @@ impl BlockProvider for BlockChain {
         II: IntoIterator<Item = B, IntoIter = I> + Copy,
         I: Iterator<Item = B>,
     {
-        // self.db
-         //   .blooms()
-         //   .filter(from_block, to_block, blooms)
-        //    .expect("Low level database error when searching blooms. Some issue with disk?")
-		let vec : Vec<BlockNumber> =  Vec::new();
-		vec
+        self.db
+            .blooms()
+            .filter(from_block, to_block, blooms)
+            .expect("Low level database error when searching blooms. Some issue with disk?")
     }
 
     /// Returns logs matching given filter. The order of logs returned will be the same as the order of the blocks
@@ -1460,12 +1458,12 @@ impl BlockChain {
             );
         }
 
-        /*if let Some((block, blooms)) = update.blocks_blooms {
+        if let Some((block, blooms)) = update.blocks_blooms {
             self.db
-                .blooms().
+                .blooms()
                 .insert_blooms(block, blooms.iter())
                 .expect("Low level database error when updating blooms. Some issue with disk?");
-        }*/
+        }
 
         // These cached values must be updated last with all four locks taken to avoid
         // cache decoherence
@@ -1915,7 +1913,7 @@ impl BlockChain {
         let block_view = view!(BlockView, block);
         body.append_raw(block_view.transactions_rlp().as_raw(), 1);
         body.append_raw(block_view.uncles_rlp().as_raw(), 1);
-        body.out().to_vec()
+        body.out()
     }
 
     /// Returns general blockchain information

@@ -10,17 +10,11 @@ name = "openethereum-evm"
 path = "./src/main.rs"
 
 [dependencies]
-common-types = { path = "../../crates/ethcore/types", features = [
-    "test-helpers",
-] }
+common-types = { path = "../../crates/ethcore/types", features = ["test-helpers"] }
 docopt = "1.1.1"
 env_logger = "0.5"
-ethcore = { path = "../../crates/ethcore", features = [
-    "test-helpers",
-    "json-tests",
-    "to-pod-full",
-] }
-ethereum-types = "0.10.0"
+ethcore = { path = "../../crates/ethcore", features = ["test-helpers", "json-tests", "to-pod-full"] }
+ethereum-types = "0.9.2"
 ethjson = { path = "../../crates/ethjson" }
 evm = { path = "../../crates/vm/evm" }
 panic_hook = { path = "../../crates/util/panic-hook" }

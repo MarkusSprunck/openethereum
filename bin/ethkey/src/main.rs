@@ -29,7 +29,9 @@ extern crate serde_derive;
 
 use std::{env, fmt, io, num::ParseIntError, process, sync};
 
-use crypto::publickey::{sign, verify_address, verify_public, Error as EthkeyError, Generator, KeyPair, Random, Secret};
+use crypto::publickey::{
+    sign, verify_address, verify_public, Error as EthkeyError, Generator, KeyPair, Random,
+};
 use docopt::Docopt;
 use ethkey::{brain_recover, Brain, BrainPrefix, Prefix};
 use rustc_hex::{FromHex, FromHexError};
@@ -204,7 +206,10 @@ where
             let keypair = Brain::new(phrase).generate();
             (keypair, Some(phrase_info))
         } else {
-            let secret =  Secret::copy_from_str(args.arg_secret_or_phrase.as_str()).unwrap();  
+            let secret = args
+                .arg_secret_or_phrase
+                .parse()
+                .map_err(|_| EthkeyError::InvalidSecretKey)?;
             (KeyPair::from_secret(secret)?, None)
         };
         Ok(display(result, display_mode))
@@ -245,7 +250,10 @@ where
         };
         Ok(display(result, display_mode))
     } else if args.cmd_sign {
-        let secret = Secret::copy_from_str(args.arg_secret.as_str()).unwrap();
+        let secret = args
+            .arg_secret
+            .parse()
+            .map_err(|_| EthkeyError::InvalidSecretKey)?;
         let message = args
             .arg_message
             .parse()

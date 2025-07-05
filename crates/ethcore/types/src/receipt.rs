@@ -222,7 +222,7 @@ impl TypedReceipt {
             Self::Legacy(receipt) => {
                 let mut s = RlpStream::new();
                 receipt.rlp_append(&mut s);
-                s.out().to_vec()
+                s.drain()
             }
             Self::AccessList(receipt) => {
                 let mut rlps = RlpStream::new();

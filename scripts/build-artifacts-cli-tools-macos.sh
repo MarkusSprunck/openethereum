@@ -17,10 +17,6 @@ echo "_____ Post-processing binaries _____"
 rm -rf .artifacts/*
 mkdir -p .artifacts/
 
-echo "_____ Set GCC-12 and G++-12 as default compiler _____"
-export CC="$(which gcc-12)"
-export CXX="$(which g++-12)"
-
 echo "_____ Set Rust Verions _____"
 rustup override set 1.85
 
@@ -37,8 +33,8 @@ export RUSTFLAGS="-L native=/opt/homebrew/opt/bzip2/lib \
                   -Ctarget-feature=+aes"
 
 echo "_____ Build tools _____"
-# time cargo build --color=always --profile dev -p ethstore-cli
+time cargo build --color=always --profile dev -p ethstore-cli
 time cargo build --color=always --profile dev -p ethkey-cli
 
 cp -v target/debug/ethkey .artifacts/ethkey
-# cp -v target/debug/ethstore .artifacts/ethstore
+cp -v target/debug/ethstore .artifacts/ethstore

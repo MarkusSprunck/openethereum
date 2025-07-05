@@ -354,7 +354,7 @@ impl Session {
             payload = &compressed[0..len];
         }
         rlp.append_raw(payload, 1);
-        self.send(io, &rlp.out().to_vec())
+        self.send(io, &rlp.drain())
     }
 
     /// Keep this session alive. Returns false if ping timeout happened
@@ -513,7 +513,7 @@ impl Session {
             .append_list(&host.capabilities)
             .append(&host.local_endpoint.address.port())
             .append(host.id());
-        self.send(io, &rlp.out())
+        self.send(io, &rlp.drain())
     }
 
     fn read_hello<Message>(
@@ -626,7 +626,7 @@ impl Session {
             let mut rlp = RlpStream::new();
             rlp.begin_list(1);
             rlp.append(&(reason as u32));
-            self.send_packet(io, None, PACKET_DISCONNECT, &rlp.out().to_vec())
+            self.send_packet(io, None, PACKET_DISCONNECT, &rlp.drain())
                 .ok();
         }
         ErrorKind::Disconnect(reason).into()
