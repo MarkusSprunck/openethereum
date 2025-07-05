@@ -136,11 +136,4 @@ lto = true
 # This should only list projects that are not
 # in the dependency tree in any other way
 # (i.e. pretty much only standalone CLI tools)
-
-members = [
-	"bin/ethkey",
-	"bin/ethstore",
-	"bin/evmbin",
-	"bin/chainspec"
-]
-
+members = ["bin/ethkey", "bin/ethstore", "bin/evmbin", "bin/chainspec"]

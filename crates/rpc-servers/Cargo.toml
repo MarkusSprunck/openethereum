@@ -12,4 +12,3 @@ jsonrpc-core = "15.0.0"
 http = { package = "jsonrpc-http-server", version = "15.0.0" }
 ipc = { package = "jsonrpc-ipc-server", version = "15.0.0" }
 ws = { package = "jsonrpc-ws-server", version = "15.0.0" }
-generic-array = "0.12.4"                                       # fixed patch 0.12.4
