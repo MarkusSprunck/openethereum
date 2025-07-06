@@ -13,24 +13,27 @@ echo "_____ Post-processing binaries _____"
 rm -rf .artifacts/*
 mkdir -p .artifacts/
 
+
+
+
 echo "_____ Set Rust Version _____"
 rustup override set 1.85
 
-if [ ! -d "/opt/homebrew/opt/bzip2" ] || \
-   [ ! -d "/opt/homebrew/opt/lz4" ] || \
-   [ ! -d "/opt/homebrew/opt/zstd" ] || \
-   [ ! -d "/opt/homebrew/Cellar/snappy/1.2.2" ] || \
-   [ ! -d "/opt/homebrew/Cellar/rocksdb/10.2.1" ]; then
+if [ ! -d "$(brew --prefix bzip2)" ]  || \
+   [ ! -d "$(brew --prefix lz4)" ]    || \
+   [ ! -d "$(brew --prefix zstd)" ]   || \
+   [ ! -d "$(brew --prefix snappy)" ] || \
+   [ ! -d "$(brew --prefix rocksdb)" ]; then
     echo "Error: Required libraries not found. Please install missing packages with brew."
     exit 1
 fi
 
 #strip ON
-export RUSTFLAGS="-L native=/opt/homebrew/opt/bzip2/lib \
-                  -L native=/opt/homebrew/opt/lz4/lib \
-                  -L native=/opt/homebrew/opt/zstd/lib \
-                  -L/opt/homebrew/Cellar/snappy/1.2.2/lib \
-                  -L/opt/homebrew/Cellar/rocksdb/10.2.1/lib \
+export RUSTFLAGS="-L$(brew --prefix bzip2)/lib \
+                  -L$(brew --prefix lz4)/lib \
+                  -L$(brew --prefix zstd)/lib \
+                  -L$(brew --prefix snappy)/lib \
+                  -L$(brew --prefix rocksdb)/lib \
                   -Clink-arg=-lbz2 \
                   -Clink-arg=-llz4 \
                   -Clink-arg=-lzstd \

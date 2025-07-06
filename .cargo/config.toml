@@ -1,26 +1,20 @@
-#[target.x86_64-unknown-linux-gnu]
-#rustflags = [
-#	"-Clink-arg=-s",
-#	"-Ctarget-feature=+aes,+ssse3"
-#]
-#
+[target.x86_64-apple-darwin]
+rustflags = [
+	"-L/usr/local/opt/snappy/lib",
+	"-L/usr/local/opt/rocksdb/lib",
+	"-Ctarget-feature=+aes"
+]
+
 [target.aarch64-apple-darwin]
 rustflags = [
-	"-L/opt/homebrew/opt/bzip2/lib",
-	"-L/opt/homebrew/opt/lz4/lib",
-	"-L/opt/homebrew/opt/zstd/lib",
-	"-L/opt/homebrew/Cellar/snappy/1.2.2/lib",
-	"-L/opt/homebrew/Cellar/rocksdb/10.2.1/lib",
+	"-L/usr/local/opt/bzip2/lib",
+	"-L/usr/local/opt/lz4/lib",
+	"-L/usr/local/opt/zstd/lib",
+	"-L/usr/local/opt/snappy/lib",
+	"-L/usr/local/opt/rocksdb/lib",
 	"-Clink-arg=-lbz2",
 	"-Clink-arg=-llz4",
 	"-Clink-arg=-lzstd",
 	"-Clink-arg=-lz",
 	"-Ctarget-feature=+aes"
 ]
-#
-#[target.aarch64-unknown-linux-gnu]
-#rustflags = [
-#	"-L/opt/homebrew/Cellar/snappy/1.2.2/lib",
-#	"-L/opt/homebrew/Cellar/rocksdb/10.2.1/lib",
-#	"-Ctarget-feature=+aes"
-#]
