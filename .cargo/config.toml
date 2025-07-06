@@ -7,11 +7,11 @@ rustflags = [
 
 [target.aarch64-apple-darwin]
 rustflags = [
-	"-L/usr/local/opt/bzip2/lib",
-	"-L/usr/local/opt/lz4/lib",
-	"-L/usr/local/opt/zstd/lib",
-	"-L/usr/local/opt/snappy/lib",
-	"-L/usr/local/opt/rocksdb/lib",
+	"-L/opt/homebrew/opt/bzip2/lib",
+	"-L/opt/homebrew/opt/lz4/lib",
+	"-L/opt/homebrew/opt/zstd/lib",
+	"-L/opt/homebrew/Cellar/snappy/1.2.2/lib",
+	"-L/opt/homebrew/Cellar/rocksdb/10.2.1/lib",
 	"-Clink-arg=-lbz2",
 	"-Clink-arg=-llz4",
 	"-Clink-arg=-lzstd",
