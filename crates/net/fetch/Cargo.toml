@@ -11,7 +11,6 @@ authors = ["Parity Technologies <admin@parity.io>"]
 futures = { version = "0.3", features = ["compat"] }
 futures-01 = { package = "futures", version = "0.1", optional = true }
 hyper = { version = "0.14.12", features = ["server", "http1", "http2"] }
-hyper-tls = "0.5"
 http = "0.2"
 log = "0.4"
 tokio = { version = "1.0", features = [
@@ -23,6 +22,12 @@ tokio = { version = "1.0", features = [
 ] }
 url = "2"
 bytes = "1.0"
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+hyper-tls = "0.5"
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+hyper-rustls = "0.22.1"
 
 [features]
 default = ["compat"]

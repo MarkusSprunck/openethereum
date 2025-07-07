@@ -19,6 +19,18 @@ mkdir -p .artifacts/
 echo "_____ Set Rust Version _____"
 rustup override set 1.85
 
+echo "_____ Set GCC-12 and G++-12 as default compiler _____"
+export CC="$(which gcc-12)"
+export CXX="$(which g++-12)"
+
+LIB_SNAPPY="$(brew --prefix snappy)"
+LIB_ROCKSDB="$(brew --prefix rocksdb)"
+
+echo "LIB_SNAPPY=$LIB_SNAPPY"
+echo "LIB_ROCKSDB=$LIB_ROCKSDB"
+echo "CC=$CC"
+echo "CXX=$CXX"
+
 if [ ! -d "$(brew --prefix snappy)" ] || \
    [ ! -d "$(brew --prefix rocksdb)" ]; then
     echo "Error: Required libraries not found. Please install missing packages with brew."

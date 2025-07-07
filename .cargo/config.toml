@@ -18,3 +18,9 @@ rustflags = [
 	"-Clink-arg=-lz",
 	"-Ctarget-feature=+aes"
 ]
+
+[target.x86_64-unknown-linux-gnu]
+rustflags = [
+	"-Clink-arg=-s",
+	"-Ctarget-feature=+aes",
+]

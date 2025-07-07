@@ -24,7 +24,12 @@ extern crate futures;
 
 extern crate http;
 extern crate hyper;
+
+#[cfg(target_arch = "aarch64")]
 extern crate hyper_tls;
+
+#[cfg(target_arch = "x86_64")]
+extern crate hyper_rustls;
 
 extern crate bytes;
 extern crate tokio;
