@@ -126,12 +126,6 @@ pub struct Configuration {
 
 impl Configuration {
     /// Parses a configuration from a list of command line arguments.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let _cfg = openethereum::Configuration::parse_cli(&["--light", "--chain", "kovan"]).unwrap();
-    /// ```
     pub fn parse_cli<S: AsRef<str>>(command: &[S]) -> Result<Self, ArgsError> {
         let config = Configuration {
             args: Args::parse(command)?,
