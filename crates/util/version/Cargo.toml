@@ -2,9 +2,8 @@
 edition = "2021"
 name = "parity-version"
 # NOTE: this value is used for OpenEthereum version string (via env CARGO_PKG_VERSION)
-version = "3.5.0-rc0"
+version = "3.5.0-rc1"
 authors = ["Parity Technologies <admin@parity.io>"]
-build = "build.rs"
 
 [package.metadata]
 
@@ -12,11 +11,7 @@ build = "build.rs"
 parity-bytes = "0.1"
 rlp = { version = "0.4.6" }
 target_info = "0.1"
-
-[build-dependencies]
-vergen = "0.1"
-rustc_version = "0.2"
-toml = "0.4"
+rustc_version = "0.4.1"
 
 [features]
 final = []

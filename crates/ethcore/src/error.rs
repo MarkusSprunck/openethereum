@@ -16,6 +16,8 @@
 
 //! General error types for use in ethcore.
 
+#![allow(unexpected_cfgs)]
+
 use std::{error, fmt, time::SystemTime};
 
 use crypto::publickey::Error as EthkeyError;

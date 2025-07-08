@@ -16,9 +16,9 @@ mkdir -p .artifacts/
 echo "_____ Set Rust Version _____"
 rustup override set 1.85
 
-echo "_____ Set GCC-12 and G++-12 as default compiler _____"
-export CC="$(which gcc-12)"
-export CXX="$(which g++-12)"
+echo "_____ Switch to Clang _____"
+export CC=/usr/bin/clang
+export CXX=/usr/bin/clang++
 
 LIB_BZIP2="$(brew --prefix bzip2)"
 LIB_LZ4="$(brew --prefix lz4)"

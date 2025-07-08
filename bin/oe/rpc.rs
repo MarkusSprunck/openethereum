@@ -146,7 +146,8 @@ fn address(
 
 pub struct Dependencies<D: rpc_apis::Dependencies> {
     pub apis: Arc<D>,
-    pub executor: Executor,
+	#[allow(dead_code)]
+	pub executor: Executor,
     pub stats: Arc<RpcStats>,
 }
 

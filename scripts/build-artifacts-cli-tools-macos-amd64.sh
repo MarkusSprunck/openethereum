@@ -2,7 +2,7 @@
 
 # Ensure that following packages have been installed:
 #
-# brew install bzip2 lz4 zstd snappy rocksdb
+# brew install snappy rocksdb
 
 set -e # fail on any error
 set -u # treat unset variables as error
@@ -13,15 +13,12 @@ echo "_____ Post-processing binaries _____"
 rm -rf .artifacts/*
 mkdir -p .artifacts/
 
-
-
-
 echo "_____ Set Rust Version _____"
 rustup override set 1.85
 
-echo "_____ Set GCC-12 and G++-12 as default compiler _____"
-export CC="$(which gcc-12)"
-export CXX="$(which g++-12)"
+echo "_____ Switch to Clang _____"
+export CC=/usr/bin/clang
+export CXX=/usr/bin/clang++
 
 LIB_SNAPPY="$(brew --prefix snappy)"
 LIB_ROCKSDB="$(brew --prefix rocksdb)"
