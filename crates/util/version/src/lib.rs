@@ -20,17 +20,26 @@ extern crate parity_bytes as bytes;
 extern crate rlp;
 extern crate target_info;
 
-use rustc_version::{version as global_version};
-
 use bytes::Bytes;
 use rlp::RlpStream;
 use target_info::Target;
 
-#[cfg(not(feature = "final"))]
-const THIS_TRACK: &'static str = "unstable";
+mod vergen {
+    #![allow(unused)]
+    include!(concat!(env!("OUT_DIR"), "/version.rs"));
+}
+
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/meta.rs"));
+}
 
 #[cfg(feature = "final")]
 const THIS_TRACK: &'static str = "stable";
+// ^^^ should be reset in Cargo.toml to "stable"
+
+#[cfg(not(feature = "final"))]
+const THIS_TRACK: &'static str = "unstable";
+// ^^^ This gets used when we're not building a final release; should stay as "unstable".
 
 /// Get the platform identifier.
 pub fn platform() -> String {
@@ -41,13 +50,21 @@ pub fn platform() -> String {
 
 /// Get the standard version string for this software.
 pub fn version() -> String {
-	format!(
-        "OpenEthereum/v{}-{}{}rustc{}",
+    let sha3 = vergen::short_sha();
+    let sha3_dash = if sha3.is_empty() { "" } else { "-" };
+    let commit_date = vergen::commit_date().replace("-", "");
+    let date_dash = if commit_date.is_empty() { "" } else { "-" };
+    format!(
+        "OpenEthereum/v{}-{}{}{}{}{}/{}/rustc{}",
         env!("CARGO_PKG_VERSION"),
         THIS_TRACK,
+        sha3_dash,
+        sha3,
+        date_dash,
+        commit_date,
         platform(),
-		global_version().unwrap()
-	)
+        generated::rustc_version()
+    )
 }
 
 /// Get the standard version string for this software (short information for logging).
@@ -57,7 +74,7 @@ pub fn version_short() -> String {
 		env!("CARGO_PKG_VERSION"),
 		THIS_TRACK,
 		platform(),
-		global_version().unwrap()
+		generated::rustc_version()
 	)
 }
 
@@ -77,7 +94,12 @@ pub fn version_data() -> Bytes {
             .expect("Environment variables are known to be valid; qed");
     s.append(&v);
     s.append(&"OpenEthereum");
-    s.append( &global_version().unwrap().to_string());
+    s.append(&generated::rustc_version());
     s.append(&&Target::os()[0..2]);
-    s.out()
+    s.out().to_vec()
+}
+
+/// Provide raw information on the package.
+pub fn raw_package_info() -> (&'static str, &'static str, &'static str) {
+    (THIS_TRACK, env!["CARGO_PKG_VERSION"], vergen::sha())
 }
