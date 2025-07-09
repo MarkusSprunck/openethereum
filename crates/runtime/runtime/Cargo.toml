@@ -9,4 +9,4 @@ authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
 futures = "0.1"
-tokio = "0.1.22"
+tokio = "1.46.1"
