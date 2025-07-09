@@ -29,6 +29,9 @@ use target_info::Target;
 #[cfg(not(feature = "final"))]
 const THIS_TRACK: &'static str = "unstable";
 
+#[cfg(feature = "final")]
+const THIS_TRACK: &'static str = "stable";
+
 /// Get the platform identifier.
 pub fn platform() -> String {
     let env = Target::env();
