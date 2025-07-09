@@ -8,7 +8,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 [dependencies]
 byteorder = "1.2"
 ethbloom = "0.9.1"
-parking_lot = "0.12.3"
+parking_lot = "=0.12.4"
 tiny-keccak = "1.4"
 
 [dev-dependencies]
