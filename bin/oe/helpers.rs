@@ -245,7 +245,7 @@ pub fn default_network_config() -> crate::sync::NetworkConfiguration {
         ip_filter: IpFilter::default(),
         reserved_nodes: Vec::new(),
         allow_non_reserved: true,
-        client_version: ::parity_version::version(),
+        client_version: ::parity_version::version_short(),
     }
 }
 

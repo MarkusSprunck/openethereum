@@ -142,7 +142,7 @@ macro_rules! usage {
 		use toml;
 		use std::{fs, io, process, cmp};
 		use std::io::Read;
-		use parity_version::version;
+		use parity_version::version_short;
 		use clap::{Arg, App, SubCommand, AppSettings, ArgSettings, Error as ClapError, ErrorKind as ClapErrorKind};
 		use dir::helpers::replace_home;
 		use std::ffi::OsStr;
@@ -370,7 +370,7 @@ macro_rules! usage {
 			}
 
 			pub fn print_version() -> String {
-				format!(include_str!("./version.txt"), version())
+				format!(include_str!("./version.txt"), version_short())
 			}
 
 			#[allow(unused_mut)] // subc_subc_exist may be assigned true by the macro

@@ -16,7 +16,7 @@
 
 use jsonrpc_core::IoHandler;
 use v1::{Web3, Web3Client};
-use version::version;
+use version::version_short;
 
 #[test]
 fn rpc_web3_version() {
@@ -24,7 +24,7 @@ fn rpc_web3_version() {
     let mut io = IoHandler::new();
     io.extend_with(web3);
 
-    let v = version().to_owned().replacen("/", "//", 1);
+    let v = version_short().to_owned().replacen("/", "//", 1);
 
     let request = r#"{"jsonrpc": "2.0", "method": "web3_clientVersion", "params": [], "id": 1}"#;
     let response = r#"{"jsonrpc":"2.0","result":"VER","id":1}"#

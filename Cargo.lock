@@ -273,12 +273,6 @@ checksum = "02b4ff8b16e6076c3e14220b39fbc1fabb6737522281a388998046859400895f"
 
 [[package]]
 name = "bitflags"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
-
-[[package]]
-name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
@@ -586,7 +580,7 @@ dependencies = [
  "parity-crypto",
  "parity-util-mem",
  "rlp 0.4.6",
- "rlp_derive",
+ "rlp-derive 0.2.0",
  "rustc-hex 1.0.0",
  "serde",
  "serde_json",
@@ -1251,8 +1245,8 @@ dependencies = [
  "regex",
  "reth-util",
  "rlp 0.4.6",
+ "rlp-derive 0.2.0",
  "rlp_compress",
- "rlp_derive",
  "rustc-hex 1.0.0",
  "scopeguard 1.1.0",
  "serde",
@@ -1313,8 +1307,8 @@ dependencies = [
  "rand 0.7.3",
  "rayon",
  "rlp 0.4.6",
+ "rlp-derive 0.2.0",
  "rlp_compress",
- "rlp_derive",
  "rustc-hex 1.0.0",
  "stats",
  "tempdir",
@@ -1372,7 +1366,7 @@ dependencies = [
  "parity-util-mem",
  "parking_lot 0.12.4",
  "rlp 0.4.6",
- "rlp_derive",
+ "rlp-derive 0.2.0",
  "stats",
 ]
 
@@ -1585,7 +1579,7 @@ dependencies = [
  "maplit",
  "parity-util-mem",
  "rlp 0.4.6",
- "rlp-derive",
+ "rlp-derive 0.1.0",
 ]
 
 [[package]]
@@ -1850,9 +1844,9 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "fnv"
-version = "1.0.6"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
+checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "foreign-types"
@@ -3411,7 +3405,7 @@ checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 
 [[package]]
 name = "openethereum"
-version = "3.5.0-rc1"
+version = "3.5.0-rc2"
 dependencies = [
  "ansi_term 0.12.1",
  "atty",
@@ -3801,7 +3795,7 @@ dependencies = [
 
 [[package]]
 name = "parity-version"
-version = "3.5.0-rc1"
+version = "3.5.0-rc2"
 dependencies = [
  "parity-bytes",
  "rlp 0.5.2",
@@ -4683,22 +4677,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rlp-derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "652db34deaaa57929e10ca18e5454a32cb0efc351ae80d320334bbf907b908b3"
+dependencies = [
+ "proc-macro2 1.0.87",
+ "quote 1.0.37",
+ "syn 2.0.87",
+]
+
+[[package]]
 name = "rlp_compress"
 version = "0.1.0"
 dependencies = [
  "elastic-array",
  "lazy_static",
  "rlp 0.4.6",
-]
-
-[[package]]
-name = "rlp_derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2 0.4.30",
- "quote 0.6.13",
- "rlp 0.4.6",
- "syn 0.15.26",
 ]
 
 [[package]]
@@ -6097,12 +6092,13 @@ checksum = "05c78687fb1a80548ae3250346c3db86a80a7cdd77bda190189f2d0a0987c81a"
 
 [[package]]
 name = "vergen"
-version = "0.1.1"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c3365f36c57e5df714a34be40902b27a992eeddb9996eca52d0584611cf885d"
+checksum = "f0b909197472c3dd2f369ee49659c5b9499b9465aebcf11239814d1bae149bd3"
 dependencies = [
- "bitflags 0.7.0",
- "time 0.1.42",
+ "bitflags 1.2.1",
+ "chrono",
+ "error-chain",
 ]
 
 [[package]]

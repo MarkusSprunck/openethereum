@@ -19,12 +19,12 @@ extern crate toml;
 extern crate vergen;
 
 use std::{env, fs::File, io::Write, path::Path};
-use vergen::{vergen, OutputFns};
+use vergen::{vergen, ConstantsFlags};
 
 const ERROR_MSG: &'static str = "Failed to generate metadata files";
 
 fn main() {
-    vergen(OutputFns::all()).expect(ERROR_MSG);
+	vergen(ConstantsFlags::all()).expect(ERROR_MSG);
 
     let version = rustc_version::version().expect(ERROR_MSG);
 

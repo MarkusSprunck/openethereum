@@ -37,7 +37,7 @@ use ethcore::{
 use ethereum_types::{Address, H256, U256};
 
 use num_cpus;
-use parity_version::{version, version_data};
+use parity_version::{version_data, version_short};
 use std::{
     cmp,
     collections::{BTreeMap, HashSet},
@@ -837,7 +837,7 @@ impl Configuration {
         ret.reserved_nodes = self.init_reserved_nodes()?;
         ret.allow_non_reserved = !self.args.flag_reserved_only;
         ret.client_version = {
-            let mut client_version = version();
+            let mut client_version = version_short();
             if !self.args.arg_identity.is_empty() {
                 // Insert name after the "Parity-Ethereum/" at the beginning of version string.
                 let idx = client_version.find('/').unwrap_or(client_version.len());
