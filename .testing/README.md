@@ -45,13 +45,11 @@ echo "<your 2nd random string>" > ./secrets/NetworkMnemonic
 ```
 
 ```bash
-cd .testing - /dev/null
-./leopold-secrets_generation.sh
+./leopold-secrets-generation.sh
 ```
 
 ### 3.3 Start local Leopold Node
 
 ```bash
-cd .testing - /dev/null
 ./leopold-run.sh
 ```
