@@ -52,10 +52,10 @@
 
 > **Warning:** macOS is currently not fully supported.
 
-### 3.1 Install GCC-12 and G++-12
+### 3.1 Install Compiler and Libraries
 
 ```bash
-brew install gcc@12
+brew install gcc@12 lz4 zstd snappy rocksdb
 ```
 
 ### 3.2 Select Rust Version

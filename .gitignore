@@ -55,3 +55,6 @@ vendor/
 # Code Coverage
 tarpaulin-report.html
 /.artifacts/
+/scripts/dist/data/network/key
+/scripts/dist/password
+/scripts/dist/data/keys/UTC--2025-07-11T07-10-08Z--d7cb54ba-ad3a-3ffa-6fb3-cc6c99b5d916

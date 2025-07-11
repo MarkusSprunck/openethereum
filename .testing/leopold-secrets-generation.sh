@@ -66,4 +66,4 @@ rm -f "$MACHINE_DIR/$CONFIG_FILE-e"
 # remove all old keystore files
 rm -f "$MACHINE_DIR/data/keys/UTC"*
 # generate keystore file
-$UTILS/ethstore insert $PRIV_KEY "$MACHINE_DIR/$PASSWORD" --dir "$MACHINE_DIR/data/keys/"
+$UTILS/ethstore insert $PRIV_KEY "$MACHINE_DIR/$PASSWORD" --dir "$MACHINE_DIR/data/keys/leopold"

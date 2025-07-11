@@ -118,8 +118,9 @@ impl NodeEndpoint {
                 rlp.append(&(&a.ip().octets()[..]));
             }
             SocketAddr::V6(a) => unsafe {
-                let o: *const u8 = a.ip().segments().as_ptr() as *const u8;
-                rlp.append(&slice::from_raw_parts(o, 16));
+				let segments = a.ip().segments();
+				let o: *const u8 = segments.as_ptr() as *const u8;
+				rlp.append(&slice::from_raw_parts(o, 16));
             },
         };
         rlp.append(&self.udp_port);

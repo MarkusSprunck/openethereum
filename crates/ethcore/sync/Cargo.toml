@@ -42,5 +42,5 @@ crossbeam-channel = "0.5.2"
 env_logger = "0.5"
 ethcore = { path = "..", features = ["test-helpers"] }
 ethcore-io = { path = "../../runtime/io", features = ["mio"] }
-kvdb-memorydb = "0.1"
+kvdb-memorydb = "0.1.2"
 rustc-hex = "1.0"

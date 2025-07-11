@@ -30,7 +30,7 @@ Before testing we have to create target folders and configuration on local machi
 For the generation of secrets we need two applications, i.e. *ethkey* and *ethstore*
 
 ```bash
-.scripts/build-artifacts-cli-tools.sh
+../scripts/build-artifacts-cli-tools-macos-arm64.sh
 ```
 
 ### 3.2 Create Secrets (once)
@@ -44,14 +44,9 @@ echo "<your 1st random string>" > ./secrets/AccountMnemonic
 echo "<your 2nd random string>" > ./secrets/NetworkMnemonic
 ```
 
-```bash
-cd .testing - /dev/null
-./secrets_generation.sh
-```
-
 ### 3.3 Start local Leopold Node
 
 ```bash
 cd .testing - /dev/null
-./test-leopold.sh
+./leopold-run.sh
 ```

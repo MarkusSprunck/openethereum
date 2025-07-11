@@ -32,7 +32,7 @@ parity-snappy = "0.1"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
-error-chain = { version = "0.12.4", default-features = false }
+error-chain = { version = "0.12.4", default-features = true }
 lru-cache = "0.1"
 
 [dev-dependencies]

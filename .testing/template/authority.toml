@@ -7,12 +7,13 @@ no_persistent_txqueue = true
 min_peers = 2
 max_peers = 10
 reserved_peers = "BASE_DIRECTORYchain/reserved_peers"
-port = 30303
+port = 30304
 reserved_only = true
 warp = false
 
 [rpc]
 interface = "0.0.0.0"
+port = 8546
 cors = ["all"]
 hosts = ["none"]
 apis = ["web3", "eth", "net", "rpc", "parity"]

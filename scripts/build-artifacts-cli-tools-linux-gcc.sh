@@ -17,7 +17,7 @@ echo "_____ Set Rust Version _____"
 rustup override set 1.85
 
 #strip ON
-export RUSTFLAGS=" -Clink-arg=-s -Ctarget-feature=+aes,+ssse3"
+export RUSTFLAGS=" -Clink-arg=-s -Ctarget-feature=+aes"
 
 echo "_____ Clean _____"
 time cargo clean  -p ethstore-cli

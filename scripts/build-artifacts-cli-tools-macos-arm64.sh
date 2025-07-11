@@ -20,13 +20,11 @@ echo "_____ Switch to Clang _____"
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
-LIB_BZIP2="$(brew --prefix bzip2)"
 LIB_LZ4="$(brew --prefix lz4)"
 LIB_ZSTD="$(brew --prefix zstd)"
 LIB_SNAPPY="$(brew --prefix snappy)"
 LIB_ROCKSDB="$(brew --prefix rocksdb)"
 
-echo "LIB_BZIP2=$LIB_BZIP2"
 echo "LIB_LZ4=$LIB_LZ4"
 echo "LIB_ZSTD=$LIB_ZSTD"
 echo "LIB_SNAPPY=$LIB_SNAPPY"
@@ -34,8 +32,7 @@ echo "LIB_ROCKSDB=$LIB_ROCKSDB"
 echo "CC=$CC"
 echo "CXX=$CXX"
 
-if [ ! -d "$LIB_BZIP2" ]  || \
-   [ ! -d "$LIB_LZ4" ]    || \
+if [ ! -d "$LIB_LZ4" ]    || \
    [ ! -d "$LIB_ZSTD" ]   || \
    [ ! -d "$LIB_SNAPPY" ] || \
    [ ! -d "$LIB_ROCKSDB" ]; then
@@ -44,8 +41,7 @@ if [ ! -d "$LIB_BZIP2" ]  || \
 fi
 
 #strip ON
-export RUSTFLAGS="-L$(brew --prefix bzip2)/lib \
-                  -L$(brew --prefix lz4)/lib \
+export RUSTFLAGS="-L$(brew --prefix lz4)/lib \
                   -L$(brew --prefix zstd)/lib \
                   -L$(brew --prefix snappy)/lib \
                   -L$(brew --prefix rocksdb)/lib \
