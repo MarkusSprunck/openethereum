@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use api::{PAR_PROTOCOL};
+use api::{ETH_PROTOCOL, PAR_PROTOCOL};
 use block_sync::{BlockDownloaderImportError as DownloaderImportError, DownloadAction};
 use bytes::Bytes;
 use enum_primitive::FromPrimitive;
@@ -42,7 +42,7 @@ use super::{
 
 use super::{
     BlockSet, ChainSync, ForkConfirmation, PacketProcessError, PeerAsking, PeerInfo, SyncRequester,
-    SyncState, ETH_PROTOCOL_VERSION_63, ETH_PROTOCOL_VERSION_66,
+    SyncState, ETH_PROTOCOL_VERSION_63, ETH_PROTOCOL_VERSION_64, ETH_PROTOCOL_VERSION_66,
     MAX_NEW_BLOCK_AGE, MAX_NEW_HASHES, PAR_PROTOCOL_VERSION_1, PAR_PROTOCOL_VERSION_2,
 };
 
@@ -681,6 +681,7 @@ impl SyncHandler {
             .next()
             .ok_or(rlp::DecoderError::RlpIsTooShort)?
             .as_val()?;
+        let eth_protocol_version = io.protocol_version(ETH_PROTOCOL, peer_id);
         let warp_protocol_version = io.protocol_version(PAR_PROTOCOL, peer_id);
         let warp_protocol = warp_protocol_version != 0;
 
@@ -702,6 +703,18 @@ impl SyncHandler {
             .next()
             .ok_or(rlp::DecoderError::RlpIsTooShort)?
             .as_val()?;
+        let forkid_validation_error = if eth_protocol_version >= ETH_PROTOCOL_VERSION_64.0 {
+            let fork_id = r_iter
+                .next()
+                .ok_or(rlp::DecoderError::RlpIsTooShort)?
+                .as_val()?;
+            sync.fork_filter
+                .is_compatible(io.chain(), fork_id)
+                .err()
+                .map(|e| (fork_id, e))
+        } else {
+            None
+        };
         let snapshot_hash = if warp_protocol {
             Some(
                 r_iter
@@ -781,7 +794,12 @@ impl SyncHandler {
             trace!(target: "sync", "Peer {} network id mismatch (ours: {}, theirs: {})", peer_id, sync.network_id, peer.network_id);
             return Err(DownloaderImportError::Invalid);
         }
-		
+
+        if let Some((fork_id, reason)) = forkid_validation_error {
+            trace!(target: "sync", "Peer {} incompatible fork id (fork id: {:#x}/{}, error: {:?})", peer_id, fork_id.hash.0, fork_id.next, reason);
+            return Err(DownloaderImportError::Invalid);
+        }
+
         if false
             || (warp_protocol
                 && (peer.protocol_version < PAR_PROTOCOL_VERSION_1.0

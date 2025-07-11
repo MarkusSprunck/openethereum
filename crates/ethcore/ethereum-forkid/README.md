@@ -1,5 +1,6 @@
 # ethereum-forkid
-Ethereum fork identifier for chain compatibility checks
 
-## License
-The entire code within this repository is licensed under the [Mozilla Public License v2.0](./LICENSE)
+![Rust](https://github.com/vorot93/ethereum-forkid/workflows/Rust/badge.svg)
+![Clippy](https://github.com/vorot93/ethereum-forkid/workflows/Clippy/badge.svg)
+![Audit](https://github.com/vorot93/ethereum-forkid/workflows/Audit/badge.svg)
+![Rustfmt](https://github.com/vorot93/ethereum-forkid/workflows/Rustfmt/badge.svg)

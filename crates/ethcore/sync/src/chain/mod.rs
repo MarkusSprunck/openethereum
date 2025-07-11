@@ -674,7 +674,6 @@ enum PeerState {
 
 /// Blockchain sync handler.
 /// See module documentation for more details.
-#[allow(dead_code)]
 pub struct ChainSync {
     /// Sync state
     state: SyncState,
@@ -697,7 +696,7 @@ pub struct ChainSync {
     /// Optional fork block to check
     fork_block: Option<(BlockNumber, H256)>,
     /// Fork filter
-	fork_filter: ForkFilterApi,
+    fork_filter: ForkFilterApi,
     /// Snapshot downloader.
     snapshot: Snapshot,
     /// Connected peers pending Status message.
@@ -1455,6 +1454,9 @@ impl ChainSync {
         packet.append(&primitive_types07::U256(chain.total_difficulty.0));
         packet.append(&primitive_types07::H256(chain.best_block_hash.0));
         packet.append(&primitive_types07::H256(chain.genesis_hash.0));
+        if eth_protocol_version >= ETH_PROTOCOL_VERSION_64.0 {
+            packet.append(&self.fork_filter.current(io.chain()));
+        }
         if warp_protocol {
             let manifest = io.snapshot_service().manifest();
             let block_number = manifest.as_ref().map_or(0, |m| m.block_number);

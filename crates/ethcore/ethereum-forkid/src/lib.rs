@@ -1,47 +1,59 @@
+//! EIP-2124 implementation based on <https://eips.ethereum.org/EIPS/eip-2124>.
+
 #![deny(missing_docs)]
-#![allow(clippy::redundant_else, clippy::too_many_lines)]
-#![doc = include_str!("../README.md")]
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+#![allow(clippy::too_many_lines)]
 
 use crc::crc32;
+use ethereum_types::H256;
 use maplit::btreemap;
-use primitive_types::H256;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    ops::{Add, AddAssign},
-};
-use thiserror::Error;
+use parity_util_mem::MallocSizeOf;
+use rlp::{DecoderError, Rlp, RlpStream};
+use rlp_derive::{RlpDecodable, RlpEncodable};
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Block number.
 pub type BlockNumber = u64;
 
 /// `CRC32` hash of all previous forks starting from genesis block.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    fastrlp::EncodableWrapper,
-    fastrlp::DecodableWrapper,
-    fastrlp::MaxEncodedLen,
-)]
-pub struct ForkHash(pub [u8; 4]);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, MallocSizeOf)]
+pub struct ForkHash(pub u32);
+
+impl rlp::Encodable for ForkHash {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        s.encoder().encode_value(&self.0.to_be_bytes());
+    }
+}
+
+impl rlp::Decodable for ForkHash {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+        rlp.decoder().decode_value(|b| {
+            if b.len() != 4 {
+                return Err(DecoderError::RlpInvalidLength);
+            }
+
+            let mut blob = [0; 4];
+            blob.copy_from_slice(&b[..]);
+
+            Ok(Self(u32::from_be_bytes(blob)))
+        })
+    }
+}
 
 impl From<H256> for ForkHash {
     fn from(genesis: H256) -> Self {
-        Self(crc32::checksum_ieee(&genesis[..]).to_be_bytes())
+        Self(crc32::checksum_ieee(&genesis[..]))
     }
 }
 
-impl AddAssign<BlockNumber> for ForkHash {
+impl std::ops::AddAssign<BlockNumber> for ForkHash {
     fn add_assign(&mut self, block: BlockNumber) {
         let blob = block.to_be_bytes();
-        self.0 = crc32::update(u32::from_be_bytes(self.0), &crc32::IEEE_TABLE, &blob).to_be_bytes();
+        self.0 = crc32::update(self.0, &crc32::IEEE_TABLE, &blob)
     }
 }
 
-impl Add<BlockNumber> for ForkHash {
+impl std::ops::Add<BlockNumber> for ForkHash {
     type Output = Self;
     fn add(mut self, block: BlockNumber) -> Self {
         self += block;
@@ -51,17 +63,7 @@ impl Add<BlockNumber> for ForkHash {
 
 /// A fork identifier as defined by EIP-2124.
 /// Serves as the chain compatibility identifier.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash,
-    fastrlp::Encodable,
-    fastrlp::Decodable,
-    fastrlp::MaxEncodedLen,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, MallocSizeOf, RlpEncodable, RlpDecodable)]
 pub struct ForkId {
     /// CRC32 checksum of the all fork blocks from genesis.
     pub hash: ForkHash,
@@ -70,18 +72,16 @@ pub struct ForkId {
 }
 
 /// Reason for rejecting provided `ForkId`.
-#[derive(Clone, Copy, Debug, Error, PartialEq, Eq, Hash)]
-pub enum ValidationError {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum RejectReason {
     /// Remote node is outdated and needs a software update.
-    #[error("remote node is outdated and needs a software update")]
     RemoteStale,
     /// Local node is on an incompatible chain or needs a software update.
-    #[error("local node is on an incompatible chain or needs a software update")]
     LocalIncompatibleOrStale,
 }
 
 /// Filter that describes the state of blockchain and can be used to check incoming `ForkId`s for compatibility.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, MallocSizeOf)]
 pub struct ForkFilter {
     forks: BTreeMap<BlockNumber, ForkHash>,
 
@@ -90,7 +90,7 @@ pub struct ForkFilter {
     cache: Cache,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, MallocSizeOf)]
 struct Cache {
     // An epoch is a period between forks.
     // When we progress from one fork to the next one we move to the next epoch.
@@ -165,7 +165,6 @@ impl ForkFilter {
     }
 
     fn set_head_priv(&mut self, head: BlockNumber) -> bool {
-        #[allow(clippy::option_if_let_else)]
         let recompute_cache = {
             if head < self.cache.epoch_start {
                 true
@@ -198,8 +197,8 @@ impl ForkFilter {
     /// Check whether the provided `ForkId` is compatible based on the validation rules in `EIP-2124`.
     ///
     /// # Errors
-    /// Returns a `ValidationError` if the `ForkId` is not compatible.
-    pub fn validate(&self, fork_id: ForkId) -> Result<(), ValidationError> {
+    /// Returns a `RejectReason` if the `ForkId` is not compatible.
+    pub fn is_compatible(&self, fork_id: ForkId) -> Result<(), RejectReason> {
         // 1) If local and remote FORK_HASH matches...
         if self.current().hash == fork_id.hash {
             if fork_id.next == 0 {
@@ -211,7 +210,7 @@ impl ForkFilter {
             if self.head >= fork_id.next {
                 // 1a) A remotely announced but remotely not passed block is already passed locally, disconnect,
                 // since the chains are incompatible.
-                return Err(ValidationError::LocalIncompatibleOrStale);
+                return Err(RejectReason::LocalIncompatibleOrStale);
             } else {
                 // 1b) Remotely announced fork not yet passed locally, connect.
                 return Ok(());
@@ -227,7 +226,7 @@ impl ForkFilter {
                     if *actual_fork_block == fork_id.next {
                         return Ok(());
                     } else {
-                        return Err(ValidationError::RemoteStale);
+                        return Err(RejectReason::RemoteStale);
                     }
                 }
 
@@ -243,7 +242,7 @@ impl ForkFilter {
         }
 
         // 4) Reject in all other cases.
-        Err(ValidationError::LocalIncompatibleOrStale)
+        Err(RejectReason::LocalIncompatibleOrStale)
     }
 }
 
@@ -261,13 +260,13 @@ mod tests {
     #[test]
     fn forkhash() {
         let mut fork_hash = ForkHash::from(GENESIS_HASH);
-        assert_eq!(fork_hash.0, hex!("fc64ec04"));
+        assert_eq!(fork_hash.0, 0xfc64_ec04);
 
         fork_hash += 1_150_000;
-        assert_eq!(fork_hash.0, hex!("97c2c34c"));
+        assert_eq!(fork_hash.0, 0x97c2_c34c);
 
         fork_hash += 1_920_000;
-        assert_eq!(fork_hash.0, hex!("91d1f948"));
+        assert_eq!(fork_hash.0, 0x91d1_f948);
     }
 
     #[test]
@@ -283,8 +282,8 @@ mod tests {
         // Local is mainnet Petersburg, remote announces the same. No future fork is announced.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("668db0af")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x668d_b0af),
                 next: 0
             }),
             Ok(())
@@ -294,8 +293,8 @@ mod tests {
         // at block 0xffffffff, but that is uncertain.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("668db0af")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x668d_b0af),
                 next: BlockNumber::max_value()
             }),
             Ok(())
@@ -306,8 +305,8 @@ mod tests {
         // In this case we don't know if Petersburg passed yet or not.
         filter.set_head(7_279_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: 0
             }),
             Ok(())
@@ -318,8 +317,8 @@ mod tests {
         // don't know if Petersburg passed yet (will pass) or not.
         filter.set_head(7_279_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: 7_280_000
             }),
             Ok(())
@@ -330,8 +329,8 @@ mod tests {
         // neither forks passed at neither nodes, they may mismatch, but we still connect for now.
         filter.set_head(7_279_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: BlockNumber::max_value()
             }),
             Ok(())
@@ -340,8 +339,8 @@ mod tests {
         // Local is mainnet Petersburg, remote announces Byzantium + knowledge about Petersburg. Remote is simply out of sync, accept.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: 7_280_000
             }),
             Ok(())
@@ -351,8 +350,8 @@ mod tests {
         // is definitely out of sync. It may or may not need the Petersburg update, we don't know yet.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("3edd5b10")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x3edd_5b10),
                 next: 4_370_000
             }),
             Ok(())
@@ -361,8 +360,8 @@ mod tests {
         // Local is mainnet Byzantium, remote announces Petersburg. Local is out of sync, accept.
         filter.set_head(7_279_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("668db0af")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x668d_b0af),
                 next: 0
             }),
             Ok(())
@@ -372,8 +371,8 @@ mod tests {
         // out of sync. Local also knows about a future fork, but that is uncertain yet.
         filter.set_head(4_369_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: 0
             }),
             Ok(())
@@ -383,43 +382,43 @@ mod tests {
         // Remote needs software update.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: 0
             }),
-            Err(ValidationError::RemoteStale)
+            Err(RejectReason::RemoteStale)
         );
 
         // Local is mainnet Petersburg, and isn't aware of more forks. Remote announces Petersburg +
         // 0xffffffff. Local needs software update, reject.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("5cddc0e1")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x5cdd_c0e1),
                 next: 0
             }),
-            Err(ValidationError::LocalIncompatibleOrStale)
+            Err(RejectReason::LocalIncompatibleOrStale)
         );
 
         // Local is mainnet Byzantium, and is aware of Petersburg. Remote announces Petersburg +
         // 0xffffffff. Local needs software update, reject.
         filter.set_head(7_279_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("5cddc0e1")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x5cdd_c0e1),
                 next: 0
             }),
-            Err(ValidationError::LocalIncompatibleOrStale)
+            Err(RejectReason::LocalIncompatibleOrStale)
         );
 
         // Local is mainnet Petersburg, remote is Rinkeby Petersburg.
         filter.set_head(7_987_396);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("afec6b27")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xafec_6b27),
                 next: 0
             }),
-            Err(ValidationError::LocalIncompatibleOrStale)
+            Err(RejectReason::LocalIncompatibleOrStale)
         );
 
         // Local is mainnet Petersburg, far in the future. Remote announces Gopherium (non existing fork)
@@ -428,72 +427,67 @@ mod tests {
         // This case detects non-upgraded nodes with majority hash power (typical Ropsten mess).
         filter.set_head(88_888_888);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("668db0af")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0x668d_b0af),
                 next: 88_888_888
             }),
-            Err(ValidationError::LocalIncompatibleOrStale)
+            Err(RejectReason::LocalIncompatibleOrStale)
         );
 
         // Local is mainnet Byzantium. Remote is also in Byzantium, but announces Gopherium (non existing
         // fork) at block 7279999, before Petersburg. Local is incompatible.
         filter.set_head(7_279_999);
         assert_eq!(
-            filter.validate(ForkId {
-                hash: ForkHash(hex!("a00bc324")),
+            filter.is_compatible(ForkId {
+                hash: ForkHash(0xa00b_c324),
                 next: 7_279_999
             }),
-            Err(ValidationError::LocalIncompatibleOrStale)
+            Err(RejectReason::LocalIncompatibleOrStale)
         );
     }
 
     #[test]
     fn forkid_serialization() {
         assert_eq!(
-            &*fastrlp::encode_fixed_size(&ForkId {
-                hash: ForkHash(hex!("00000000")),
+            rlp::encode(&ForkId {
+                hash: ForkHash(0),
                 next: 0
             }),
             hex!("c6840000000080")
         );
         assert_eq!(
-            &*fastrlp::encode_fixed_size(&ForkId {
-                hash: ForkHash(hex!("deadbeef")),
+            rlp::encode(&ForkId {
+                hash: ForkHash(0xdead_beef),
                 next: 0xBADD_CAFE
             }),
             hex!("ca84deadbeef84baddcafe")
         );
         assert_eq!(
-            &*fastrlp::encode_fixed_size(&ForkId {
-                hash: ForkHash(hex!("ffffffff")),
+            rlp::encode(&ForkId {
+                hash: ForkHash(u32::max_value()),
                 next: u64::max_value()
             }),
             hex!("ce84ffffffff88ffffffffffffffff")
         );
 
         assert_eq!(
-            <ForkId as fastrlp::Decodable>::decode(&mut (&hex!("c6840000000080") as &[u8]))
-                .unwrap(),
+            rlp::decode::<ForkId>(&hex!("c6840000000080")).unwrap(),
             ForkId {
-                hash: ForkHash(hex!("00000000")),
+                hash: ForkHash(0),
                 next: 0
             }
         );
         assert_eq!(
-            <ForkId as fastrlp::Decodable>::decode(&mut (&hex!("ca84deadbeef84baddcafe") as &[u8]))
-                .unwrap(),
+            rlp::decode::<ForkId>(&hex!("ca84deadbeef84baddcafe")).unwrap(),
             ForkId {
-                hash: ForkHash(hex!("deadbeef")),
+                hash: ForkHash(0xdead_beef),
                 next: 0xBADD_CAFE
             }
         );
         assert_eq!(
-            <ForkId as fastrlp::Decodable>::decode(
-                &mut (&hex!("ce84ffffffff88ffffffffffffffff") as &[u8])
-            )
-            .unwrap(),
+            rlp::decode::<ForkId>(&hex!("ce84ffffffff88ffffffffffffffff")).unwrap(),
             ForkId {
-                hash: ForkHash(hex!("ffffffff")),
+                hash: ForkHash(u32::max_value()),
                 next: u64::max_value()
             }
         );
@@ -505,15 +499,15 @@ mod tests {
         let b2 = 1_920_000;
 
         let h0 = ForkId {
-            hash: ForkHash(hex!("fc64ec04")),
+            hash: ForkHash(0xfc64_ec04),
             next: b1,
         };
         let h1 = ForkId {
-            hash: ForkHash(hex!("97c2c34c")),
+            hash: ForkHash(0x97c2_c34c),
             next: b2,
         };
         let h2 = ForkId {
-            hash: ForkHash(hex!("91d1f948")),
+            hash: ForkHash(0x91d1_f948),
             next: 0,
         };
 
