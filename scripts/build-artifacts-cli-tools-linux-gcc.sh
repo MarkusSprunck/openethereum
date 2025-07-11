@@ -14,7 +14,7 @@ export CC="$(which gcc-12)"
 export CXX="$(which g++-12)"
 
 echo "_____ Set Rust Version _____"
-rustup override set 1.85
+rustup override set 1.86
 
 #strip ON
 export RUSTFLAGS=" -Clink-arg=-s -Ctarget-feature=+aes"

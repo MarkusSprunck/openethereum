@@ -43,7 +43,7 @@
 ### 2.2 Select Rust Version
 
 ```bash
-./scripts/setup-rust-1.85.sh
+./scripts/setup-rust-1.86.sh
 ```
 
 ---
@@ -61,7 +61,7 @@ brew install gcc@12 lz4 zstd snappy rocksdb
 ### 3.2 Select Rust Version
 
 ```bash
-./scripts/setup-rust-1.85.sh
+./scripts/setup-rust-1.86.sh
 ```
 
 ### 3.3 Install CMake (Version 3.28.3)

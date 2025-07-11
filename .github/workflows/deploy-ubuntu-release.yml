@@ -33,4 +33,4 @@ jobs:
           sbom: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          file: ./scripts/docker/ubuntu-rust-1.85/Dockerfile
+          file: ./scripts/docker/ubuntu-rust-1.86/Dockerfile
