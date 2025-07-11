@@ -1,4 +1,4 @@
-ARG RUST_VERSION="1.86"
+ARG RUST_VERSION="1.88"
 
 # ------------------------------------------------------------------------------
 # Build Stage - builds with testing
@@ -24,7 +24,7 @@ RUN strip target/release/openethereum
 
 FROM --platform=linux/amd64 docker.io/library/ubuntu:24.04
 
-RUN apt-get -y update; apt-get -y install curl jq
+RUN apt-get -y update && apt-get -y install curl jq && apt-get clean
 
 ENV RUST_BACKTRACE=1
 

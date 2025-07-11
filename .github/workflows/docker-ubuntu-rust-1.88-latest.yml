@@ -1,9 +1,8 @@
-name: Docker Image Ubuntu (Release)
+name: Docker (Ubuntu, Rust 1.88, latest)
 
 on:
   push:
-    tags:
-      - v*
+    branches: ["main"]
 
 env:
   IMAGE_NAME: ihkmuenchen/openethereum
@@ -32,5 +31,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          file: ./scripts/docker/ubuntu-rust-1.86/Dockerfile
+          tags: "ihkmuenchen/openethereum:latest-rust-1.88"
+          file: ./.github/docker/ubuntu-rust-1.88/Dockerfile

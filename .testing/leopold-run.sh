@@ -3,10 +3,8 @@
 set -e # fail on any error
 set -u # treat unset variables as error
 
-./leopold-secrets-generation.sh
-
 echo "_____ Set Rust Version _____"
-rustup override set 1.86
+rustup override set 1.88
 
 echo "_____ Run Leopold _____"
 export CC=/usr/bin/clang && export CXX=/usr/bin/clang++ &&\
