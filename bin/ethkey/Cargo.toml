@@ -12,9 +12,9 @@ ethkey = { path = "../../crates/accounts/ethkey" }
 panic_hook = { path = "../../crates/util/panic-hook" }
 parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
 parity-wordlist="1.3"
-rustc-hex = "1.0"
-serde = "1.0"
-serde_derive = "1.0"
+rustc-hex = "1.0.0"
+serde = "1.0.219"
+serde_derive = "1.0.219"
 threadpool = "1.7"
 
 [[bin]]

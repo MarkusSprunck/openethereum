@@ -55,7 +55,7 @@
 ### 3.1 Install Compiler and Libraries
 
 ```bash
-brew install gcc@12 lz4 zstd snappy rocksdb
+brew install lz4 zstd snappy rocksdb
 ```
 
 ### 3.2 Select Rust Version

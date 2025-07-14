@@ -1,10 +1,9 @@
 [target.aarch64-apple-darwin]
 rustflags = [
-	"-L/opt/homebrew/opt/bzip2/lib",
 	"-L/opt/homebrew/opt/lz4/lib",
 	"-L/opt/homebrew/opt/zstd/lib",
-	"-L/opt/homebrew/Cellar/snappy/1.2.2/lib",
-	"-L/opt/homebrew/Cellar/rocksdb/10.2.1/lib",
+	"-L/opt/homebrew/opt/snapp/lib",
+	"-L/opt/homebrew/opt/rocksdb/lib",
 	"-Clink-arg=-lbz2",
 	"-Clink-arg=-llz4",
 	"-Clink-arg=-lzstd",

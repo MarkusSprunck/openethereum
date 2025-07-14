@@ -11,4 +11,4 @@ keywords = ["eip-152", "eip152", "eip"]
 license = "GPL-3.0"
 
 [dependencies]
-rustc-hex = "2.0.1"
+rustc-hex = "1.0.0"

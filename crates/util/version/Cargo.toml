@@ -9,14 +9,14 @@ build = "build.rs"
 [package.metadata]
 
 [dependencies]
-parity-bytes = "0.1"
+parity-bytes = "0.1.2"
 rlp = { version = "0.5.2" }
 target_info = "0.1"
 
 [build-dependencies]
 vergen = "1.1.1"
 rustc_version = "0.2"
-toml = "0.4"
+toml = "0.9.2"
 
 [features]
 final = []

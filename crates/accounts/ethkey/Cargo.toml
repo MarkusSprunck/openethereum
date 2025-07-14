@@ -10,5 +10,5 @@ edit-distance = "2.0"
 parity-crypto = { version = "0.6.2", features = ["publickey"] }
 log = "0.4"
 parity-wordlist = "1.3"
-serde = "1.0"
-serde_derive = "1.0"
+serde = "1.0.219"
+serde_derive = "1.0.219"
