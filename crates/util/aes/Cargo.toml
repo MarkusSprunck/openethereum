@@ -1,0 +1,27 @@
+# This crate was vendored because the used version was yanked from crates.io
+# Original: https://crates.io/crates/aes/0.3.2
+# Commit: a9e4a8f19525dafedcb9d78750bbdea84409ea17
+
+[package]
+edition = "2021"
+name = "aes"
+version = "0.3.2"
+authors = ["RustCrypto Developers"]
+license = "MIT OR Apache-2.0"
+description = "Facade for AES (Rijndael) block ciphers implementations"
+documentation = "https://docs.rs/aes"
+repository = "https://github.com/RustCrypto/block-ciphers"
+keywords = ["crypto", "aes", "rijndael", "block-cipher"]
+categories = ["cryptography", "no-std"]
+
+[dependencies]
+block-cipher-trait = "0.6"
+
+[target.'cfg(not(all(target_feature="aes", target_feature = "sse2", any(target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
+aes-soft = "0.3"
+
+[target.'cfg(all(target_feature="aes", target_feature = "sse2", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
+aesni = { version = "0.6", default-features = false }
+
+[dev-dependencies]
+block-cipher-trait = { version = "0.6", features = ["dev"] }
