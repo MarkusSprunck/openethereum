@@ -3,6 +3,12 @@
 set -e # fail on any error
 set -u # treat unset variables as error
 
+echo "_____ Use folder _____"
+if [ "$(basename "$PWD")" == "openethereum" ]; then
+  cd .testing
+fi
+echo "$PWD"
+
 echo "_____ Set Rust Version _____"
 rustup override set 1.88
 

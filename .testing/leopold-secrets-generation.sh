@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
-echo "###################################################################################"
-echo "# 1. Create Secrets and Configuration"
-echo "###################################################################################"
+set -e # fail on any error
+set -u # treat unset variables as error
 
+echo "_____ Use folder _____"
+if [ "$(basename "$PWD")" == "openethereum" ]; then
+  cd .testing
+fi
+echo "$PWD"
+
+echo "_____ Create Secrets and Configuration _____"
 UTILS="../.artifacts"
 BASE_DIR="$(pwd)"
 PASSWORD="password"
@@ -17,7 +23,6 @@ echo "BASE_DIR -> $BASE_DIR"
 echo "MACHINE_DIR -> $MACHINE_DIR"
 echo "ACCOUNT_MNEMONIC_FILE -> $ACCOUNT_MNEMONIC_FILE"
 echo "NETWORK_MNEMONIC_FILE -> $NETWORK_MNEMONIC_FILE"
-echo "###################################################################################"
 
 mkdir -p $BASE_DIR"/dist/"
 mkdir -p $MACHINE_DIR
@@ -32,8 +37,7 @@ NETWORK_MNEMONIC=$(cat $NETWORK_MNEMONIC_FILE | head -1 | tail -1)
 
 #TODO: remove old files and create a new dir for the machine
 
-echo "Generating key material for validator node"
-echo
+echo "_____ Generating key material for validator node _____"
 echo "NETWORK_MNEMONIC -> '$NETWORK_MNEMONIC'"
 echo "ACCOUNT_MNEMONIC -> '$ACCOUNT_MNEMONIC'"
 
@@ -50,7 +54,7 @@ echo "ADDR             -> $ADDR"
 echo
 
 # generate password
-echo "Generating password for keystore file for node $i"
+echo "_____ Generating password for keystore file for node _____"
 openssl rand -hex 40 > "$MACHINE_DIR/$PASSWORD"
 
 cp -f $BASE_DIR"/template/reserved_peers" $MACHINE_DIR"chain/reserved_peers"

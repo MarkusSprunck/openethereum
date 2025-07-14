@@ -7,9 +7,13 @@
 set -e # fail on any error
 set -u # treat unset variables as error
 
-cd ..
+echo "_____ Use folder _____"
+if [ "$(basename "$PWD")" != "openethereum" ]; then
+  cd ..
+fi
+echo "$PWD"
 
-echo "_____ Post-processing binaries _____"
+echo "_____ Delete binaries _____"
 rm -rf .artifacts/*
 mkdir -p .artifacts/
 
