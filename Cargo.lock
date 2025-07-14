@@ -298,8 +298,6 @@ dependencies = [
 [[package]]
 name = "block-cipher-trait"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
 dependencies = [
  "blobby",
  "generic-array",
@@ -3320,6 +3318,7 @@ dependencies = [
  "aes-soft",
  "ansi_term",
  "atty",
+ "block-cipher-trait",
  "blooms-db",
  "clap 2.34.0",
  "cli-signer",
