@@ -1,0 +1,29 @@
+# This crate was vendored because the used version was yanked from crates.io
+# Original: https://crates.io/crates/stream-cipher/0.3.2
+# Commit: 4765384e8c18f69d46af9c06b5890f21aaa1778c
+
+[package]
+edition = "2021"
+name = "stream-cipher"
+version = "0.3.2"
+authors = ["RustCrypto Developers"]
+license = "MIT OR Apache-2.0"
+description = "Stream cipher traits"
+documentation = "https://docs.rs/stream-cipher"
+repository = "https://github.com/RustCrypto/traits"
+keywords = ["crypto", "stream-cipher", "trait"]
+categories = ["cryptography", "no-std"]
+
+[dependencies]
+generic-array = "0.12"
+blobby = { version = "0.1", optional = true }
+
+[features]
+std = []
+dev = ["blobby"]
+
+[badges]
+travis-ci = { repository = "RustCrypto/traits" }
+
+[package.metadata.docs.rs]
+features = ["std"]

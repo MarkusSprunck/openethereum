@@ -3379,6 +3379,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "stats",
+ "stream-cipher",
  "tempdir",
  "term_size",
  "textwrap 0.9.0",
@@ -5011,9 +5012,8 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 [[package]]
 name = "stream-cipher"
 version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8131256a5896cabcf5eb04f4d6dacbe1aefda854b0d9896e09cb58829ec5638c"
 dependencies = [
+ "blobby",
  "generic-array",
 ]
 

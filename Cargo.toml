@@ -73,6 +73,7 @@ stats = { path = "crates/util/stats" }
 aes = { path = "crates/util/aes" }
 aes-soft = { path = "crates/util/aes-soft" }
 block-cipher-trait = { path = "crates/util/block-cipher-trait" }
+stream-cipher = { path = "crates/util/stream-cipher" }
 prometheus = "0.14.0"
 
 [dev-dependencies]
@@ -85,6 +86,7 @@ lazy_static = "1.5.0"
 aes = { path = "crates/util/aes" }
 aes-soft = { path = "crates/util/aes-soft" }
 block-cipher-trait = { path = "crates/util/block-cipher-trait" }
+stream-cipher = { path = "crates/util/stream-cipher" }
 
 [features]
 default = ["accounts"]
