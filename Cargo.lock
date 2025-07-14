@@ -41,8 +41,6 @@ dependencies = [
 [[package]]
 name = "aes-soft"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfd7e7ae3f9a1fb5c03b389fc6bb9a51400d0c13053f0dca698c832bfd893a0d"
 dependencies = [
  "block-cipher-trait",
  "byteorder",
@@ -3319,6 +3317,7 @@ name = "openethereum"
 version = "3.5.0-rc2"
 dependencies = [
  "aes",
+ "aes-soft",
  "ansi_term",
  "atty",
  "blooms-db",
