@@ -7,24 +7,27 @@ update with various improvements, security patches, and enhancements.
 
 Enhancements
 
-* TODO
+* Update Rust Version from 1.79 to 1.88
+* Update Rust Edition where possible
+* Enable macOS development support (1.88-aarch64-apple-darwin)
 
 DevOps
 
 * Remove alpine image build
+* Update build images
 * Simplify testing and debugging with Leopold blockchain (Staging)
 
 Cleanup
 
-* Remove support for windows operating system
+* Remove support for Windows Development
 
 Security fixes
 
-* TODO
+* Dependency updates and include some yanked crates
 
 Bug fixes
 
-* TODO
+* None
 
 ## OpenEthereum v3.4.0
 
@@ -254,7 +257,7 @@ Enhancements:
 * Executable queue for ancient blocks inclusion (#208)
 * Backport AuRa commits for xdai (#330)
 * Add Nethermind to clients that accept service transactions (#324)
-* Implement the filter argument in parity_pendingTransactions (#295) 
+* Implement the filter argument in parity_pendingTransactions (#295)
 * Ethereum-types and various libs upgraded (#315)
 * Bump ethereum/tests to v8.0.2
 * [evmbin] Omit storage output, now for std-json (#311)
