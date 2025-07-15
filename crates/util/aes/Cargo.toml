@@ -21,7 +21,7 @@ block-cipher-trait = "0.6"
 aes-soft = "0.3"
 
 [target.'cfg(all(target_feature="aes", target_feature = "sse2", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
-aesni = { version = "0.6", default-features = false }
+aesni = { path = "./aesni", default-features = false }
 
 [dev-dependencies]
 block-cipher-trait = { version = "0.6", features = ["dev"] }

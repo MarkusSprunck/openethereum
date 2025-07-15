@@ -50,9 +50,8 @@ dependencies = [
 [[package]]
 name = "aesni"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f70a6b5f971e473091ab7cfb5ffac6cde81666c4556751d8d5620ead8abf100"
 dependencies = [
+ "aes-soft",
  "block-cipher-trait",
  "opaque-debug",
  "stream-cipher",
