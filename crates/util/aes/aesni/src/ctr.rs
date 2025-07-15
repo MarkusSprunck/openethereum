@@ -85,7 +85,7 @@ macro_rules! impl_ctr {
             #[inline(always)]
             fn next_block8(&mut self) -> [__m128i; 8] {
                 let mut ctr = self.ctr;
-                let mut block8: [__m128i; 8] = unsafe { mem::uninitialized() };
+                let mut block8: [__m128i; 8] = unsafe { mem::zeroed() };
                 for i in 0..8 {
                     block8[i] = swap_bytes(ctr);
                     ctr = inc_be(ctr);
