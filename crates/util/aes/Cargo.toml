@@ -17,8 +17,8 @@ categories = ["cryptography", "no-std"]
 [dependencies]
 block-cipher-trait = "0.6"
 
-[target.'cfg(not(all(target_feature="aes", target_feature = "sse2", any(target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
-aes-soft = { path = "../../util/aes-soft" }
+# software fallback if aesni is not available
+aes-soft = "0.3"
 
 [target.'cfg(all(target_feature="aes", target_feature = "sse2", any(target_arch = "x86_64", target_arch = "x86")))'.dependencies]
 aesni = { version = "0.6", default-features = false }
