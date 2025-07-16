@@ -26,7 +26,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
-use time;
+use time::{OffsetDateTime};
 use Error;
 use SafeAccount;
 
@@ -407,8 +407,10 @@ impl KeyFileManager for DiskKeyFileManager {
 fn account_filename(account: &SafeAccount) -> String {
     // build file path
     account.filename.clone().unwrap_or_else(|| {
-        let timestamp = time::strftime("%Y-%m-%dT%H-%M-%S", &time::now_utc())
-            .expect("Time-format string is valid.");
+        // Format: YYYY-MM-DDTHH-MM-SS
+        let now = OffsetDateTime::now_utc();
+        let timestamp = format!("{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
+            now.year(), now.month() as u8, now.day(), now.hour(), now.minute(), now.second());
         format!("UTC--{}Z--{}", timestamp, Uuid::from(account.id))
     })
 }

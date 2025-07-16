@@ -1618,7 +1618,7 @@ dependencies = [
  "serde_json",
  "smallvec 0.6.14",
  "tempdir",
- "time 0.1.42",
+ "time 0.2.27",
 ]
 
 [[package]]
