@@ -17,3 +17,6 @@ updates:
         versions: ["0.6.2"]
       - dependency-name: "stream-cipher"
         versions: ["0.3.2"]
+      # Dependabot can't resolve parity-crypto's aes dependency during the analysis phase
+      - dependency-name: "parity-crypto"
+        versions: ["0.6.2"]
