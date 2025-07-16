@@ -1,16 +1,7 @@
 version: 2
 updates:
-  - package-ecosystem: "cargo"
-    directory: "/"
+  - package-ecosystem: "cargo" 
+    directory: "/" 
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
-    ignore:
-      # Dependabot tries to fetch yanked crates even though they are vendored
-      - dependency-name: "aes"
-      - dependency-name: "aesni"
-      - dependency-name: "aes-soft"
-      - dependency-name: "block-cipher-trait"
-      - dependency-name: "stream-cipher"
-      # Dependabot can't resolve parity-crypto's aes dependency during the analysis phase
-      - dependency-name: "parity-crypto"
