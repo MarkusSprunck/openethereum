@@ -30,9 +30,9 @@ use std::{cmp::min, fmt, io, thread, time::Duration};
 use std::sync::{Arc};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::RecvTimeoutError;
+use hyper::client::HttpConnector;
 use tokio::sync::mpsc as tokio_mpsc;
 use url::Url;
-use hyper_tls;
 
 const MAX_SIZE: usize = 64 * 1024 * 1024;
 const MAX_SECS: Duration = Duration::from_secs(5);
@@ -194,9 +194,9 @@ impl Client {
 			refs: Arc::new(AtomicUsize::new(1)),
 		})
 	}
-	
+
 	async fn execute_request_with_redirects(
-		client: hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>>,
+		client: hyper::Client<HttpConnector>,
 		mut request: Request,
 		abort: Abort,
 	) -> Result<Response, Error> {
@@ -254,7 +254,7 @@ impl Client {
 			}
 		}
 	}
-	
+
 	fn background_thread(
 		tx_start: TxStartup,
 		mut rx_proto: tokio_mpsc::Receiver<ChanItem>,
@@ -265,7 +265,8 @@ impl Client {
 				Err(e) => return tx_start.send(Err(e)).unwrap_or(()),
 			};
 
-			let https = hyper_tls::HttpsConnector::new();
+			// Create a basic HTTP connector using hyper's default connector
+			let https = hyper::client::connect::HttpConnector::new();
 			let hyper = hyper::Client::builder().build::<_, hyper::Body>(https);
 
 			let future = async move {
@@ -301,7 +302,7 @@ impl Client {
 			debug!(target: "fetch", "fetch background thread finished")
 		})
 	}
-	
+
 }
 
 impl Fetch for Client {
