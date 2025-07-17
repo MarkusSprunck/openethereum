@@ -27,10 +27,6 @@ extern crate log;
 
 #[cfg(test)]
 extern crate env_logger;
-#[cfg(test)]
-extern crate tokio;
-#[cfg(test)]
-extern crate tokio_io;
 
 mod traits;
 
@@ -314,16 +310,13 @@ impl MetaExtractor<SocketMetadata> for PeerMetaExtractor {
 mod tests {
     use super::*;
     use std::{
-        net::{Shutdown, SocketAddr},
+        net::SocketAddr,
         sync::Arc,
     };
-
-    use jsonrpc_core::futures::{future, Future};
     use tokio::{
-        io,
+        io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
-        runtime::Runtime,
-        timer::timeout::{self, Timeout},
+        time,
     };
 
     pub struct VoidManager;
@@ -335,23 +328,24 @@ mod tests {
     }
 
     fn dummy_request(addr: &SocketAddr, data: &str) -> Vec<u8> {
-        let mut runtime = Runtime::new().expect("Tokio Runtime should be created with no errors");
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Tokio Runtime should be created with no errors");
 
-        let mut data_vec = data.as_bytes().to_vec();
-        data_vec.extend(b"\n");
+        rt.block_on(async {
+            let mut data_vec = data.as_bytes().to_vec();
+            data_vec.extend(b"\n");
 
-        let stream = TcpStream::connect(addr)
-            .and_then(move |stream| io::write_all(stream, data_vec))
-            .and_then(|(stream, _)| {
-                stream.shutdown(Shutdown::Write).unwrap();
-                io::read_to_end(stream, Vec::with_capacity(2048))
-            })
-            .and_then(|(_stream, read_buf)| future::ok(read_buf));
-        let result = runtime
-            .block_on(stream)
-            .expect("Runtime should run with no errors");
+            let mut stream = TcpStream::connect(addr).await.expect("Failed to connect");
+            stream.write_all(&data_vec).await.expect("Failed to write");
+            stream.shutdown().await.expect("Failed to shutdown write");
 
-        result
+            let mut read_buf = Vec::with_capacity(2048);
+            stream.read_to_end(&mut read_buf).await.expect("Failed to read");
+
+            read_buf
+        })
     }
 
     #[test]
@@ -460,48 +454,45 @@ mod tests {
         )
         .expect("There should be no error starting stratum");
 
-        let mut auth_request =
-			r#"{"jsonrpc": "2.0", "method": "mining.authorize", "params": ["miner1", ""], "id": 1}"#
-			.as_bytes()
-			.to_vec();
-        auth_request.extend(b"\n");
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Tokio Runtime should be created with no errors");
 
-        let auth_response = "{\"jsonrpc\":\"2.0\",\"result\":true,\"id\":1}\n";
+        let response = rt.block_on(async {
+            let mut auth_request =
+                r#"{"jsonrpc": "2.0", "method": "mining.authorize", "params": ["miner1", ""], "id": 1}"#
+                .as_bytes()
+                .to_vec();
+            auth_request.extend(b"\n");
 
-        let mut runtime = Runtime::new().expect("Tokio Runtime should be created with no errors");
-        let read_buf0 = vec![0u8; auth_response.len()];
-        let read_buf1 = Vec::with_capacity(2048);
-        let stream = TcpStream::connect(&addr)
-            .and_then(move |stream| io::write_all(stream, auth_request))
-            .and_then(|(stream, _)| io::read_exact(stream, read_buf0))
-            .map_err(|err| panic!("{:?}", err))
-            .and_then(move |(stream, read_buf0)| {
-                assert_eq!(String::from_utf8(read_buf0).unwrap(), auth_response);
-                trace!(target: "stratum", "Received authorization confirmation");
-                Timeout::new(future::ok(stream), ::std::time::Duration::from_millis(100))
-            })
-            .map_err(|err: timeout::Error<()>| panic!("Timeout: {:?}", err))
-            .and_then(move |stream| {
-                trace!(target: "stratum", "Pusing work to peers");
-                stratum.push_work_all(r#"{ "00040008", "100500" }"#.to_owned());
-                Timeout::new(future::ok(stream), ::std::time::Duration::from_millis(100))
-            })
-            .map_err(|err: timeout::Error<()>| panic!("Timeout: {:?}", err))
-            .and_then(|stream| {
-                trace!(target: "stratum", "Ready to read work from server");
-                stream.shutdown(Shutdown::Write).unwrap();
-                io::read_to_end(stream, read_buf1)
-            })
-            .and_then(|(_, read_buf1)| {
-                trace!(target: "stratum", "Received work from server");
-                future::ok(read_buf1)
-            });
-        let response = String::from_utf8(
-            runtime
-                .block_on(stream)
-                .expect("Runtime should run with no errors"),
-        )
-        .expect("Response should be utf-8");
+            let auth_response = "{\"jsonrpc\":\"2.0\",\"result\":true,\"id\":1}\n";
+
+            let mut stream = TcpStream::connect(&addr).await.expect("Failed to connect");
+            stream.write_all(&auth_request).await.expect("Failed to write auth request");
+
+            let mut read_buf0 = vec![0u8; auth_response.len()];
+            stream.read_exact(&mut read_buf0).await.expect("Failed to read auth response");
+
+            assert_eq!(String::from_utf8(read_buf0).unwrap(), auth_response);
+            trace!(target: "stratum", "Received authorization confirmation");
+
+            time::sleep(time::Duration::from_millis(100)).await;
+
+            trace!(target: "stratum", "Pushing work to peers");
+            stratum.push_work_all(r#"{ "00040008", "100500" }"#.to_owned());
+
+            time::sleep(time::Duration::from_millis(100)).await;
+
+            trace!(target: "stratum", "Ready to read work from server");
+            stream.shutdown().await.expect("Failed to shutdown write");
+
+            let mut read_buf1 = Vec::with_capacity(2048);
+            stream.read_to_end(&mut read_buf1).await.expect("Failed to read work");
+
+            trace!(target: "stratum", "Received work from server");
+            String::from_utf8(read_buf1).expect("Response should be utf-8")
+        });
 
         assert_eq!(
 			"{ \"id\": 17, \"method\": \"mining.notify\", \"params\": { \"00040008\", \"100500\" } }\n",

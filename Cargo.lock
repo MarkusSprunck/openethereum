@@ -1470,8 +1470,7 @@ dependencies = [
  "keccak-hash",
  "log",
  "parking_lot 0.12.4",
- "tokio 0.1.22",
- "tokio-io",
+ "tokio 1.46.1",
 ]
 
 [[package]]
