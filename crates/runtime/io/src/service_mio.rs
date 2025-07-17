@@ -28,9 +28,9 @@ use std::{
     thread::{self, JoinHandle},
     time::Duration,
 };
-use worker::{Work, WorkType, Worker};
-use IoError;
-use IoHandler;
+use crate::worker::{Work, WorkType, Worker};
+use crate::IoError;
+use crate::IoHandler;
 
 /// Timer ID
 pub type TimerToken = usize;

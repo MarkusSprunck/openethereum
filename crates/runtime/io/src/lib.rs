@@ -76,6 +76,7 @@ extern crate mio;
 #[macro_use]
 extern crate log as rlog;
 extern crate crossbeam_deque as deque;
+extern crate chrono;
 extern crate fnv;
 extern crate futures;
 extern crate num_cpus;

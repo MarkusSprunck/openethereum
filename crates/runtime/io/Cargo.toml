@@ -1,5 +1,5 @@
 [package]
-edition = "2015"
+edition = "2021"
 description = "Ethcore IO library"
 homepage = "https://github.com/openethereum/openethereum"
 license = "GPL-3.0"
@@ -9,13 +9,14 @@ authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
 fnv = "1.0"
-mio = { version = "0.6.8", optional = true }
+mio = { version = "0.6.23", optional = true }
 crossbeam-deque = "0.8.5"
 parking_lot = "0.12.4"
 log = "0.4"
 slab = "0.4"
 num_cpus = "1.17.0"
 timer = "0.2"
-time = "0.2.27"
-tokio = "0.1"
-futures = "0.1.31"
+time = "0.3.41"
+tokio = "1.46.1"
+futures = "0.3"
+chrono = "0.4"

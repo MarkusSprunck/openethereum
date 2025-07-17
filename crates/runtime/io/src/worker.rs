@@ -15,8 +15,7 @@
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
 use deque;
-use futures::future::{self, Loop};
-use service_mio::{HandlerId, IoChannel, IoContext};
+use crate::service_mio::{HandlerId, IoChannel, IoContext};
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering as AtomicOrdering},
@@ -24,9 +23,7 @@ use std::{
     },
     thread::{self, JoinHandle},
 };
-use tokio::{self};
-use IoHandler;
-use LOCAL_STACK_SIZE;
+use crate::{IoHandler, LOCAL_STACK_SIZE};
 
 use parking_lot::{Condvar, Mutex};
 
@@ -81,13 +78,17 @@ impl Worker {
                 .name(format!("Worker {}", name))
                 .spawn(move || {
                     LOCAL_STACK_SIZE.with(|val| val.set(STACK_SIZE));
-                    let ini = (stealer, channel.clone(), wait, wait_mutex.clone(), deleting);
-                    let future =
-                        future::loop_fn(ini, |(stealer, channel, wait, wait_mutex, deleting)| {
+                    let runtime = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .expect("Failed to create runtime for worker");
+
+                    let future = async move {
+                        loop {
                             {
                                 let mut lock = wait_mutex.lock();
                                 if deleting.load(AtomicOrdering::SeqCst) {
-                                    return Ok(Loop::Break(()));
+                                    break;
                                 }
                                 wait.wait(&mut lock);
                             }
@@ -101,12 +102,14 @@ impl Worker {
                                     deque::Steal::Empty => break,
                                 }
                             }
-                            Ok(Loop::Continue((
-                                stealer, channel, wait, wait_mutex, deleting,
-                            )))
-                        });
-                    if let Err(()) = tokio::runtime::current_thread::block_on_all(future) {
-                        error!(target: "ioworker", "error while executing future")
+                        }
+                    };
+
+                    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        runtime.block_on(future)
+                    })) {
+                        Ok(_) => {},
+                        Err(_) => error!(target: "ioworker", "worker panicked")
                     }
                 })
                 .expect("Error creating worker thread"),

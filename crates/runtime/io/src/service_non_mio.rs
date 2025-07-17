@@ -24,10 +24,10 @@ use std::{
     thread,
     time::Duration,
 };
-use time::Duration as TimeDuration;
+use chrono::TimeDelta;
 use timer::{Guard as TimerGuard, Timer};
-use IoError;
-use IoHandler;
+use crate::IoError;
+use crate::IoHandler;
 
 /// Timer ID
 pub type TimerToken = usize;
@@ -60,7 +60,7 @@ where
             token: token,
         };
 
-        let delay = TimeDuration::from_std(delay)
+        let delay = TimeDelta::from_std(delay)
             .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))?;
         let guard = self.shared.timer.lock().schedule_repeating(delay, move || {
             channel.send_raw(msg.clone());
@@ -80,7 +80,7 @@ where
             token: token,
         };
 
-        let delay = TimeDuration::from_std(delay)
+        let delay = TimeDelta::from_std(delay)
             .map_err(|e| ::std::io::Error::new(::std::io::ErrorKind::Other, e))?;
         let guard = self
             .shared
@@ -270,7 +270,8 @@ where
     pub fn start(_symbolic_name: &'static str) -> Result<IoService<Message>, IoError> {
         // This minimal implementation of IoService does have named Workers
         // like the mio-dependent one does, so _symbolic_name is ignored.
-        let (tx, rx) = deque::fifo();
+        let tx = deque::Worker::new_fifo();
+        let rx = tx.stealer();
 
         let shared = Arc::new(Shared {
             handlers: RwLock::new(Slab::with_capacity(MAX_HANDLERS)),
@@ -370,8 +371,8 @@ where
         match rx.steal() {
             deque::Steal::Retry => continue,
             deque::Steal::Empty => thread::park(),
-            deque::Steal::Data(WorkTask::Shutdown) => break,
-            deque::Steal::Data(WorkTask::UserMessage(message)) => {
+            deque::Steal::Success(WorkTask::Shutdown) => break,
+            deque::Steal::Success(WorkTask::UserMessage(message)) => {
                 for id in 0..MAX_HANDLERS {
                     if let Some(handler) = shared.handlers.read().get(id) {
                         let ctxt = IoContext {
@@ -382,7 +383,7 @@ where
                     }
                 }
             }
-            deque::Steal::Data(WorkTask::TimerTrigger { handler_id, token }) => {
+            deque::Steal::Success(WorkTask::TimerTrigger { handler_id, token }) => {
                 if let Some(handler) = shared.handlers.read().get(handler_id) {
                     let ctxt = IoContext {
                         handler: handler_id,
