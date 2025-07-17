@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn should_reserve_a_set_of_nonces_and_resolve_them() {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_thread_per_future();
         let mut nonces = SenderReservations::new(runtime.executor());
 
         assert!(nonces.is_empty());
@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn should_return_prospective_nonce() {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_thread_per_future();
         let mut nonces = SenderReservations::new(runtime.executor());
 
         let n1 = nonces.reserve_nonce(5.into());

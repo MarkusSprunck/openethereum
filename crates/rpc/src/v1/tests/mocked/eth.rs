@@ -114,7 +114,7 @@ impl EthTester {
         client: Arc<TestBlockChainClient>,
         options: EthClientOptions,
     ) -> Self {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_thread_per_future();
         let sync = sync_provider();
         let ap = accounts_provider();
         let ap2 = ap.clone();

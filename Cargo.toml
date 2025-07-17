@@ -30,7 +30,7 @@ serde = "1.0.219"
 serde_json = "1.0.140"
 serde_derive = "1.0.219"
 futures = "0.1.31"
-tokio = { version = "1.42.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.46.1", features = ["rt", "rt-multi-thread", "macros"] }
 hyper = { version = "0.14.12" }
 fdlimit = "0.3.0"
 ctrlc = { git = "https://github.com/paritytech/rust-ctrlc.git" }
@@ -88,7 +88,7 @@ aesni = { path = "crates/util/aes/aesni" }
 aes-soft = { path = "crates/util/aes-soft" }
 block-cipher-trait = { path = "crates/util/block-cipher-trait" }
 stream-cipher = { path = "crates/util/stream-cipher" }
-openssl-sys = { path = "crates/util/openssl-sys"}
+openssl-sys = { path = "crates/util/openssl-sys" }
 
 [features]
 default = ["accounts"]

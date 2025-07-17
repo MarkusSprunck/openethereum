@@ -114,7 +114,7 @@ impl<F: Fetch> Client<F> {
 
             let mut body = Vec::new();
             let mut stream = response;
-            
+
             while let Some(chunk) = stream.next().await {
                 let chunk = chunk.map_err(Error::Fetch)?;
                 body.extend_from_slice(&chunk);
@@ -141,7 +141,7 @@ impl<F: Fetch> Client<F> {
             warn!("Failed to auto-update latest ETH price: {:?}", err);
         });
 
-        self.pool.spawn(future.boxed().compat())
+        self.pool.spawn_03(future.map(|_| ()).boxed())
     }
 }
 
@@ -173,7 +173,7 @@ mod test {
 
     #[test]
     fn should_get_price_info() {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_single_thread();
 
         // given
         let response = r#"{
@@ -198,7 +198,7 @@ mod test {
 
     #[test]
     fn should_not_call_set_price_if_response_is_malformed() {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_single_thread();
 
         // given
         let response = "{}";
@@ -218,7 +218,7 @@ mod test {
 
     #[test]
     fn should_not_call_set_price_if_response_is_invalid() {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_single_thread();
 
         // given
         let price_info = price_info_not_found(runtime.executor());

@@ -60,7 +60,7 @@ fn miner_service() -> Arc<TestMinerService> {
 }
 
 fn signer_tester() -> SignerTester {
-    let runtime = Runtime::with_thread_count(1);
+    let runtime = Runtime::with_single_thread();
     let signer = Arc::new(SignerService::new_test(false));
     let accounts = accounts_provider();
     let account_signer = Arc::new(dispatch::Signer::new(accounts.clone()));

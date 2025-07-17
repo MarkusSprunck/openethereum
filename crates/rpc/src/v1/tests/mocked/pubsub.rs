@@ -43,7 +43,7 @@ fn rpc() -> MetaIoHandler<Metadata, core::NoopMiddleware> {
 #[test]
 fn should_subscribe_to_a_method() {
     // given
-    let el = Runtime::with_thread_count(1);
+    let el = Runtime::with_thread_per_future();
     let rpc = rpc();
     let pubsub = PubSubClient::new_test(rpc, el.executor()).to_delegate();
 

@@ -37,7 +37,7 @@ impl<T> Server<T> {
     where
         F: FnOnce(TaskExecutor) -> T,
     {
-        let event_loop = Runtime::with_thread_count(1);
+        let event_loop = Runtime::with_single_thread();
         let remote = event_loop.raw_executor();
 
         Server {

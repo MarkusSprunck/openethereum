@@ -64,7 +64,7 @@ impl Default for EthTester {
 
 impl EthTester {
     pub fn new_with_options(options: EthClientOptions) -> Self {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_thread_per_future();
         let client = blockchain_client();
         let accounts_provider = accounts_provider();
         let ap = Arc::new(dispatch::Signer::new(accounts_provider.clone())) as _;

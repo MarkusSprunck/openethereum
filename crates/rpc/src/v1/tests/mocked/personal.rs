@@ -69,7 +69,7 @@ struct Config {
 }
 
 fn setup_with(c: Config) -> PersonalTester {
-    let runtime = Runtime::with_thread_count(1);
+    let runtime = Runtime::with_thread_per_future();
     let accounts = accounts_provider();
     let client = blockchain_client();
     let miner = miner_service();

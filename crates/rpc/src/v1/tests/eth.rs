@@ -117,7 +117,7 @@ impl EthTester {
     }
 
     fn from_spec_conf(spec: Spec, config: ClientConfig) -> Self {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_single_thread();
         let account_provider = account_provider();
         let ap = account_provider.clone();
         let accounts = Arc::new(move || ap.accounts().unwrap_or_default()) as _;

@@ -19,18 +19,41 @@
 pub extern crate futures;
 pub extern crate tokio;
 
-use futures::{future, Future, IntoFuture};
+// Re-export futures01 for backward compatibility
+pub use futures01;
+
+use futures::Future;
 use std::{
     fmt,
     sync::mpsc,
     thread,
-    time::{Duration, Instant},
 };
 pub use tokio::{
-    runtime::{Builder as TokioRuntimeBuilder, Runtime as TokioRuntime, TaskExecutor},
-    timer::Delay,
+    runtime::{Builder as TokioRuntimeBuilder, Handle as TokioHandle, Runtime as TokioRuntime},
+    time::{sleep as delay, Sleep as Delay},
 };
 
+// Compatibility re-exports for users expecting old APIs
+pub type TaskExecutor = TokioHandle;
+
+/// Create a new runtime for each sync operation - avoids shared bottleneck and deadlocks
+fn create_sync_runtime() -> TokioRuntime {
+    TokioRuntimeBuilder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create sync runtime")
+}
+
+/// Shared runtime for ThreadPerFuture mode - safe because each operation gets its own thread
+fn get_thread_per_future_runtime() -> &'static TokioRuntime {
+    static THREAD_PER_FUTURE_RT: std::sync::OnceLock<TokioRuntime> = std::sync::OnceLock::new();
+    THREAD_PER_FUTURE_RT.get_or_init(|| {
+        TokioRuntimeBuilder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create thread-per-future runtime")
+    })
+}
 /// Runtime for futures.
 ///
 /// Runs in a separate thread.
@@ -41,19 +64,23 @@ pub struct Runtime {
 
 impl Runtime {
     fn new(runtime_bldr: &mut TokioRuntimeBuilder) -> Self {
-        let mut runtime = runtime_bldr.build().expect(
+        let runtime = runtime_bldr.build().expect(
             "Building a Tokio runtime will only fail when mio components \
 				cannot be initialized (catastrophic)",
         );
-        let (stop, stopped) = futures::oneshot();
+        let handle = runtime.handle().clone();
+        let (stop_tx, stop_rx) = tokio::sync::oneshot::channel::<()>();
         let (tx, rx) = mpsc::channel();
-        let handle = thread::spawn(move || {
-            tx.send(runtime.executor())
+        let thread_handle = thread::spawn(move || {
+            tx.send(handle.clone())
                 .expect("Rx is blocking upper thread.");
-            runtime
-                .block_on(futures::empty().select(stopped).map(|_| ()).map_err(|_| ()))
-                .expect("Tokio runtime should not have unhandled errors.");
+
+            // Keep the runtime alive and use it to block on the stop signal
+            runtime.block_on(async {
+                let _ = stop_rx.await;
+            });
         });
+
         let executor = rx
             .recv()
             .expect("tx is transfered to a newly spawned thread.");
@@ -63,8 +90,8 @@ impl Runtime {
                 inner: Mode::Tokio(executor),
             },
             handle: RuntimeHandle {
-                close: Some(stop),
-                handle: Some(handle),
+                close: Some(stop_tx),
+                handle: Some(thread_handle),
             },
         }
     }
@@ -73,18 +100,31 @@ impl Runtime {
     /// thread and returns a `Runtime` which can be used to spawn tasks via
     /// its executor.
     pub fn with_default_thread_count() -> Self {
-        let mut runtime_bldr = TokioRuntimeBuilder::new();
+        let mut runtime_bldr = TokioRuntimeBuilder::new_multi_thread();
         Self::new(&mut runtime_bldr)
     }
 
-    /// Spawns a new tokio runtime with a the specified thread count on a
-    /// background thread and returns a `Runtime` which can be used to spawn
-    /// tasks via its executor.
-    pub fn with_thread_count(thread_count: usize) -> Self {
-        let mut runtime_bldr = TokioRuntimeBuilder::new();
-        runtime_bldr.core_threads(thread_count);
-
+    /// Creates a single-threaded runtime using the production Self::new() code path.
+    /// This creates an actual tokio current_thread runtime but should only be used
+    /// by tests that don't need to make blocking .wait() calls (which can deadlock).
+    pub fn with_single_thread() -> Self {
+        let mut runtime_bldr = TokioRuntimeBuilder::new_current_thread();
         Self::new(&mut runtime_bldr)
+    }
+
+    /// Creates a runtime that spawns a new thread for each future execution.
+    /// This mode is designed for tests that need to make blocking .wait() calls,
+    /// as it avoids deadlocks by running each future in its own thread.
+    pub fn with_thread_per_future() -> Self {
+        Runtime {
+            executor: Executor {
+                inner: Mode::ThreadPerFuture,
+            },
+            handle: RuntimeHandle {
+                close: None,
+                handle: None,
+            },
+        }
     }
 
     /// Returns this runtime raw executor.
@@ -106,7 +146,7 @@ impl Runtime {
 
 #[derive(Clone)]
 enum Mode {
-    Tokio(TaskExecutor),
+    Tokio(TokioHandle),
     Sync,
     ThreadPerFuture,
 }
@@ -123,26 +163,6 @@ impl fmt::Debug for Mode {
     }
 }
 
-/// Returns a future which runs `f` until `duration` has elapsed, at which
-/// time `on_timeout` is run and the future resolves.
-fn timeout<F, R, T>(
-    f: F,
-    duration: Duration,
-    on_timeout: T,
-) -> impl Future<Item = (), Error = ()> + Send + 'static
-where
-    T: FnOnce() -> () + Send + 'static,
-    F: FnOnce() -> R + Send + 'static,
-    R: IntoFuture<Item = (), Error = ()> + Send + 'static,
-    R::Future: Send + 'static,
-{
-    let future = future::lazy(f);
-    let timeout = Delay::new(Instant::now() + duration).then(move |_| {
-        on_timeout();
-        Ok(())
-    });
-    future.select(timeout).then(|_| Ok(()))
-}
 
 #[derive(Debug, Clone)]
 pub struct Executor {
@@ -171,78 +191,83 @@ impl Executor {
         }
     }
 
-    /// Spawn a future to this runtime
+    /// Spawn a futures 0.1 future to this runtime (default method for backward compatibility)
     pub fn spawn<R>(&self, r: R)
     where
-        R: IntoFuture<Item = (), Error = ()> + Send + 'static,
+        R: futures01::IntoFuture<Item = (), Error = ()> + Send + 'static,
         R::Future: Send + 'static,
     {
-        match self.inner {
-            Mode::Tokio(ref executor) => executor.spawn(r.into_future()),
-            Mode::Sync => {
-                let _ = r.into_future().wait();
-            }
-            Mode::ThreadPerFuture => {
-                thread::spawn(move || {
-                    let _ = r.into_future().wait();
-                });
-            }
-        }
+        self.spawn_01(r);
     }
 
-    /// Spawn a new future returned by given closure.
-    pub fn spawn_fn<F, R>(&self, f: F)
+    /// Spawn a futures 0.3 future to this runtime
+    pub fn spawn_03<R>(&self, r: R)
     where
-        F: FnOnce() -> R + Send + 'static,
-        R: IntoFuture<Item = (), Error = ()> + Send + 'static,
-        R::Future: Send + 'static,
+        R: Future<Output = ()> + Send + 'static,
     {
         match self.inner {
-            Mode::Tokio(ref executor) => executor.spawn(future::lazy(f)),
+            Mode::Tokio(ref executor) => {
+                executor.spawn(r);
+            }
             Mode::Sync => {
-                let _ = future::lazy(f).wait();
+                create_sync_runtime().block_on(r);
             }
             Mode::ThreadPerFuture => {
                 thread::spawn(move || {
-                    let _ = f().into_future().wait();
-                });
-            }
-        }
-    }
-
-    /// Spawn a new future and wait for it or for a timeout to occur.
-    pub fn spawn_with_timeout<F, R, T>(&self, f: F, duration: Duration, on_timeout: T)
-    where
-        T: FnOnce() -> () + Send + 'static,
-        F: FnOnce() -> R + Send + 'static,
-        R: IntoFuture<Item = (), Error = ()> + Send + 'static,
-        R::Future: Send + 'static,
-    {
-        match self.inner {
-            Mode::Tokio(ref executor) => executor.spawn(timeout(f, duration, on_timeout)),
-            Mode::Sync => {
-                let _ = timeout(f, duration, on_timeout).wait();
-            }
-            Mode::ThreadPerFuture => {
-                thread::spawn(move || {
-                    let _ = timeout(f, duration, on_timeout).wait();
+                    get_thread_per_future_runtime().block_on(r);
                 });
             }
         }
     }
 }
 
-impl<F: Future<Item = (), Error = ()> + Send + 'static> future::Executor<F> for Executor {
-    fn execute(&self, future: F) -> Result<(), future::ExecuteError<F>> {
+// Compatibility layer for futures 0.1 users
+impl Executor {
+    /// Spawn a futures 0.1 future (for backward compatibility)
+    pub fn spawn_01<R>(&self, r: R)
+    where
+        R: futures01::IntoFuture<Item = (), Error = ()> + Send + 'static,
+        R::Future: Send + 'static,
+    {
+        // Convert futures 0.1 to futures 0.3
+        let future = async move {
+            use futures::compat::Future01CompatExt;
+            let _ = r.into_future().compat().await;
+        };
+        self.spawn_03(future);
+    }
+}
+
+// Keep the old future::Executor trait implementation for compatibility
+impl<F> futures01::future::Executor<F> for Executor
+where
+    F: futures01::Future<Item = (), Error = ()> + Send + 'static,
+{
+    fn execute(&self, future: F) -> Result<(), futures01::future::ExecuteError<F>> {
         match self.inner {
-            Mode::Tokio(ref executor) => executor.execute(future),
+            Mode::Tokio(ref executor) => {
+                let future_03 = async move {
+                    use futures::compat::Future01CompatExt;
+                    let _ = future.compat().await;
+                };
+                executor.spawn(future_03);
+                Ok(())
+            }
             Mode::Sync => {
-                let _ = future.wait();
+                let future_03 = async move {
+                    use futures::compat::Future01CompatExt;
+                    let _ = future.compat().await;
+                };
+                create_sync_runtime().block_on(future_03);
                 Ok(())
             }
             Mode::ThreadPerFuture => {
                 thread::spawn(move || {
-                    let _ = future.wait();
+                    let future_03 = async move {
+                        use futures::compat::Future01CompatExt;
+                        let _ = future.compat().await;
+                    };
+                    get_thread_per_future_runtime().block_on(future_03);
                 });
                 Ok(())
             }
@@ -252,7 +277,7 @@ impl<F: Future<Item = (), Error = ()> + Send + 'static> future::Executor<F> for 
 
 /// A handle to a runtime. Dropping the handle will cause runtime to shutdown.
 pub struct RuntimeHandle {
-    close: Option<futures::Complete<()>>,
+    close: Option<tokio::sync::oneshot::Sender<()>>,
     handle: Option<thread::JoinHandle<()>>,
 }
 
@@ -264,7 +289,12 @@ impl From<Runtime> for RuntimeHandle {
 
 impl Drop for RuntimeHandle {
     fn drop(&mut self) {
-        self.close.take().map(|v| v.send(()));
+        if let Some(close) = self.close.take() {
+            let _ = close.send(());
+        }
+        if let Some(handle) = self.handle.take() {
+            let _ = handle.join();
+        }
     }
 }
 

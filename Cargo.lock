@@ -3734,7 +3734,9 @@ name = "parity-runtime"
 version = "0.1.0"
 dependencies = [
  "futures 0.1.31",
- "tokio 0.1.22",
+ "futures 0.3.31",
+ "futures-util",
+ "tokio 1.46.1",
 ]
 
 [[package]]

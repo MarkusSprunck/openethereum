@@ -52,7 +52,7 @@ struct SigningTester {
 
 impl Default for SigningTester {
     fn default() -> Self {
-        let runtime = Runtime::with_thread_count(1);
+        let runtime = Runtime::with_thread_per_future();
         let signer = Arc::new(SignerService::new_test(false));
         let client = Arc::new(TestBlockChainClient::default());
         let miner = Arc::new(TestMinerService::default());

@@ -37,7 +37,7 @@ const DURATION_ZERO: Duration = Duration::from_millis(0);
 #[test]
 fn should_subscribe_to_new_heads() {
     // given
-    let el = Runtime::with_thread_count(1);
+    let el = Runtime::with_thread_per_future();
     let mut client = TestBlockChainClient::new();
     // Insert some blocks
     client.add_blocks(3, EachBlockWith::Nothing);
@@ -122,7 +122,7 @@ fn should_subscribe_to_logs() {
     };
 
     // given
-    let el = Runtime::with_thread_count(1);
+    let el = Runtime::with_thread_per_future();
     let mut client = TestBlockChainClient::new();
     // Insert some blocks
     client.add_blocks(1, EachBlockWith::Transaction);
@@ -215,7 +215,7 @@ fn should_subscribe_to_logs() {
 #[test]
 fn should_subscribe_to_pending_transactions() {
     // given
-    let el = Runtime::with_thread_count(1);
+    let el = Runtime::with_thread_per_future();
     let client = TestBlockChainClient::new();
 
     let pubsub = EthPubSubClient::new_test(Arc::new(client), el.executor());
@@ -271,7 +271,7 @@ fn should_subscribe_to_pending_transactions() {
 #[test]
 fn should_return_unimplemented() {
     // given
-    let el = Runtime::with_thread_count(1);
+    let el = Runtime::with_thread_per_future();
     let client = TestBlockChainClient::new();
     let pubsub = EthPubSubClient::new_test(Arc::new(client), el.executor());
     let pubsub = pubsub.to_delegate();

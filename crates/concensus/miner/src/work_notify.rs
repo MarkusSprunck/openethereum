@@ -85,7 +85,7 @@ impl NotifyWork for WorkPoster {
 
         for u in &self.urls {
             let u = u.clone();
-            self.executor.spawn(
+            self.executor.spawn_01(
                 self.client
                 .fetch_compat(
                         Request::new(u.clone(), Method::POST)
