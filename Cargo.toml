@@ -88,6 +88,7 @@ aesni = { path = "crates/util/aes/aesni" }
 aes-soft = { path = "crates/util/aes-soft" }
 block-cipher-trait = { path = "crates/util/block-cipher-trait" }
 stream-cipher = { path = "crates/util/stream-cipher" }
+openssl-sys = { path = "crates/util/openssl-sys"}
 
 [features]
 default = ["accounts"]

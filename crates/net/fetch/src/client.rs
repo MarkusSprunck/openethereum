@@ -32,12 +32,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::RecvTimeoutError;
 use tokio::sync::mpsc as tokio_mpsc;
 use url::Url;
-
-#[cfg(target_arch = "aarch64")]
 use hyper_tls;
-
-#[cfg(target_arch = "x86_64")]
-use hyper_rustls;
 
 const MAX_SIZE: usize = 64 * 1024 * 1024;
 const MAX_SECS: Duration = Duration::from_secs(5);
@@ -199,8 +194,7 @@ impl Client {
 			refs: Arc::new(AtomicUsize::new(1)),
 		})
 	}
-
-	#[cfg(target_arch = "aarch64")]
+	
 	async fn execute_request_with_redirects(
 		client: hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>>,
 		mut request: Request,
@@ -260,8 +254,7 @@ impl Client {
 			}
 		}
 	}
-
-	#[cfg(target_arch = "aarch64")]
+	
 	fn background_thread(
 		tx_start: TxStartup,
 		mut rx_proto: tokio_mpsc::Receiver<ChanItem>,
@@ -308,115 +301,7 @@ impl Client {
 			debug!(target: "fetch", "fetch background thread finished")
 		})
 	}
-
-
-	#[cfg(target_arch = "x86_64")]
-	async fn execute_request_with_redirects(
-		client: hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
-		mut request: Request,
-		abort: Abort,
-	) -> Result<Response, Error> {
-		let mut redirects = 0;
-
-		loop {
-			if abort.is_aborted() {
-				debug!(target: "fetch", "fetch of {} aborted", request.url());
-				return Err(Error::Aborted);
-			}
-
-			let url = request.url().clone();
-			let hyper_request = request.clone().into();
-
-			match client.request(hyper_request).await {
-				Ok(hyper_resp) => {
-					let resp = Response::new(url, hyper_resp, abort.clone());
-
-					if abort.is_aborted() {
-						debug!(target: "fetch", "fetch of {} aborted", request.url());
-						return Err(Error::Aborted);
-					}
-
-					if let Some((next_url, preserve_method)) = redirect_location(request.url().clone(), &resp) {
-						if redirects >= abort.max_redirects() {
-							return Err(Error::TooManyRedirects);
-						}
-
-						request = if preserve_method {
-							let mut new_request = request.clone();
-							new_request.set_url(next_url);
-							new_request
-						} else {
-							Request::new(next_url, Method::GET)
-						};
-
-						redirects += 1;
-						continue;
-					} else {
-						if let Some(ref h_val) = resp.headers.get(header::CONTENT_LENGTH) {
-							let content_len = h_val
-								.to_str()
-								.map_err(Error::HyperHeaderToStrError)?
-								.parse::<u64>()
-								.map_err(Error::ParseInt)?;
-
-							if content_len > abort.max_size() as u64 {
-								return Err(Error::SizeLimit);
-							}
-						}
-						return Ok(resp);
-					}
-				}
-				Err(e) => return Err(Error::Hyper(e)),
-			}
-		}
-	}
-
-	#[cfg(target_arch = "x86_64")]
-	fn background_thread(
-		tx_start: TxStartup,
-		mut rx_proto: tokio_mpsc::Receiver<ChanItem>,
-	) -> io::Result<thread::JoinHandle<()>> {
-		thread::Builder::new().name("fetch".into()).spawn(move || {
-			let runtime = match tokio::runtime::Runtime::new() {
-				Ok(c) => c,
-				Err(e) => return tx_start.send(Err(e)).unwrap_or(()),
-			};
-
-            let hyper = hyper::Client::builder().build(hyper_rustls::HttpsConnector::with_native_roots());
-
-			let future = async move {
-				while let Some(item) = rx_proto.recv().await {
-					if item.is_none() {
-						break;
-					}
-					let (request, abort, sender) = item.unwrap();
-
-					trace!(target: "fetch", "new request to {}", request.url());
-					if abort.is_aborted() {
-						sender.send(Err(Error::Aborted)).unwrap_or(());
-						continue;
-					}
-					let client = hyper.clone();
-					let fut = Self::execute_request_with_redirects(client, request, abort)
-						.then(move |result| {
-							sender.send(result).unwrap_or(());
-							futures::future::ready(())
-						});
-					tokio::spawn(fut);
-					trace!(target: "fetch", "waiting for next request ...");
-				}
-				Ok::<(), ()>(())
-			};
-
-			tx_start.send(Ok(())).unwrap_or(());
-
-			debug!(target: "fetch", "processing requests ...");
-			if let Err(()) = runtime.block_on(future) {
-				error!(target: "fetch", "error while executing future")
-			}
-			debug!(target: "fetch", "fetch background thread finished")
-		})
-	}
+	
 }
 
 impl Fetch for Client {

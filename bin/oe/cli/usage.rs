@@ -612,7 +612,7 @@ macro_rules! usage {
 				    	.global_setting(AppSettings::VersionlessSubcommands)
 						.global_setting(AppSettings::DisableHelpSubcommand)
 						.max_term_width(MAX_TERM_WIDTH)
-						.help(Args::print_help().as_ref())
+						.help(Args::print_help().as_str())
 						.args(&usages.iter().map(|u| {
 							let mut arg = Arg::from_usage(u)
 								.allow_hyphen_values(true) // Allow for example --allow-ips -10.0.0.0/8
