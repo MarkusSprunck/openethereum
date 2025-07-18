@@ -19,7 +19,7 @@
 use log::{debug, error, trace};
 
 use bytes::Bytes;
-use futures::{Future, Stream, FutureExt};
+use futures::{Future, Stream, FutureExt, executor};
 use futures::channel::oneshot;
 use futures::task::{Poll, Context};
 use std::pin::Pin;
@@ -321,8 +321,16 @@ impl Fetch for Client {
 			sender
 				.try_send(Some((request, abort, tx_res)))
 				.map_err(|e| {
-					error!(target: "fetch", "failed to schedule request: {}", e);
-					Error::BackgroundThreadDead
+					match e {
+						tokio_mpsc::error::TrySendError::Full(_) => {
+							error!(target: "fetch", "request queue full (capacity: 64), request dropped");
+							Error::RequestQueueFull
+						}
+						tokio_mpsc::error::TrySendError::Closed(_) => {
+							error!(target: "fetch", "background thread disconnected");
+							Error::BackgroundThreadDead
+						}
+					}
 				})?;
 
 			let result = rx_res.await.map_err(|_| Error::BackgroundThreadDead)?;
@@ -584,30 +592,17 @@ impl io::Read for BodyReader {
 					.take()
 					.expect("loop condition ensures `self.body` is always defined; qed");
 
-				// Use spawn_blocking to safely bridge async/sync
-				let result = std::thread::scope(|s| {
-					let handle = s.spawn(|| {
-						// Create a new runtime for this blocking operation
-						let rt = tokio::runtime::Runtime::new().map_err(|e| {
-							io::Error::new(io::ErrorKind::Other, format!("runtime creation failed: {}", e))
-						})?;
-
-						rt.block_on(async {
-							use hyper::body::HttpBody;
-							match body.data().await {
-								Some(Ok(chunk)) => Ok(Some(chunk)),
-								Some(Err(e)) => Err(io::Error::new(
-									io::ErrorKind::Other,
-                                    format!("body read error: {}", e)
-								)),
-								None => Ok(None),
-							}
-						})
-					});
-
-					handle.join().map_err(|_| {
-						io::Error::new(io::ErrorKind::Other, "thread join failed")
-					})?
+				// Use futures::executor::block_on to efficiently bridge async/sync
+				let result = executor::block_on(async {
+					use hyper::body::HttpBody;
+					match body.data().await {
+						Some(Ok(chunk)) => Ok(Some(chunk)),
+						Some(Err(e)) => Err(io::Error::new(
+							io::ErrorKind::Other,
+							format!("body read error: {}", e)
+						)),
+						None => Ok(None),
+					}
 				});
 
 				match result {
@@ -655,6 +650,8 @@ pub enum Error {
 	SizeLimit,
 	/// The background processing thread does not run.
 	BackgroundThreadDead,
+	/// The request queue is full.
+	RequestQueueFull,
 }
 
 impl fmt::Display for Error {
@@ -666,7 +663,7 @@ impl fmt::Display for Error {
 			Error::ParseInt(ref e) => write!(fmt, "{}", e),
 			Error::Url(ref e) => write!(fmt, "{}", e),
 			Error::Io(ref e) => write!(fmt, "{}", e),
-			Error::BackgroundThreadDead => write!(fmt, "background thread gond"),
+			Error::BackgroundThreadDead => write!(fmt, "background thread disconnected"),
 			Error::TooManyRedirects => write!(fmt, "too many redirects"),
 			Error::TokioTimeoutInnerVal(ref s) => {
 				write!(fmt, "tokio timer inner value error: {:?}", s)
@@ -674,6 +671,7 @@ impl fmt::Display for Error {
 			Error::TokioTime(ref e) => write!(fmt, "tokio timer error: {:?}", e),
 			Error::Timeout => write!(fmt, "request timed out"),
 			Error::SizeLimit => write!(fmt, "size limit reached"),
+			Error::RequestQueueFull => write!(fmt, "request queue full"),
 		}
 	}
 }
