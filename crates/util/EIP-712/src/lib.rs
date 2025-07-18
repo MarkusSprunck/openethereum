@@ -159,8 +159,6 @@
 #![warn(missing_docs)]
 
 #[macro_use]
-extern crate validator_derive;
-#[macro_use]
 extern crate serde_derive;
 
 mod eip712;

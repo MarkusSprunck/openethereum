@@ -21,6 +21,7 @@ use regex::Regex;
 use serde_json::Value;
 use std::collections::HashMap;
 use validator::{Validate, ValidationErrors};
+use validator_derive::Validate;
 
 pub(crate) type MessageTypes = HashMap<String, Vec<FieldType>>;
 
@@ -65,10 +66,10 @@ impl Validate for EIP712 {
 
 #[derive(Serialize, Deserialize, Validate, Debug, Clone)]
 pub(crate) struct FieldType {
-    #[validate(regex = "IDENT_REGEX")]
+    #[validate(regex(path = "*IDENT_REGEX"))]
     pub name: String,
     #[serde(rename = "type")]
-    #[validate(regex = "TYPE_REGEX")]
+    #[validate(regex(path = "*TYPE_REGEX"))]
     pub type_: String,
 }
 
