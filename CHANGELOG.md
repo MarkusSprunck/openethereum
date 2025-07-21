@@ -23,7 +23,8 @@ Cleanup
 
 Security fixes
 
-* Dependency updates and include some yanked crates
+* Vendored `aes`, `aes-soft`, `block-cipher-trait`, `stream-cipher`, and `aesni` because the used versions were yanked
+* Upgraded `hyper`, `tokio`, `time`, `prometheus`, `validator`, `validator_derive`, `crossbeam-channel`, and `generic-array` to fix several vulnerabilities
 
 Bug fixes
 
