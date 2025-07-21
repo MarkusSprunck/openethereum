@@ -70,7 +70,7 @@ impl Receipt {
     fn outcome_to_status_code(outcome: &TransactionOutcome) -> Option<U64> {
         match *outcome {
             TransactionOutcome::Unknown | TransactionOutcome::StateRoot(_) => None,
-            TransactionOutcome::StatusCode(ref code) => Some((*code as u64).into()),
+            TransactionOutcome::StatusCode(ref code) => Some(u64::from(*code).into()),
         }
     }
 }
@@ -78,7 +78,7 @@ impl Receipt {
 impl From<LocalizedReceipt> for Receipt {
     fn from(r: LocalizedReceipt) -> Self {
         Receipt {
-            to: r.to.map(Into::into),
+            to: r.to,
             from: Some(r.from),
             transaction_type: r.transaction_type.to_U64_option_id(),
             transaction_hash: Some(r.transaction_hash),
@@ -87,7 +87,7 @@ impl From<LocalizedReceipt> for Receipt {
             block_number: Some(r.block_number.into()),
             cumulative_gas_used: r.cumulative_gas_used,
             gas_used: Some(r.gas_used),
-            contract_address: r.contract_address.map(Into::into),
+            contract_address: r.contract_address,
             logs: r.logs.into_iter().map(Into::into).collect(),
             status_code: Self::outcome_to_status_code(&r.outcome),
             state_root: Self::outcome_to_state_root(r.outcome),
@@ -101,7 +101,7 @@ impl From<RichReceipt> for Receipt {
     fn from(r: RichReceipt) -> Self {
         Receipt {
             from: Some(r.from),
-            to: r.to.map(Into::into),
+            to: r.to,
             transaction_type: r.transaction_type.to_U64_option_id(),
             transaction_hash: Some(r.transaction_hash),
             transaction_index: Some(r.transaction_index.into()),
@@ -109,7 +109,7 @@ impl From<RichReceipt> for Receipt {
             block_number: None,
             cumulative_gas_used: r.cumulative_gas_used,
             gas_used: Some(r.gas_used),
-            contract_address: r.contract_address.map(Into::into),
+            contract_address: r.contract_address,
             logs: r.logs.into_iter().map(Into::into).collect(),
             status_code: Self::outcome_to_status_code(&r.outcome),
             state_root: Self::outcome_to_state_root(r.outcome),

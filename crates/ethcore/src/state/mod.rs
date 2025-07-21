@@ -125,7 +125,7 @@ impl AccountEntry {
     }
 
     fn exists_and_is_null(&self) -> bool {
-        self.account.as_ref().map_or(false, |a| a.is_null())
+        self.account.as_ref().is_some_and(|a| a.is_null())
     }
 
     /// Clone dirty data into new `AccountEntry`. This includes
@@ -151,8 +151,8 @@ impl AccountEntry {
     // Create a new account entry and mark it as dirty.
     fn new_dirty(account: Option<Account>) -> AccountEntry {
         AccountEntry {
-            old_balance: account.as_ref().map(|a| a.balance().clone()),
-            account: account,
+            old_balance: account.as_ref().map(|a| *a.balance()),
+            account,
             state: AccountState::Dirty,
         }
     }
@@ -160,8 +160,8 @@ impl AccountEntry {
     // Create a new account entry and mark it as clean.
     fn new_clean(account: Option<Account>) -> AccountEntry {
         AccountEntry {
-            old_balance: account.as_ref().map(|a| a.balance().clone()),
-            account: account,
+            old_balance: account.as_ref().map(|a| *a.balance()),
+            account,
             state: AccountState::CleanFresh,
         }
     }
@@ -169,8 +169,8 @@ impl AccountEntry {
     // Create a new account entry and mark it as clean and cached.
     fn new_clean_cached(account: Option<Account>) -> AccountEntry {
         AccountEntry {
-            old_balance: account.as_ref().map(|a| a.balance().clone()),
-            account: account,
+            old_balance: account.as_ref().map(|a| *a.balance()),
+            account,
             state: AccountState::CleanCached,
         }
     }
@@ -254,7 +254,7 @@ pub fn prove_transaction_virtual<H: AsHashDB<KeccakHasher, DBValue> + Send + Syn
     match state.execute(env_info, machine, transaction, options, true) {
         Err(ExecutionError::Internal(_)) => None,
         Err(e) => {
-            trace!(target: "state", "Proved call failed: {}", e);
+            trace!(target: "state", "Proved call failed: {e}");
             Some((Vec::new(), state.drop().1.extract_proof()))
         }
         Ok(res) => Some((res.output, state.drop().1.extract_proof())),
@@ -364,7 +364,7 @@ impl<B: Backend> StateInfo for State<B> {
     }
 }
 
-const SEC_TRIE_DB_UNWRAP_STR: &'static str = "A state can only be created with valid root. Creating a SecTrieDB with a valid root will not fail. \
+const SEC_TRIE_DB_UNWRAP_STR: &str = "A state can only be created with valid root. Creating a SecTrieDB with a valid root will not fail. \
 			 Therefore creating a SecTrieDB with this state's root will not fail.";
 
 impl<B: Backend> State<B> {
@@ -378,12 +378,12 @@ impl<B: Backend> State<B> {
         }
 
         State {
-            db: db,
-            root: root,
+            db,
+            root,
             cache: RefCell::new(HashMap::new()),
             checkpoints: RefCell::new(Vec::new()),
-            account_start_nonce: account_start_nonce,
-            factories: factories,
+            account_start_nonce,
+            factories,
         }
     }
 
@@ -399,12 +399,12 @@ impl<B: Backend> State<B> {
         }
 
         let state = State {
-            db: db,
-            root: root,
+            db,
+            root,
             cache: RefCell::new(HashMap::new()),
             checkpoints: RefCell::new(Vec::new()),
-            account_start_nonce: account_start_nonce,
-            factories: factories,
+            account_start_nonce,
+            factories,
         };
 
         Ok(state)
@@ -528,8 +528,8 @@ impl<B: Backend> State<B> {
         let (nonce, overflow) = self.account_start_nonce.overflowing_add(nonce_offset);
         if overflow {
             return Err(Box::new(TrieError::DecoderError(
-                H256::from(contract.clone()),
-                rlp::DecoderError::Custom("Nonce overflow".into()),
+                H256::from(*contract),
+                rlp::DecoderError::Custom("Nonce overflow"),
             )));
         }
         self.insert_cache(
@@ -557,13 +557,13 @@ impl<B: Backend> State<B> {
 
     /// Determine whether an account exists and if not empty.
     pub fn exists_and_not_null(&self, a: &Address) -> TrieResult<bool> {
-        self.ensure_cached(a, RequireCache::None, |a| a.map_or(false, |a| !a.is_null()))
+        self.ensure_cached(a, RequireCache::None, |a| a.is_some_and(|a| !a.is_null()))
     }
 
     /// Determine whether an account exists and has code or non-zero nonce.
     pub fn exists_and_has_code_or_nonce(&self, a: &Address) -> TrieResult<bool> {
         self.ensure_cached(a, RequireCache::CodeSize, |a| {
-            a.map_or(false, |a| {
+            a.is_some_and(|a| {
                 a.code_hash() != KECCAK_EMPTY || *a.nonce() != self.account_start_nonce
             })
         })
@@ -796,7 +796,7 @@ impl<B: Backend> State<B> {
     /// Get accounts' code.
     pub fn code(&self, a: &Address) -> TrieResult<Option<Arc<Bytes>>> {
         self.ensure_cached(a, RequireCache::Code, |a| {
-            a.as_ref().map_or(None, |a| a.code().clone())
+            a.as_ref().and_then(|a| a.code().clone())
         })
     }
 
@@ -869,7 +869,7 @@ impl<B: Backend> State<B> {
 
     /// Mutate storage of account `a` so that it is `value` for `key`.
     pub fn set_storage(&mut self, a: &Address, key: H256, value: H256) -> TrieResult<()> {
-        trace!(target: "state", "set_storage({}:{:x} to {:x})", a, key, value);
+        trace!(target: "state", "set_storage({a}:{key:x} to {value:x})");
         if self.storage_at(a, &key)? != value {
             self.require(a, false)?.set_storage(key, value)
         }
@@ -951,7 +951,7 @@ impl<B: Backend> State<B> {
             }
         } else {
             self.commit()?;
-            TransactionOutcome::StateRoot(self.root().clone())
+            TransactionOutcome::StateRoot(*self.root())
         };
 
         let output = e.output;
@@ -959,7 +959,7 @@ impl<B: Backend> State<B> {
             t.tx_type(),
             LegacyReceipt::new(outcome, e.cumulative_gas_used, e.logs),
         );
-        trace!(target: "state", "Transaction receipt: {:?}", receipt);
+        trace!(target: "state", "Transaction receipt: {receipt:?}");
 
         Ok(ApplyOutcome {
             receipt,
@@ -1004,7 +1004,7 @@ impl<B: Backend> State<B> {
         assert!(self.checkpoints.borrow().is_empty());
         // first, commit the sub trees.
         let mut accounts = self.cache.borrow_mut();
-        for (address, ref mut a) in accounts.iter_mut().filter(|&(_, ref a)| a.is_dirty()) {
+        for (address, ref mut a) in accounts.iter_mut().filter(|(_, a)| a.is_dirty()) {
             if let Some(ref mut account) = a.account {
                 let addr_hash = account.address_hash(address);
                 {
@@ -1023,7 +1023,7 @@ impl<B: Backend> State<B> {
                 .factories
                 .trie
                 .from_existing(self.db.as_hash_db_mut(), &mut self.root)?;
-            for (address, ref mut a) in accounts.iter_mut().filter(|&(_, ref a)| a.is_dirty()) {
+            for (address, ref mut a) in accounts.iter_mut().filter(|(_, a)| a.is_dirty()) {
                 a.state = AccountState::Committed;
                 match a.account {
                     Some(ref mut account) => {
@@ -1043,7 +1043,7 @@ impl<B: Backend> State<B> {
     fn propagate_to_global_cache(&mut self) {
         let mut addresses = self.cache.borrow_mut();
         trace!("Committing cache {:?} entries", addresses.len());
-        for (address, a) in addresses.drain().filter(|&(_, ref a)| {
+        for (address, a) in addresses.drain().filter(|(_, a)| {
             a.state == AccountState::Committed || a.state == AccountState::CleanFresh
         }) {
             self.db
@@ -1066,14 +1066,14 @@ impl<B: Backend> State<B> {
         kill_contracts: bool,
     ) -> TrieResult<()> {
         let to_kill: HashSet<_> = {
-            self.cache.borrow().iter().filter_map(|(address, ref entry)|
+            self.cache.borrow().iter().filter_map(|(address, entry)|
 			if touched.contains(address) && // Check all touched accounts
 				((remove_empty_touched && entry.exists_and_is_null()) // Remove all empty touched accounts.
-				|| min_balance.map_or(false, |ref balance| entry.account.as_ref().map_or(false, |account|
+				|| min_balance.is_some_and(|ref balance| entry.account.as_ref().is_some_and(|account|
 					(account.is_basic() || kill_contracts) // Remove all basic and optionally contract accounts where balance has been decreased.
-					&& account.balance() < balance && entry.old_balance.as_ref().map_or(false, |b| account.balance() < b)))) {
+					&& account.balance() < balance && entry.old_balance.as_ref().is_some_and(|b| account.balance() < b)))) {
 
-				Some(address.clone())
+				Some(*address)
 			} else { None }).collect()
         };
         for address in to_kill {
@@ -1135,7 +1135,7 @@ impl<B: Backend> State<B> {
         for (add, opt) in self.cache.borrow().iter() {
             if let Some(ref acc) = opt.account {
                 let pod_account = self.account_to_pod_account(acc, add)?;
-                result.insert(add.clone(), pod_account);
+                result.insert(*add, pod_account);
             }
         }
 
@@ -1176,7 +1176,7 @@ impl<B: Backend> State<B> {
             }
         }
 
-        let mut pod_account = PodAccount::from_account(&account);
+        let mut pod_account = PodAccount::from_account(account);
         // cached one first
         pod_storage.append(&mut pod_account.storage);
         pod_account.storage = pod_storage;
@@ -1223,7 +1223,7 @@ impl<B: Backend> State<B> {
                                     )
                                 })
                             {
-                                self_keys.union(&query_storage).cloned().collect::<Vec<_>>()
+                                self_keys.union(query_storage).cloned().collect::<Vec<_>>()
                             } else {
                                 self_keys.into_iter().collect::<Vec<_>>()
                             }
@@ -1463,9 +1463,9 @@ impl<B: Backend> State<B> {
         code: Arc<Bytes>,
         storage: HashMap<H256, H256>,
     ) -> TrieResult<()> {
-        Ok(self
-            .require(a, false)?
-            .reset_code_and_storage(code, storage))
+        self.require(a, false)?
+            .reset_code_and_storage(code, storage);
+        Ok(())
     }
 }
 
@@ -1554,7 +1554,7 @@ impl Clone for State<StateDB> {
             let mut cache: HashMap<Address, AccountEntry> = HashMap::new();
             for (key, val) in self.cache.borrow().iter() {
                 if let Some(entry) = val.clone_if_dirty() {
-                    cache.insert(key.clone(), entry);
+                    cache.insert(*key, entry);
                 }
             }
             cache
@@ -1562,10 +1562,10 @@ impl Clone for State<StateDB> {
 
         State {
             db: self.db.boxed_clone(),
-            root: self.root.clone(),
+            root: self.root,
             cache: RefCell::new(cache),
             checkpoints: RefCell::new(Vec::new()),
-            account_start_nonce: self.account_start_nonce.clone(),
+            account_start_nonce: self.account_start_nonce,
             factories: self.factories.clone(),
         }
     }
@@ -1652,7 +1652,7 @@ mod tests {
 
         let mut state = {
             let mut state = get_temp_state();
-            assert_eq!(state.exists(&a).unwrap(), false);
+            assert!(!state.exists(&a).unwrap());
             state.inc_nonce(&a).unwrap();
             state.commit().unwrap();
             state.clone()
@@ -2668,15 +2668,15 @@ mod tests {
     fn remove() {
         let a = Address::zero();
         let mut state = get_temp_state();
-        assert_eq!(state.exists(&a).unwrap(), false);
-        assert_eq!(state.exists_and_not_null(&a).unwrap(), false);
+        assert!(!state.exists(&a).unwrap());
+        assert!(!state.exists_and_not_null(&a).unwrap());
         state.inc_nonce(&a).unwrap();
-        assert_eq!(state.exists(&a).unwrap(), true);
-        assert_eq!(state.exists_and_not_null(&a).unwrap(), true);
+        assert!(state.exists(&a).unwrap());
+        assert!(state.exists_and_not_null(&a).unwrap());
         assert_eq!(state.nonce(&a).unwrap(), U256::from(1u64));
         state.kill_account(&a);
-        assert_eq!(state.exists(&a).unwrap(), false);
-        assert_eq!(state.exists_and_not_null(&a).unwrap(), false);
+        assert!(!state.exists(&a).unwrap());
+        assert!(!state.exists_and_not_null(&a).unwrap());
         assert_eq!(state.nonce(&a).unwrap(), U256::from(0u64));
     }
 
@@ -2721,7 +2721,7 @@ mod tests {
             let mut state = get_temp_state();
             state.inc_nonce(&a).unwrap();
             state.commit().unwrap();
-            assert_eq!(state.exists(&a).unwrap(), true);
+            assert!(state.exists(&a).unwrap());
             assert_eq!(state.nonce(&a).unwrap(), U256::from(1u64));
             state.drop()
         };
@@ -2729,17 +2729,17 @@ mod tests {
         let (root, db) = {
             let mut state =
                 State::from_existing(db, root, U256::from(0u8), Default::default()).unwrap();
-            assert_eq!(state.exists(&a).unwrap(), true);
+            assert!(state.exists(&a).unwrap());
             assert_eq!(state.nonce(&a).unwrap(), U256::from(1u64));
             state.kill_account(&a);
             state.commit().unwrap();
-            assert_eq!(state.exists(&a).unwrap(), false);
+            assert!(!state.exists(&a).unwrap());
             assert_eq!(state.nonce(&a).unwrap(), U256::from(0u64));
             state.drop()
         };
 
         let state = State::from_existing(db, root, U256::from(0u8), Default::default()).unwrap();
-        assert_eq!(state.exists(&a).unwrap(), false);
+        assert!(!state.exists(&a).unwrap());
         assert_eq!(state.nonce(&a).unwrap(), U256::from(0u64));
     }
 
@@ -3197,7 +3197,7 @@ mod tests {
     #[test]
     fn create_contract_fail() {
         let mut state = get_temp_state();
-        let orig_root = state.root().clone();
+        let orig_root = *state.root();
         let a = Address::from_low_u64_be(1000);
 
         state.checkpoint(); // c1
@@ -3211,7 +3211,7 @@ mod tests {
             .unwrap();
         state.discard_checkpoint(); // discard c2
         state.revert_to_checkpoint(); // revert to c1
-        assert_eq!(state.exists(&a).unwrap(), false);
+        assert!(!state.exists(&a).unwrap());
 
         state.commit().unwrap();
         assert_eq!(orig_root, state.root().clone());
@@ -3229,7 +3229,7 @@ mod tests {
         state.commit().unwrap();
         state.clear();
 
-        let orig_root = state.root().clone();
+        let orig_root = *state.root();
         assert_eq!(
             state.storage_at(&a, &k).unwrap(),
             BigEndianHash::from_uint(&U256::from(0xffff))
@@ -3474,14 +3474,7 @@ mod tests {
         };
 
         let get_pod_state_val = |pod_state: &PodState, ak, k| {
-            pod_state
-                .get()
-                .get(ak)
-                .unwrap()
-                .storage
-                .get(&k)
-                .unwrap()
-                .clone()
+            *pod_state.get().get(ak).unwrap().storage.get(&k).unwrap()
         };
 
         let storage_address: H256 = BigEndianHash::from_uint(&U256::from(1u64));
@@ -3491,19 +3484,19 @@ mod tests {
             state
                 .set_storage(
                     &a,
-                    storage_address.clone(),
+                    storage_address,
                     BigEndianHash::from_uint(&U256::from(20u64)),
                 )
                 .unwrap();
             let dump = state.to_pod_full().unwrap();
             assert_eq!(
-                get_pod_state_val(&dump, &a, storage_address.clone()),
+                get_pod_state_val(&dump, &a, storage_address),
                 BigEndianHash::from_uint(&U256::from(20u64))
             );
             state.commit().unwrap();
             let dump = state.to_pod_full().unwrap();
             assert_eq!(
-                get_pod_state_val(&dump, &a, storage_address.clone()),
+                get_pod_state_val(&dump, &a, storage_address),
                 BigEndianHash::from_uint(&U256::from(20u64))
             );
             state.drop()
@@ -3512,32 +3505,32 @@ mod tests {
         let mut state = State::from_existing(db, root, U256::from(0u8), factories).unwrap();
         let dump = state.to_pod_full().unwrap();
         assert_eq!(
-            get_pod_state_val(&dump, &a, storage_address.clone()),
+            get_pod_state_val(&dump, &a, storage_address),
             BigEndianHash::from_uint(&U256::from(20u64))
         );
         state
             .set_storage(
                 &a,
-                storage_address.clone(),
+                storage_address,
                 BigEndianHash::from_uint(&U256::from(21u64)),
             )
             .unwrap();
         let dump = state.to_pod_full().unwrap();
         assert_eq!(
-            get_pod_state_val(&dump, &a, storage_address.clone()),
+            get_pod_state_val(&dump, &a, storage_address),
             BigEndianHash::from_uint(&U256::from(21u64))
         );
         state.commit().unwrap();
         state
             .set_storage(
                 &a,
-                storage_address.clone(),
+                storage_address,
                 BigEndianHash::from_uint(&U256::from(0u64)),
             )
             .unwrap();
         let dump = state.to_pod_full().unwrap();
         assert_eq!(
-            get_pod_state_val(&dump, &a, storage_address.clone()),
+            get_pod_state_val(&dump, &a, storage_address),
             BigEndianHash::from_uint(&U256::from(0u64))
         );
     }

@@ -839,7 +839,7 @@ fn should_return_true_if_there_is_local_transaction_pending() {
     // given
     let txq = new_queue();
     let (tx1, tx2) = Tx::default().signed_pair();
-    assert_eq!(txq.has_local_pending_transactions(), false);
+    assert!(!txq.has_local_pending_transactions());
     let client = TestClient::new().with_local(&tx1.sender());
 
     // when
@@ -847,7 +847,7 @@ fn should_return_true_if_there_is_local_transaction_pending() {
     assert_eq!(res, vec![Ok(()), Ok(())]);
 
     // then
-    assert_eq!(txq.has_local_pending_transactions(), true);
+    assert!(txq.has_local_pending_transactions());
 }
 
 #[test]

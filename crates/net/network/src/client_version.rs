@@ -62,13 +62,13 @@ impl ParityClientData {
 
         // Instantiate and return
         ParityClientData {
-            name: name,
-            identity: identity,
-            semver: semver,
-            os: os,
-            compiler: compiler,
+            name,
+            identity,
+            semver,
+            os,
+            compiler,
 
-            can_handle_large_requests: can_handle_large_requests,
+            can_handle_large_requests,
         }
     }
 
@@ -77,7 +77,7 @@ impl ParityClientData {
     }
 
     fn identity(&self) -> Option<&str> {
-        self.identity.as_ref().map(String::as_str)
+        self.identity.as_deref()
     }
 
     fn semver(&self) -> &Version {
@@ -233,8 +233,8 @@ fn format_parity_version_string(
     let compiler = client_version.compiler();
 
     match client_version.identity() {
-        None => write!(f, "{}/v{}/{}/{}", name, semver, os, compiler),
-        Some(identity) => write!(f, "{}/{}/v{}/{}/{}", name, identity, semver, os, compiler),
+        None => write!(f, "{name}/v{semver}/{os}/{compiler}"),
+        Some(identity) => write!(f, "{name}/{identity}/v{semver}/{os}/{compiler}"),
     }
 }
 
@@ -242,8 +242,8 @@ impl fmt::Display for ClientVersion {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
         match self {
             ClientVersion::ParityClient(data) => format_parity_version_string(data, f),
-            ClientVersion::ParityUnknownFormat(id) => write!(f, "{}", id),
-            ClientVersion::Other(id) => write!(f, "{}", id),
+            ClientVersion::ParityUnknownFormat(id) => write!(f, "{id}"),
+            ClientVersion::Other(id) => write!(f, "{id}"),
         }
     }
 }
@@ -270,43 +270,25 @@ pub mod tests {
 
     fn make_default_version_string() -> String {
         format!(
-            "{}/v{}/{}/{}",
-            CURRENT_CLIENT_ID_PREFIX,
-            PARITY_CLIENT_SEMVER,
-            PARITY_CLIENT_OS,
-            PARITY_CLIENT_COMPILER
+            "{CURRENT_CLIENT_ID_PREFIX}/v{PARITY_CLIENT_SEMVER}/{PARITY_CLIENT_OS}/{PARITY_CLIENT_COMPILER}"
         )
     }
 
     fn make_default_long_version_string() -> String {
         format!(
-            "{}/{}/v{}/{}/{}",
-            CURRENT_CLIENT_ID_PREFIX,
-            PARITY_CLIENT_IDENTITY,
-            PARITY_CLIENT_SEMVER,
-            PARITY_CLIENT_OS,
-            PARITY_CLIENT_COMPILER
+            "{CURRENT_CLIENT_ID_PREFIX}/{PARITY_CLIENT_IDENTITY}/v{PARITY_CLIENT_SEMVER}/{PARITY_CLIENT_OS}/{PARITY_CLIENT_COMPILER}"
         )
     }
 
     fn make_multitoken_identity_long_version_string() -> String {
         format!(
-            "{}/{}/v{}/{}/{}",
-            CURRENT_CLIENT_ID_PREFIX,
-            PARITY_CLIENT_MULTITOKEN_IDENTITY,
-            PARITY_CLIENT_SEMVER,
-            PARITY_CLIENT_OS,
-            PARITY_CLIENT_COMPILER
+            "{CURRENT_CLIENT_ID_PREFIX}/{PARITY_CLIENT_MULTITOKEN_IDENTITY}/v{PARITY_CLIENT_SEMVER}/{PARITY_CLIENT_OS}/{PARITY_CLIENT_COMPILER}"
         )
     }
 
     fn make_old_semver_version_string() -> String {
         format!(
-            "{}/v{}/{}/{}",
-            CURRENT_CLIENT_ID_PREFIX,
-            PARITY_CLIENT_OLD_SEMVER,
-            PARITY_CLIENT_OS,
-            PARITY_CLIENT_COMPILER
+            "{CURRENT_CLIENT_ID_PREFIX}/v{PARITY_CLIENT_OLD_SEMVER}/{PARITY_CLIENT_OS}/{PARITY_CLIENT_COMPILER}"
         )
     }
 
@@ -321,7 +303,7 @@ pub mod tests {
     #[allow(missing_docs)]
     #[test]
     pub fn get_number_from_version_when_valid_then_number() {
-        let version_string = format!("v{}", PARITY_CLIENT_SEMVER);
+        let version_string = format!("v{PARITY_CLIENT_SEMVER}");
 
         assert_eq!(
             get_number_from_version(&version_string).unwrap(),
@@ -420,11 +402,7 @@ pub mod tests {
     ) {
         // This is invalid because version has no leading 'v'
         let client_version_string = format!(
-            "{}/{}/{}/{}",
-            CURRENT_CLIENT_ID_PREFIX,
-            PARITY_CLIENT_SEMVER,
-            PARITY_CLIENT_OS,
-            PARITY_CLIENT_COMPILER
+            "{CURRENT_CLIENT_ID_PREFIX}/{PARITY_CLIENT_SEMVER}/{PARITY_CLIENT_OS}/{PARITY_CLIENT_COMPILER}"
         );
 
         let client_version = ClientVersion::from(client_version_string.as_str());
@@ -437,10 +415,8 @@ pub mod tests {
     #[test]
     pub fn client_version_when_parity_format_without_identity_and_missing_compiler_field_then_equals_parity_unknown_client_version_string(
     ) {
-        let client_version_string = format!(
-            "{}/v{}/{}",
-            CURRENT_CLIENT_ID_PREFIX, PARITY_CLIENT_SEMVER, PARITY_CLIENT_OS,
-        );
+        let client_version_string =
+            format!("{CURRENT_CLIENT_ID_PREFIX}/v{PARITY_CLIENT_SEMVER}/{PARITY_CLIENT_OS}",);
 
         let client_version = ClientVersion::from(client_version_string.as_str());
 
@@ -453,11 +429,7 @@ pub mod tests {
     pub fn client_version_when_parity_format_with_identity_and_missing_compiler_field_then_equals_parity_unknown_client_version_string(
     ) {
         let client_version_string = format!(
-            "{}/{}/v{}/{}",
-            CURRENT_CLIENT_ID_PREFIX,
-            PARITY_CLIENT_IDENTITY,
-            PARITY_CLIENT_SEMVER,
-            PARITY_CLIENT_OS,
+            "{CURRENT_CLIENT_ID_PREFIX}/{PARITY_CLIENT_IDENTITY}/v{PARITY_CLIENT_SEMVER}/{PARITY_CLIENT_OS}",
         );
 
         let client_version = ClientVersion::from(client_version_string.as_str());
@@ -555,7 +527,7 @@ pub mod tests {
 
     #[test]
     fn is_parity_when_parity_then_true() {
-        let client_id = format!("{}/", CURRENT_CLIENT_ID_PREFIX);
+        let client_id = format!("{CURRENT_CLIENT_ID_PREFIX}/");
 
         assert!(is_parity(&client_id));
     }
@@ -564,13 +536,13 @@ pub mod tests {
     fn is_parity_when_empty_then_false() {
         let client_id = "";
 
-        assert!(!is_parity(&client_id));
+        assert!(!is_parity(client_id));
     }
 
     #[test]
     fn is_parity_when_other_then_false() {
         let client_id = "other";
 
-        assert!(!is_parity(&client_id));
+        assert!(!is_parity(client_id));
     }
 }

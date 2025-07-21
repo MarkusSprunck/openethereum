@@ -383,7 +383,7 @@ mod tests {
             .unwrap();
         let s = State::from_existing(
             db,
-            genesis_header.state_root().clone(),
+            *genesis_header.state_root(),
             engine.account_start_nonce(0),
             Default::default(),
         )

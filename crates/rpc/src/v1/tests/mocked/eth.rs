@@ -430,14 +430,11 @@ fn rpc_blocks_filter() {
 
     let hash1 = tester.client.block_hash(BlockId::Number(1)).unwrap();
     let hash2 = tester.client.block_hash(BlockId::Number(2)).unwrap();
-    let response = format!(
-        r#"{{"jsonrpc":"2.0","result":["0x{:x}","0x{:x}"],"id":1}}"#,
-        hash1, hash2
-    );
+    let response = format!(r#"{{"jsonrpc":"2.0","result":["0x{hash1:x}","0x{hash2:x}"],"id":1}}"#);
 
     assert_eq!(
         tester.io.handle_request_sync(request_changes),
-        Some(response.to_owned())
+        Some(response.clone())
     );
 
     // in the case of a re-org we get same block number if hash is different - BlockId::Number(2)
@@ -456,7 +453,7 @@ fn rpc_blocks_filter() {
 
     assert_eq!(
         tester.io.handle_request_sync(request_changes),
-        Some(response.to_owned())
+        Some(response.clone())
     );
 }
 
@@ -486,7 +483,7 @@ fn rpc_eth_submit_hashrate() {
                 &H256::from_str("59daa26581d0acd1fce254fb7e85952f4c09d0915afd33d3886cd914bc7d283c")
                     .unwrap()
             )
-            .cloned()
+            .copied()
             .unwrap()
             .1,
         U256::from(0x500_000)
@@ -496,7 +493,7 @@ fn rpc_eth_submit_hashrate() {
 #[test]
 fn rpc_eth_author() {
     let make_res = |addr| {
-        r#"{"jsonrpc":"2.0","result":""#.to_owned() + &format!("0x{:x}", addr) + r#"","id":1}"#
+        r#"{"jsonrpc":"2.0","result":""#.to_owned() + &format!("0x{addr:x}") + r#"","id":1}"#
     };
     let tester = EthTester::default();
 
@@ -522,7 +519,7 @@ fn rpc_eth_author() {
     for i in 0..20 {
         let addr = tester
             .accounts_provider
-            .new_account(&format!("{}", i).into())
+            .new_account(&format!("{i}").into())
             .unwrap();
         tester.miner.set_author(miner::Author::External(addr));
 
@@ -596,12 +593,11 @@ fn rpc_eth_accounts() {
 
     // with current policy it should return the account
     let request = r#"{"jsonrpc": "2.0", "method": "eth_accounts", "params": [], "id": 1}"#;
-    let response = r#"{"jsonrpc":"2.0","result":[""#.to_owned()
-        + &format!("0x{:x}", address)
-        + r#""],"id":1}"#;
+    let response =
+        r#"{"jsonrpc":"2.0","result":[""#.to_owned() + &format!("0x{address:x}") + r#""],"id":1}"#;
     assert_eq!(
         tester.io.handle_request_sync(request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
 }
 
@@ -1119,7 +1115,7 @@ fn rpc_eth_send_raw_transaction_error() {
 	}"#;
     let res = r#"{"jsonrpc":"2.0","error":{"code":-32602,"message":"Invalid RLP.","data":"Custom(\"Unknown transaction\")"},"id":1}"#.into();
 
-    assert_eq!(tester.io.handle_request_sync(&req), Some(res));
+    assert_eq!(tester.io.handle_request_sync(req), Some(res));
 }
 
 #[test]
@@ -1136,7 +1132,7 @@ fn rpc_eth_send_raw_01_transaction_error() {
 	}"#;
     let res = r#"{"jsonrpc":"2.0","error":{"code":-32602,"message":"Invalid RLP.","data":"RlpExpectedToBeList"},"id":1}"#.into();
 
-    assert_eq!(tester.io.handle_request_sync(&req), Some(res));
+    assert_eq!(tester.io.handle_request_sync(req), Some(res));
 }
 
 #[test]
@@ -1411,30 +1407,28 @@ fn rpc_get_work_should_timeout() {
     // Request without providing timeout. This should work since we're disabling timeout.
     let request = r#"{"jsonrpc": "2.0", "method": "eth_getWork", "params": [], "id": 1}"#;
     let work_response = format!(
-        r#"{{"jsonrpc":"2.0","result":["0x{:x}","0x0000000000000000000000000000000000000000000000000000000000000000","0x0000800000000000000000000000000000000000000000000000000000000000","0x1"],"id":1}}"#,
-        hash,
+        r#"{{"jsonrpc":"2.0","result":["0x{hash:x}","0x0000000000000000000000000000000000000000000000000000000000000000","0x0000800000000000000000000000000000000000000000000000000000000000","0x1"],"id":1}}"#,
     );
     assert_eq!(
         eth_tester.io.handle_request_sync(request),
-        Some(work_response.to_owned())
+        Some(work_response.clone())
     );
 
     // Request with timeout of 0 seconds. This should work since we're disabling timeout.
     let request = r#"{"jsonrpc": "2.0", "method": "eth_getWork", "params": [0], "id": 1}"#;
     let work_response = format!(
-        r#"{{"jsonrpc":"2.0","result":["0x{:x}","0x0000000000000000000000000000000000000000000000000000000000000000","0x0000800000000000000000000000000000000000000000000000000000000000","0x1"],"id":1}}"#,
-        hash,
+        r#"{{"jsonrpc":"2.0","result":["0x{hash:x}","0x0000000000000000000000000000000000000000000000000000000000000000","0x0000800000000000000000000000000000000000000000000000000000000000","0x1"],"id":1}}"#,
     );
     assert_eq!(
         eth_tester.io.handle_request_sync(request),
-        Some(work_response.to_owned())
+        Some(work_response.clone())
     );
 
     // Request with timeout of 10K seconds. This should work.
     let request = r#"{"jsonrpc": "2.0", "method": "eth_getWork", "params": [10000], "id": 1}"#;
     assert_eq!(
         eth_tester.io.handle_request_sync(request),
-        Some(work_response.to_owned())
+        Some(work_response.clone())
     );
 
     // Request with timeout of 10 seconds. This should fail.

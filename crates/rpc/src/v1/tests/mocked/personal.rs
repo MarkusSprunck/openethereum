@@ -81,14 +81,12 @@ fn setup_with(c: Config) -> PersonalTester {
     let mut io = IoHandler::default();
     io.extend_with(personal.to_delegate());
 
-    let tester = PersonalTester {
+    PersonalTester {
         _runtime: runtime,
-        accounts: accounts,
-        io: io,
-        miner: miner,
-    };
-
-    tester
+        accounts,
+        io,
+        miner,
+    }
 }
 
 #[test]
@@ -96,13 +94,12 @@ fn accounts() {
     let tester = setup();
     let address = tester.accounts.new_account(&"".into()).unwrap();
     let request = r#"{"jsonrpc": "2.0", "method": "personal_listAccounts", "params": [], "id": 1}"#;
-    let response = r#"{"jsonrpc":"2.0","result":[""#.to_owned()
-        + &format!("0x{:x}", address)
-        + r#""],"id":1}"#;
+    let response =
+        r#"{"jsonrpc":"2.0","result":[""#.to_owned() + &format!("0x{address:x}") + r#""],"id":1}"#;
 
     assert_eq!(
         tester.io.handle_request_sync(request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
 }
 
@@ -118,7 +115,7 @@ fn new_account() {
     assert_eq!(accounts.len(), 1);
     let address = accounts[0];
     let response = r#"{"jsonrpc":"2.0","result":""#.to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"","id":1}"#;
 
     assert_eq!(res, Some(response));
@@ -136,7 +133,7 @@ fn invalid_password_test(method: &str) {
         + r#"",
 		"params": [{
 			"from": ""#
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -168,7 +165,7 @@ fn sign() {
     .to_owned()
         + format!("0x{}", data.to_hex()).as_ref()
         + r#"",
-			""# + format!("0x{:x}", address).as_ref()
+			""# + format!("0x{address:x}").as_ref()
         + r#"",
 			"password123"
 		],
@@ -183,7 +180,7 @@ fn sign() {
             .unwrap()
             .into_electrum(),
     );
-    let signature = format!("{:?}", signature);
+    let signature = format!("{signature:?}");
 
     let response = r#"{"jsonrpc":"2.0","result":""#.to_owned() + &signature + r#"","id":1}"#;
 
@@ -205,7 +202,7 @@ fn sign_with_invalid_password() {
 			"0x0000000000000000000000000000000000000000000000000000000000000005",
 			""#
     .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			""
 		],
@@ -252,7 +249,7 @@ fn sign_and_send_test(method: &str) {
         + r#"",
 		"params": [{
 			"from": ""#
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -337,7 +334,7 @@ fn ec_recover() {
             .unwrap()
             .into_electrum(),
     );
-    let signature = format!("{:?}", signature);
+    let signature = format!("{signature:?}");
 
     let request = r#"{
 		"jsonrpc": "2.0",
@@ -353,12 +350,12 @@ fn ec_recover() {
 		"id": 1
 	}"#;
 
-    let address = format!("0x{:x}", address);
+    let address = format!("0x{address:x}");
     let response = r#"{"jsonrpc":"2.0","result":""#.to_owned() + &address + r#"","id":1}"#;
 
     assert_eq!(
         tester.io.handle_request_sync(request.as_ref()),
-        Some(response.into())
+        Some(response)
     );
 }
 
@@ -400,7 +397,7 @@ fn should_unlock_account_permanently() {
 		"params": [
 			""#
     .to_owned()
-        + &format!("0x{:x}", address)
+        + &format!("0x{address:x}")
         + r#"",
 			"password123",
 			null
@@ -430,20 +427,20 @@ fn sign_eip191_with_validator() {
 			{
 				"validator": ""#
         .to_owned()
-        + &format!("0x{:x}", address)
+        + &format!("0x{address:x}")
         + r#"",
 				"data": ""#
         + &format!("0x{:x}", keccak("hello world"))
         + r#""
 			},
-			""# + &format!("0x{:x}", address)
+			""# + &format!("0x{address:x}")
         + r#"",
 			"password123"
 		],
 		"id": 1
 	}"#;
     let with_validator = to_value(PresignedTransaction {
-        validator: address.into(),
+        validator: address,
         data: keccak("hello world").as_bytes().to_vec().into(),
     })
     .unwrap();
@@ -457,7 +454,7 @@ fn sign_eip191_with_validator() {
         + &format!("0x{}", result.to_hex())
         + r#"","id":1}"#;
     let response = tester.io.handle_request_sync(&request).unwrap();
-    assert_eq!(response, expected)
+    assert_eq!(response, expected);
 }
 
 #[test]
@@ -512,7 +509,7 @@ fn sign_eip191_structured_data() {
 			},
 			""#
     .to_owned()
-        + &format!("0x{:x}", address)
+        + &format!("0x{address:x}")
         + r#"",
 			"lol"
 		],
@@ -520,7 +517,7 @@ fn sign_eip191_structured_data() {
 	}"#;
     let expected = r#"{"jsonrpc":"2.0","result":"0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c","id":1}"#;
     let response = tester.io.handle_request_sync(&request).unwrap();
-    assert_eq!(response, expected)
+    assert_eq!(response, expected);
 }
 
 #[test]
@@ -574,7 +571,7 @@ fn sign_structured_data() {
 			},
 			""#
     .to_owned()
-        + &format!("0x{:x}", address)
+        + &format!("0x{address:x}")
         + r#"",
 			"lol"
 		],
@@ -582,7 +579,7 @@ fn sign_structured_data() {
 	}"#;
     let expected = r#"{"jsonrpc":"2.0","result":"0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c","id":1}"#;
     let response = tester.io.handle_request_sync(&request).unwrap();
-    assert_eq!(response, expected)
+    assert_eq!(response, expected);
 }
 
 #[test]
@@ -604,7 +601,7 @@ fn should_disable_experimental_apis() {
 		],
 		"id": 1
 	}"#;
-    let r1 = tester.io.handle_request_sync(&request).unwrap();
+    let r1 = tester.io.handle_request_sync(request).unwrap();
     let request = r#"{
 		"jsonrpc": "2.0",
 		"method": "personal_signTypedData",
@@ -625,7 +622,7 @@ fn should_disable_experimental_apis() {
 		],
 		"id": 1
 	}"#;
-    let r2 = tester.io.handle_request_sync(&request).unwrap();
+    let r2 = tester.io.handle_request_sync(request).unwrap();
 
     // then
     let expected = r#"{"jsonrpc":"2.0","error":{"code":-32071,"message":"This method is not part of the official RPC API yet (EIP-191). Run with `--jsonrpc-experimental` to enable it.","data":"See EIP: https://eips.ethereum.org/EIPS/eip-191"},"id":1}"#;

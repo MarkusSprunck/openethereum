@@ -97,7 +97,7 @@ impl From<sync::EthProtocolInfo> for EthProtocolInfo {
     fn from(info: sync::EthProtocolInfo) -> Self {
         EthProtocolInfo {
             version: info.version,
-            difficulty: info.difficulty.map(Into::into),
+            difficulty: info.difficulty,
             head: format!("{:x}", info.head),
         }
     }
@@ -155,11 +155,7 @@ impl From<SyncTransactionStats> for TransactionStats {
     fn from(s: SyncTransactionStats) -> Self {
         TransactionStats {
             first_seen: s.first_seen,
-            propagated_to: s
-                .propagated_to
-                .into_iter()
-                .map(|(id, count)| (id, count))
-                .collect(),
+            propagated_to: s.propagated_to.into_iter().collect(),
         }
     }
 }
@@ -238,6 +234,6 @@ mod tests {
         assert_eq!(
             serialized,
             r#"{"firstSeen":100,"propagatedTo":{"0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a":50}}"#
-        )
+        );
     }
 }

@@ -362,7 +362,7 @@ impl EthMultiStore {
         let store = EthMultiStore {
             dir: directory,
             vaults: Mutex::new(HashMap::new()),
-            iterations: iterations,
+            iterations,
             cache: Default::default(),
             timestamp: Mutex::new(Timestamp {
                 dir_hash: None,
@@ -476,12 +476,9 @@ impl EthMultiStore {
         };
 
         // update cache
-        let account_ref = StoreAccountRef::new(vault, account.address.clone());
+        let account_ref = StoreAccountRef::new(vault, account.address);
         let mut cache = self.cache.write();
-        cache
-            .entry(account_ref.clone())
-            .or_insert_with(Vec::new)
-            .push(account);
+        cache.entry(account_ref.clone()).or_default().push(account);
 
         Ok(account_ref)
     }
@@ -505,7 +502,7 @@ impl EthMultiStore {
 
         // update cache
         let mut cache = self.cache.write();
-        let accounts = cache.entry(account_ref.clone()).or_insert_with(Vec::new);
+        let accounts = cache.entry(account_ref.clone()).or_default();
         // Remove old account
         accounts.retain(|acc| acc != &old);
         // And push updated to the end
@@ -520,13 +517,13 @@ impl EthMultiStore {
     ) -> Result<(), Error> {
         // Remove from dir
         match account_ref.vault {
-            SecretVaultRef::Root => self.dir.remove(&account)?,
+            SecretVaultRef::Root => self.dir.remove(account)?,
             SecretVaultRef::Vault(ref vault_name) => self
                 .vaults
                 .lock()
                 .get(vault_name)
                 .ok_or(Error::VaultNotFound)?
-                .remove(&account)?,
+                .remove(account)?,
         };
 
         // Remove from cache
@@ -546,7 +543,7 @@ impl EthMultiStore {
             cache.remove(account_ref);
         }
 
-        return Ok(());
+        Ok(())
     }
 
     fn generate(&self, secret: Secret, derivation: Derivation) -> Result<ExtendedKeyPair, Error> {
@@ -600,7 +597,7 @@ impl SimpleSecretStore for EthMultiStore {
         derivation: Derivation,
     ) -> Result<StoreAccountRef, Error> {
         let accounts = self.get_matching(account_ref, password)?;
-        for account in accounts {
+        if let Some(account) = accounts.into_iter().next() {
             let extended = self.generate(account.crypto.secret(password)?, derivation)?;
             return self.insert_account(vault, extended.secret().as_raw().clone(), password);
         }
@@ -613,8 +610,8 @@ impl SimpleSecretStore for EthMultiStore {
         password: &Password,
         derivation: Derivation,
     ) -> Result<Address, Error> {
-        let accounts = self.get_matching(&account_ref, password)?;
-        for account in accounts {
+        let accounts = self.get_matching(account_ref, password)?;
+        if let Some(account) = accounts.into_iter().next() {
             let extended = self.generate(account.crypto.secret(password)?, derivation)?;
             return Ok(publickey::public_to_address(extended.public().public()));
         }
@@ -628,11 +625,11 @@ impl SimpleSecretStore for EthMultiStore {
         derivation: Derivation,
         message: &Message,
     ) -> Result<Signature, Error> {
-        let accounts = self.get_matching(&account_ref, password)?;
-        for account in accounts {
+        let accounts = self.get_matching(account_ref, password)?;
+        if let Some(account) = accounts.into_iter().next() {
             let extended = self.generate(account.crypto.secret(password)?, derivation)?;
             let secret = extended.secret().as_raw();
-            return Ok(publickey::sign(&secret, message)?);
+            return Ok(publickey::sign(secret, message)?);
         }
         Err(Error::InvalidPassword)
     }
@@ -666,7 +663,7 @@ impl SimpleSecretStore for EthMultiStore {
     ) -> Result<(), Error> {
         let accounts = self.get_matching(account_ref, password)?;
 
-        for account in accounts {
+        if let Some(account) = accounts.into_iter().next() {
             return self.remove_safe_account(account_ref, &account);
         }
 
@@ -715,7 +712,7 @@ impl SimpleSecretStore for EthMultiStore {
     ) -> Result<Signature, Error> {
         let accounts = self.get_matching(account, password)?;
         match accounts.first() {
-            Some(ref account) => account.sign(password, message),
+            Some(account) => account.sign(password, message),
             None => Err(Error::InvalidPassword),
         }
     }
@@ -729,7 +726,7 @@ impl SimpleSecretStore for EthMultiStore {
     ) -> Result<Vec<u8>, Error> {
         let accounts = self.get_matching(account, password)?;
         match accounts.first() {
-            Some(ref account) => account.decrypt(password, shared_mac, message),
+            Some(account) => account.decrypt(password, shared_mac, message),
             None => Err(Error::InvalidPassword),
         }
     }
@@ -742,7 +739,7 @@ impl SimpleSecretStore for EthMultiStore {
     ) -> Result<Secret, Error> {
         let accounts = self.get_matching(account, password)?;
         match accounts.first() {
-            Some(ref account) => account.agree(password, other),
+            Some(account) => account.agree(password, other),
             None => Err(Error::InvalidPassword),
         }
     }
@@ -751,14 +748,14 @@ impl SimpleSecretStore for EthMultiStore {
         let is_vault_created = {
             // lock border
             let mut vaults = self.vaults.lock();
-            if !vaults.contains_key(&name.to_owned()) {
+            if let std::collections::hash_map::Entry::Vacant(e) = vaults.entry(name.to_owned()) {
                 let vault_provider = self
                     .dir
                     .as_vault_provider()
                     .ok_or(Error::VaultsAreNotSupported)?;
                 let vault =
                     vault_provider.create(name, VaultKey::new(password, self.iterations))?;
-                vaults.insert(name.to_owned(), vault);
+                e.insert(vault);
                 true
             } else {
                 false
@@ -776,13 +773,13 @@ impl SimpleSecretStore for EthMultiStore {
         let is_vault_opened = {
             // lock border
             let mut vaults = self.vaults.lock();
-            if !vaults.contains_key(&name.to_owned()) {
+            if let std::collections::hash_map::Entry::Vacant(e) = vaults.entry(name.to_owned()) {
                 let vault_provider = self
                     .dir
                     .as_vault_provider()
                     .ok_or(Error::VaultsAreNotSupported)?;
                 let vault = vault_provider.open(name, VaultKey::new(password, self.iterations))?;
-                vaults.insert(name.to_owned(), vault);
+                e.insert(vault);
                 true
             } else {
                 false
@@ -872,7 +869,7 @@ impl SimpleSecretStore for EthMultiStore {
         self.vaults
             .lock()
             .get(name)
-            .and_then(|v| Some(v.meta()))
+            .map(|v| v.meta())
             .ok_or(Error::VaultNotFound)
             .or_else(|_| {
                 let vault_provider = self
@@ -1215,13 +1212,13 @@ mod tests {
         assert_eq!(accounts.len(), 3);
         assert!(accounts
             .iter()
-            .any(|a| a == &StoreAccountRef::root(account1.address.clone())));
+            .any(|a| a == &StoreAccountRef::root(account1.address)));
         assert!(accounts
             .iter()
-            .any(|a| a == &StoreAccountRef::vault(name2, account2.address.clone())));
+            .any(|a| a == &StoreAccountRef::vault(name2, account2.address)));
         assert!(accounts
             .iter()
-            .any(|a| a == &StoreAccountRef::vault(name2, account3.address.clone())));
+            .any(|a| a == &StoreAccountRef::vault(name2, account3.address)));
 
         // and then
         assert_eq!(
@@ -1399,8 +1396,8 @@ mod tests {
         // then
         let opened_vaults = store.list_opened_vaults().unwrap();
         assert_eq!(opened_vaults.len(), 2);
-        assert!(opened_vaults.iter().any(|v| &*v == name1));
-        assert!(opened_vaults.iter().any(|v| &*v == name3));
+        assert!(opened_vaults.iter().any(|v| v == name1));
+        assert!(opened_vaults.iter().any(|v| v == name3));
     }
 
     #[test]

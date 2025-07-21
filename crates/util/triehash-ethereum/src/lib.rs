@@ -58,7 +58,6 @@ mod tests {
     use ethereum_types::H256;
     use keccak_hasher::KeccakHasher;
     use std::str::FromStr;
-    use triehash;
 
     #[test]
     fn simple_test() {

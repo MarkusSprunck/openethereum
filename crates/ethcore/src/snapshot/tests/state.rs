@@ -77,9 +77,9 @@ fn snap_and_restore() {
         .into_inner()
         .finish(::snapshot::ManifestData {
             version: 2,
-            state_hashes: state_hashes,
+            state_hashes,
             block_hashes: Vec::new(),
-            state_root: state_root,
+            state_root,
             block_number: 1000,
             block_hash: H256::default(),
         })
@@ -115,8 +115,8 @@ fn snap_and_restore() {
 
     for key in keys.keys() {
         assert_eq!(
-            old_db.get(&key).unwrap(),
-            new_db.as_hash_db().get(&key).unwrap()
+            old_db.get(key).unwrap(),
+            new_db.as_hash_db().get(key).unwrap()
         );
     }
 }

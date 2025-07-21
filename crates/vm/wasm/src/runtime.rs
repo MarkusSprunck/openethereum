@@ -142,7 +142,7 @@ impl ::std::fmt::Display for Error {
             Error::DivisionByZero => write!(f, "Division by zero"),
             Error::StackOverflow => write!(f, "Stack overflow"),
             Error::InvalidConversionToInt => write!(f, "Invalid conversion to integer"),
-            Error::Panic(ref msg) => write!(f, "Panic: {}", msg),
+            Error::Panic(ref msg) => write!(f, "Panic: {msg}"),
         }
     }
 }
@@ -160,11 +160,11 @@ impl<'a> Runtime<'a> {
     ) -> Runtime {
         Runtime {
             gas_counter: 0,
-            gas_limit: gas_limit,
-            memory: memory,
-            ext: ext,
-            context: context,
-            args: args,
+            gas_limit,
+            memory,
+            ext,
+            context,
+            args,
             result: Vec::new(),
         }
     }
@@ -216,7 +216,7 @@ impl<'a> Runtime<'a> {
         F: FnOnce(&vm::Schedule) -> u64,
     {
         let amount = f(self.ext.schedule());
-        if !self.charge_gas(amount as u64) {
+        if !self.charge_gas(amount) {
             Err(Error::GasLimit)
         } else {
             Ok(())
@@ -243,12 +243,12 @@ impl<'a> Runtime<'a> {
         let amount = match f(self.ext.schedule()) {
             Some(amount) => amount,
             None => {
-                return Err(Error::GasLimit.into());
+                return Err(Error::GasLimit);
             }
         };
 
-        if !self.charge_gas(amount as u64) {
-            Err(Error::GasLimit.into())
+        if !self.charge_gas(amount) {
+            Err(Error::GasLimit)
         } else {
             Ok(())
         }
@@ -278,7 +278,7 @@ impl<'a> Runtime<'a> {
 
         self.adjusted_charge(|schedule| schedule.sload_gas as u64)?;
 
-        self.memory.set(val_ptr as u32, val.as_bytes())?;
+        self.memory.set(val_ptr, val.as_bytes())?;
 
         Ok(())
     }
@@ -326,7 +326,7 @@ impl<'a> Runtime<'a> {
         let ptr: u32 = args.nth_checked(0)?;
         let len: u32 = args.nth_checked(1)?;
 
-        trace!(target: "wasm", "Contract ret: {} bytes @ {}", len, ptr);
+        trace!(target: "wasm", "Contract ret: {len} bytes @ {ptr}");
 
         self.result = self.memory.get(ptr, len as usize)?;
 
@@ -352,7 +352,7 @@ impl<'a> Runtime<'a> {
         if self.charge_gas(amount as u64) {
             Ok(())
         } else {
-            Err(Error::GasLimit.into())
+            Err(Error::GasLimit)
         }
     }
 
@@ -396,9 +396,9 @@ impl<'a> Runtime<'a> {
             line = payload.line.unwrap_or(0),
             col = payload.col.unwrap_or(0)
         );
-        trace!(target: "wasm", "Contract custom panic message: {}", msg);
+        trace!(target: "wasm", "Contract custom panic message: {msg}");
 
-        Err(Error::Panic(msg).into())
+        Err(Error::Panic(msg))
     }
 
     fn do_call(
@@ -407,13 +407,13 @@ impl<'a> Runtime<'a> {
         call_type: CallType,
         args: RuntimeArgs,
     ) -> Result<RuntimeValue> {
-        trace!(target: "wasm", "runtime: CALL({:?})", call_type);
+        trace!(target: "wasm", "runtime: CALL({call_type:?})");
 
         let gas: u64 = args.nth_checked(0)?;
-        trace!(target: "wasm", "           gas: {:?}", gas);
+        trace!(target: "wasm", "           gas: {gas:?}");
 
         let address = self.address_at(args.nth_checked(1)?)?;
-        trace!(target: "wasm", "       address: {:?}", address);
+        trace!(target: "wasm", "       address: {address:?}");
 
         let vofs = if use_val { 1 } else { 0 };
         let val = if use_val {
@@ -421,19 +421,19 @@ impl<'a> Runtime<'a> {
         } else {
             None
         };
-        trace!(target: "wasm", "           val: {:?}", val);
+        trace!(target: "wasm", "           val: {val:?}");
 
         let input_ptr: u32 = args.nth_checked(2 + vofs)?;
-        trace!(target: "wasm", "     input_ptr: {:?}", input_ptr);
+        trace!(target: "wasm", "     input_ptr: {input_ptr:?}");
 
         let input_len: u32 = args.nth_checked(3 + vofs)?;
-        trace!(target: "wasm", "     input_len: {:?}", input_len);
+        trace!(target: "wasm", "     input_len: {input_len:?}");
 
         let result_ptr: u32 = args.nth_checked(4 + vofs)?;
-        trace!(target: "wasm", "    result_ptr: {:?}", result_ptr);
+        trace!(target: "wasm", "    result_ptr: {result_ptr:?}");
 
         let result_alloc_len: u32 = args.nth_checked(5 + vofs)?;
-        trace!(target: "wasm", "    result_len: {:?}", result_alloc_len);
+        trace!(target: "wasm", "    result_len: {result_alloc_len:?}");
 
         if let Some(ref val) = val {
             let address_balance = self
@@ -449,8 +449,7 @@ impl<'a> Runtime<'a> {
 
         self.adjusted_charge(|schedule| schedule.call_gas as u64)?;
 
-        let mut result = Vec::with_capacity(result_alloc_len as usize);
-        result.resize(result_alloc_len as usize, 0);
+        let mut result = vec![0; result_alloc_len as usize];
 
         // todo: optimize to use memory views once it's in
         let payload = self.memory.get(input_ptr, input_len as usize)?;
@@ -492,24 +491,24 @@ impl<'a> Runtime<'a> {
         match call_result {
             vm::MessageCallResult::Success(gas_left, data) => {
                 let len = cmp::min(result.len(), data.len());
-                (&mut result[..len]).copy_from_slice(&data[..len]);
+                result[..len].copy_from_slice(&data[..len]);
 
                 // cannot overflow, before making call gas_counter was incremented with gas, and gas_left < gas
-                self.gas_counter = self.gas_counter
-                    - gas_left.low_u64() * self.ext.schedule().wasm().opcodes_div as u64
-                        / self.ext.schedule().wasm().opcodes_mul as u64;
+                self.gas_counter -= gas_left.low_u64()
+                    * self.ext.schedule().wasm().opcodes_div as u64
+                    / self.ext.schedule().wasm().opcodes_mul as u64;
 
                 self.memory.set(result_ptr, &result)?;
                 Ok(0i32.into())
             }
             vm::MessageCallResult::Reverted(gas_left, data) => {
                 let len = cmp::min(result.len(), data.len());
-                (&mut result[..len]).copy_from_slice(&data[..len]);
+                result[..len].copy_from_slice(&data[..len]);
 
                 // cannot overflow, before making call gas_counter was incremented with gas, and gas_left < gas
-                self.gas_counter = self.gas_counter
-                    - gas_left.low_u64() * self.ext.schedule().wasm().opcodes_div as u64
-                        / self.ext.schedule().wasm().opcodes_mul as u64;
+                self.gas_counter -= gas_left.low_u64()
+                    * self.ext.schedule().wasm().opcodes_div as u64
+                    / self.ext.schedule().wasm().opcodes_mul as u64;
 
                 self.memory.set(result_ptr, &result)?;
                 Ok((-1i32).into())
@@ -582,7 +581,7 @@ impl<'a> Runtime<'a> {
 					// and gas_left cannot be bigger
 					gas_left.low_u64() * self.ext.schedule().wasm().opcodes_div as u64
 						/ self.ext.schedule().wasm().opcodes_mul as u64;
-                trace!(target: "wasm", "runtime: create contract success (@{:?})", address);
+                trace!(target: "wasm", "runtime: create contract success (@{address:?})");
                 Ok(0i32.into())
             }
             vm::ContractCreateResult::Failed => {
@@ -616,13 +615,13 @@ impl<'a> Runtime<'a> {
         //
         trace!(target: "wasm", "runtime: CREATE");
         let endowment = self.u256_at(args.nth_checked(0)?)?;
-        trace!(target: "wasm", "       val: {:?}", endowment);
+        trace!(target: "wasm", "       val: {endowment:?}");
         let code_ptr: u32 = args.nth_checked(1)?;
-        trace!(target: "wasm", "  code_ptr: {:?}", code_ptr);
+        trace!(target: "wasm", "  code_ptr: {code_ptr:?}");
         let code_len: u32 = args.nth_checked(2)?;
-        trace!(target: "wasm", "  code_len: {:?}", code_len);
+        trace!(target: "wasm", "  code_len: {code_len:?}");
         let result_ptr: u32 = args.nth_checked(3)?;
-        trace!(target: "wasm", "result_ptr: {:?}", result_ptr);
+        trace!(target: "wasm", "result_ptr: {result_ptr:?}");
 
         self.do_create(
             endowment,
@@ -648,15 +647,15 @@ impl<'a> Runtime<'a> {
         //
         trace!(target: "wasm", "runtime: CREATE2");
         let endowment = self.u256_at(args.nth_checked(0)?)?;
-        trace!(target: "wasm", "       val: {:?}", endowment);
+        trace!(target: "wasm", "       val: {endowment:?}");
         let salt: H256 = BigEndianHash::from_uint(&self.u256_at(args.nth_checked(1)?)?);
-        trace!(target: "wasm", "      salt: {:?}", salt);
+        trace!(target: "wasm", "      salt: {salt:?}");
         let code_ptr: u32 = args.nth_checked(2)?;
-        trace!(target: "wasm", "  code_ptr: {:?}", code_ptr);
+        trace!(target: "wasm", "  code_ptr: {code_ptr:?}");
         let code_len: u32 = args.nth_checked(3)?;
-        trace!(target: "wasm", "  code_len: {:?}", code_len);
+        trace!(target: "wasm", "  code_len: {code_len:?}");
         let result_ptr: u32 = args.nth_checked(4)?;
-        trace!(target: "wasm", "result_ptr: {:?}", result_ptr);
+        trace!(target: "wasm", "result_ptr: {result_ptr:?}");
 
         self.do_create(
             endowment,
@@ -688,10 +687,10 @@ impl<'a> Runtime<'a> {
             .exists(&refund_address)
             .map_err(|_| Error::SuicideAbort)?
         {
-            trace!(target: "wasm", "Suicide: refund to existing address {}", refund_address);
+            trace!(target: "wasm", "Suicide: refund to existing address {refund_address}");
             self.adjusted_charge(|schedule| schedule.suicide_gas as u64)?;
         } else {
-            trace!(target: "wasm", "Suicide: refund to new address {}", refund_address);
+            trace!(target: "wasm", "Suicide: refund to new address {refund_address}");
             self.adjusted_charge(|schedule| schedule.suicide_to_new_account_cost as u64)?;
         }
 
@@ -700,7 +699,7 @@ impl<'a> Runtime<'a> {
             .map_err(|_| Error::SuicideAbort)?;
 
         // We send trap to interpreter so it should abort further execution
-        Err(Error::Suicide.into())
+        Err(Error::Suicide)
     }
 
     ///	Signature: `fn blockhash(number: i64, dest: *mut u8)`
@@ -775,7 +774,7 @@ impl<'a> Runtime<'a> {
         let data_len: u32 = args.nth_checked(3)?;
 
         if topic_count > 4 {
-            return Err(Error::Log.into());
+            return Err(Error::Log);
         }
 
         self.adjusted_overflow_charge(|schedule| {

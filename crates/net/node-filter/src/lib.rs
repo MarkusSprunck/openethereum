@@ -86,7 +86,7 @@ impl ConnectionFilter for NodeFilter {
             .call_contract(BlockId::Latest, address, data)
             .and_then(|value| decoder.decode(&value).map_err(|e| e.to_string()))
             .unwrap_or_else(|e| {
-                debug!("Error callling peer set contract: {:?}", e);
+                debug!("Error callling peer set contract: {e:?}");
                 false
             });
 

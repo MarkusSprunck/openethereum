@@ -93,7 +93,7 @@ impl TransactionFilter {
             Action::Call(address) => {
                 if client
                     .code_hash(&address, BlockId::Hash(*parent_hash))
-                    .map_or(false, |c| c != KECCAK_EMPTY)
+                    .is_some_and(|c| c != KECCAK_EMPTY)
                 {
                     (tx_permissions::CALL, address)
                 } else {
@@ -133,7 +133,7 @@ impl TransactionFilter {
         let (permissions, filter_only_sender) = match contract_version {
             Some(version) => {
                 let version_u64 = version.low_u64();
-                trace!(target: "tx_filter", "Version of tx permission contract: {}", version);
+                trace!(target: "tx_filter", "Version of tx permission contract: {version}");
                 match version_u64 {
                     2 => {
                         let (data, decoder) =
@@ -142,7 +142,7 @@ impl TransactionFilter {
 							.and_then(|value| decoder.decode(&value).map_err(|e| e.to_string()))
 							.map(|(p, f)| (p.low_u32(), f))
 							.unwrap_or_else(|e| {
-								error!(target: "tx_filter", "Error calling tx permissions contract: {:?}", e);
+								error!(target: "tx_filter", "Error calling tx permissions contract: {e:?}");
 								(tx_permissions::NONE, true)
 							})
                     }
@@ -160,7 +160,7 @@ impl TransactionFilter {
 							.and_then(|value| decoder.decode(&value).map_err(|e| e.to_string()))
 							.map(|(p, f)| (p.low_u32(), f))
 							.unwrap_or_else(|e| {
-								error!(target: "tx_filter", "Error calling tx permissions contract: {:?}", e);
+								error!(target: "tx_filter", "Error calling tx permissions contract: {e:?}");
 								(tx_permissions::NONE, true)
 							})
                     }
@@ -179,7 +179,7 @@ impl TransactionFilter {
 							.and_then(|value| decoder.decode(&value).map_err(|e| e.to_string()))
 							.map(|(p, f)| (p.low_u32(), f))
 							.unwrap_or_else(|e| {
-								error!(target: "tx_filter", "Error calling tx permissions contract: {:?}", e);
+								error!(target: "tx_filter", "Error calling tx permissions contract: {e:?}");
 								(tx_permissions::NONE, true)
 							})
                     }
@@ -197,7 +197,7 @@ impl TransactionFilter {
 					.and_then(|value| decoder.decode(&value).map_err(|e| e.to_string()))
 					.map(|p| p.low_u32())
 					.unwrap_or_else(|e| {
-						error!(target: "tx_filter", "Error calling tx permissions contract: {:?}", e);
+						error!(target: "tx_filter", "Error calling tx permissions contract: {e:?}");
 						tx_permissions::NONE
 					}), true)
             }
@@ -206,7 +206,7 @@ impl TransactionFilter {
         if filter_only_sender {
             permission_cache.insert((*parent_hash, sender), permissions);
         }
-        trace!(target: "tx_filter", "Given transaction data: sender: {:?} to: {:?} value: {}, gas_price: {}. Permissions required: {:X}, got: {:X}", sender, to, value, gas_price, tx_type, permissions);
+        trace!(target: "tx_filter", "Given transaction data: sender: {sender:?} to: {to:?} value: {value}, gas_price: {gas_price}. Permissions required: {tx_type:X}, got: {permissions:X}");
         permissions & tx_type != 0
     }
 }

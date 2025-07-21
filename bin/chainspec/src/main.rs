@@ -21,7 +21,7 @@ use ethjson::spec::Spec;
 use std::{env, fs, process};
 
 fn quit(s: &str) -> ! {
-    println!("{}", s);
+    println!("{s}");
     process::exit(1);
 }
 
@@ -38,14 +38,14 @@ fn main() {
     let path = args.nth(1).expect("args.len() == 2; qed");
     let file = match fs::File::open(&path) {
         Ok(file) => file,
-        Err(_) => quit(&format!("{} could not be opened", path)),
+        Err(_) => quit(&format!("{path} could not be opened")),
     };
 
     let spec: Result<Spec, _> = serde_json::from_reader(file);
 
     if let Err(err) = spec {
-        quit(&format!("{} {}", path, err.to_string()));
+        quit(&format!("{path} {err}"));
     }
 
-    println!("{} is valid", path);
+    println!("{path} is valid");
 }

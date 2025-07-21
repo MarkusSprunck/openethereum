@@ -116,16 +116,16 @@ impl<K: hash::Hash + Eq, V> DiskMap<K, V> {
     pub fn new(path: &Path, file_name: &str) -> Self {
         let mut path = path.to_owned();
         path.push(file_name);
-        trace!(target: "diskmap", "path={:?}", path);
+        trace!(target: "diskmap", "path={path:?}");
         DiskMap {
-            path: path,
+            path,
             cache: HashMap::new(),
             transient: false,
         }
     }
 
     pub fn transient() -> Self {
-        let mut map = DiskMap::new(&PathBuf::new(), "diskmap.json".into());
+        let mut map = DiskMap::new(&PathBuf::new(), "diskmap.json");
         map.transient = true;
         map
     }
@@ -140,13 +140,12 @@ impl<K: hash::Hash + Eq, V> DiskMap<K, V> {
         }
         trace!(target: "diskmap", "revert {:?}", self.path);
         let _ = fs::File::open(self.path.clone())
-            .map_err(|e| trace!(target: "diskmap", "Couldn't open disk map: {}", e))
+            .map_err(|e| trace!(target: "diskmap", "Couldn't open disk map: {e}"))
             .and_then(|f| {
-                read(f).map_err(|e| warn!(target: "diskmap", "Couldn't read disk map: {}", e))
+                read(f).map_err(|e| warn!(target: "diskmap", "Couldn't read disk map: {e}"))
             })
-            .and_then(|m| {
+            .map(|m| {
                 self.cache = m;
-                Ok(())
             });
     }
 
@@ -160,10 +159,10 @@ impl<K: hash::Hash + Eq, V> DiskMap<K, V> {
         }
         trace!(target: "diskmap", "save {:?}", self.path);
         let _ = fs::File::create(self.path.clone())
-            .map_err(|e| warn!(target: "diskmap", "Couldn't open disk map for writing: {}", e))
+            .map_err(|e| warn!(target: "diskmap", "Couldn't open disk map for writing: {e}"))
             .and_then(|mut f| {
                 write(&self.cache, &mut f)
-                    .map_err(|e| warn!(target: "diskmap", "Couldn't write to disk map: {}", e))
+                    .map_err(|e| warn!(target: "diskmap", "Couldn't write to disk map: {e}"))
             });
     }
 }

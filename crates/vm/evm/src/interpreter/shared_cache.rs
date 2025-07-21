@@ -193,7 +193,7 @@ mod test {
     #[test]
     fn test_find_jump_and_sub_allowing_unknown_opcodes() {
         // precondition
-        assert!(Instruction::from_u8(0xcc) == None);
+        assert!(Instruction::from_u8(0xcc).is_none());
 
         // given
 

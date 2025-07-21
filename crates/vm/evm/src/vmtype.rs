@@ -17,9 +17,10 @@
 use std::fmt;
 
 /// Type of EVM to use.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum VMType {
     /// RUST EVM
+    #[default]
     Interpreter,
 }
 
@@ -32,12 +33,6 @@ impl fmt::Display for VMType {
                 VMType::Interpreter => "INT",
             }
         )
-    }
-}
-
-impl Default for VMType {
-    fn default() -> Self {
-        VMType::Interpreter
     }
 }
 

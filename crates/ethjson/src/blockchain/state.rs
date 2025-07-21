@@ -45,7 +45,7 @@ impl State {
             HashOrMap::Hash(_) => BTreeMap::default(),
             HashOrMap::Map(map) => map
                 .iter()
-                .filter_map(|(add, ref acc)| acc.builtin.clone().map(|b| (add.clone(), b.into())))
+                .filter_map(|(add, acc)| acc.builtin.clone().map(|b| (add.clone(), b.into())))
                 .collect(),
         }
     }
@@ -56,7 +56,7 @@ impl State {
             HashOrMap::Hash(_) => BTreeMap::default(),
             HashOrMap::Map(map) => map
                 .iter()
-                .filter_map(|(add, ref acc)| acc.constructor.clone().map(|b| (add.clone(), b)))
+                .filter_map(|(add, acc)| acc.constructor.clone().map(|b| (add.clone(), b)))
                 .collect(),
         }
     }

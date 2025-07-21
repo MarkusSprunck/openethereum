@@ -120,14 +120,14 @@ impl StateDB {
         let cache_items = acc_cache_size / ::std::mem::size_of::<Option<Account>>();
 
         StateDB {
-            db: db,
+            db,
             account_cache: Arc::new(Mutex::new(AccountCache {
                 accounts: LruCache::new(cache_items),
                 modifications: VecDeque::new(),
             })),
             code_cache: Arc::new(Mutex::new(MemoryLruCache::new(code_cache_size))),
             local_cache: Vec::new(),
-            cache_size: cache_size,
+            cache_size,
             parent_hash: None,
             commit_hash: None,
             commit_number: None,
@@ -142,7 +142,7 @@ impl StateDB {
         id: &H256,
     ) -> io::Result<u32> {
         let records = self.db.journal_under(batch, now, id)?;
-        self.commit_hash = Some(id.clone());
+        self.commit_hash = Some(*id);
         self.commit_number = Some(now);
         Ok(records)
     }
@@ -181,14 +181,14 @@ impl StateDB {
         let mut clear = false;
         for block in enacted
             .iter()
-            .filter(|h| self.commit_hash.as_ref().map_or(true, |p| *h != p))
+            .filter(|h| self.commit_hash.as_ref() != Some(*h))
         {
             clear = clear || {
                 if let Some(ref mut m) = cache.modifications.iter_mut().find(|m| &m.hash == block) {
-                    trace!("Reverting enacted block {:?}", block);
+                    trace!("Reverting enacted block {block:?}");
                     m.is_canon = true;
                     for a in &m.accounts {
-                        trace!("Reverting enacted address {:?}", a);
+                        trace!("Reverting enacted address {a:?}");
                         cache.accounts.remove(a);
                     }
                     false
@@ -201,10 +201,10 @@ impl StateDB {
         for block in retracted {
             clear = clear || {
                 if let Some(ref mut m) = cache.modifications.iter_mut().find(|m| &m.hash == block) {
-                    trace!("Retracting block {:?}", block);
+                    trace!("Retracting block {block:?}");
                     m.is_canon = false;
                     for a in &m.accounts {
-                        trace!("Retracted address {:?}", a);
+                        trace!("Retracted address {a:?}");
                         cache.accounts.remove(a);
                     }
                     false
@@ -233,7 +233,7 @@ impl StateDB {
             trace!("committing {} cache entries", self.local_cache.len());
             for account in self.local_cache.drain(..) {
                 if account.modified {
-                    modifications.insert(account.address.clone());
+                    modifications.insert(account.address);
                 }
                 if is_best {
                     let acc = account.account.0;
@@ -255,9 +255,9 @@ impl StateDB {
             let block_changes = BlockChanges {
                 accounts: modifications,
                 number: *number,
-                hash: hash.clone(),
+                hash: *hash,
                 is_canon: is_best,
-                parent: parent.clone(),
+                parent: *parent,
             };
             let insert_at = cache
                 .modifications
@@ -265,7 +265,7 @@ impl StateDB {
                 .enumerate()
                 .find(|&(_, m)| m.number < *number)
                 .map(|(i, _)| i);
-            trace!("inserting modifications at {:?}", insert_at);
+            trace!("inserting modifications at {insert_at:?}");
             if let Some(insert_at) = insert_at {
                 cache.modifications.insert(insert_at, block_changes);
             } else {
@@ -306,7 +306,7 @@ impl StateDB {
             code_cache: self.code_cache.clone(),
             local_cache: Vec::new(),
             cache_size: self.cache_size,
-            parent_hash: Some(parent.clone()),
+            parent_hash: Some(*parent),
             commit_hash: None,
             commit_number: None,
         }
@@ -365,17 +365,11 @@ impl StateDB {
                 parent = &m.parent;
             }
             if m.accounts.contains(addr) {
-                trace!(
-                    "Cache lookup skipped for {:?}: modified in a later block",
-                    addr
-                );
+                trace!("Cache lookup skipped for {addr:?}: modified in a later block");
                 return false;
             }
         }
-        trace!(
-            "Cache lookup skipped for {:?}: parent hash is unknown",
-            addr
-        );
+        trace!("Cache lookup skipped for {addr:?}: parent hash is unknown");
         false
     }
 }
@@ -393,7 +387,7 @@ impl state::Backend for StateDB {
         self.local_cache.push(CacheQueueItem {
             address: addr,
             account: SyncAccount(data),
-            modified: modified,
+            modified,
         })
     }
 
@@ -515,11 +509,7 @@ mod tests {
         // blocks  [ 3b(c) 3a 2a 2b(c) 1b 1a 0 ]
         let mut s = state_db.boxed_clone_canon(&h2b);
         s.journal_under(&mut batch, 3, &h3b).unwrap();
-        s.sync_cache(
-            &[h1b.clone(), h2b.clone(), h3b.clone()],
-            &[h1a.clone(), h2a.clone(), h3a.clone()],
-            true,
-        );
+        s.sync_cache(&[h1b, h2b, h3b], &[h1a, h2a, h3a], true);
         let s = state_db.boxed_clone_canon(&h3a);
         assert!(s.get_cached_account(&address).is_none());
     }

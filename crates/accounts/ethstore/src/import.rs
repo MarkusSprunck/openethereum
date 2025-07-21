@@ -32,11 +32,11 @@ pub fn import_account(path: &Path, dst: &dyn KeyDirectory) -> Result<Address, Er
         .file_name()
         .and_then(|n| n.to_str())
         .map(|f| f.to_owned());
-    let account = fs::File::open(&path)
+    let account = fs::File::open(path)
         .map_err(Into::into)
         .and_then(|file| key_manager.read(filename, file))?;
 
-    let address = account.address.clone();
+    let address = account.address;
     if !existing_accounts.contains(&address) {
         dst.insert(account)?;
     }
@@ -59,7 +59,7 @@ pub fn import_accounts(
         .into_iter()
         .filter(|a| !existing_accounts.contains(&a.address))
         .map(|a| {
-            let address = a.address.clone();
+            let address = a.address;
             dst.insert(a)?;
             Ok(address)
         })

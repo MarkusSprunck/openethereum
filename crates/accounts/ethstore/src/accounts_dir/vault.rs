@@ -30,9 +30,9 @@ use Error;
 use SafeAccount;
 
 /// Name of vault metadata file
-pub const VAULT_FILE_NAME: &'static str = "vault.json";
+pub const VAULT_FILE_NAME: &str = "vault.json";
 /// Name of temporary vault metadata file
-pub const VAULT_TEMP_FILE_NAME: &'static str = "vault_temp.json";
+pub const VAULT_TEMP_FILE_NAME: &str = "vault_temp.json";
 
 /// Vault directory implementation
 pub type VaultDiskDirectory = DiskDirectory<VaultKeyFileManager>;
@@ -116,7 +116,7 @@ impl VaultDiskDirectory {
 
         let mut index = 0;
         loop {
-            let name = format!("{}_temp_{}", name, index);
+            let name = format!("{name}_temp_{index}");
             path.set_file_name(&name);
             if !path.exists() {
                 return VaultDiskDirectory::create(original_path, &name, key);
@@ -160,7 +160,7 @@ impl VaultKeyDirectory for VaultDiskDirectory {
 
     fn set_key(&self, new_key: VaultKey) -> Result<(), SetKeyError> {
         let temp_vault = VaultDiskDirectory::create_temp_vault(self, new_key.clone())
-            .map_err(|err| SetKeyError::NonFatalOld(err))?;
+            .map_err(SetKeyError::NonFatalOld)?;
         let mut source_path = temp_vault
             .path()
             .expect(
@@ -205,9 +205,7 @@ impl VaultKeyDirectory for VaultDiskDirectory {
         target_path.set_file_name(VAULT_FILE_NAME);
         fs::rename(source_path, target_path).map_err(|err| SetKeyError::Fatal(err.into()))?;
 
-        temp_vault
-            .delete()
-            .map_err(|err| SetKeyError::NonFatalNew(err))
+        temp_vault.delete().map_err(SetKeyError::NonFatalNew)
     }
 
     fn meta(&self) -> String {
@@ -229,7 +227,7 @@ impl VaultKeyFileManager {
     pub fn new(name: &str, key: VaultKey, meta: &str) -> Self {
         VaultKeyFileManager {
             name: name.into(),
-            key: key,
+            key,
             meta: Mutex::new(meta.to_owned()),
         }
     }
@@ -241,12 +239,12 @@ impl KeyFileManager for VaultKeyFileManager {
         T: io::Read,
     {
         let vault_file =
-            json::VaultKeyFile::load(reader).map_err(|e| Error::Custom(format!("{:?}", e)))?;
+            json::VaultKeyFile::load(reader).map_err(|e| Error::Custom(format!("{e:?}")))?;
         let mut safe_account =
             SafeAccount::from_vault_file(&self.key.password, vault_file, filename.clone())?;
 
         safe_account.meta = json::insert_vault_name_to_json_meta(&safe_account.meta, &self.name)
-            .map_err(|err| Error::Custom(format!("{:?}", err)))?;
+            .map_err(|err| Error::Custom(format!("{err:?}")))?;
         Ok(safe_account)
     }
 
@@ -255,13 +253,13 @@ impl KeyFileManager for VaultKeyFileManager {
         T: io::Write,
     {
         account.meta = json::remove_vault_name_from_json_meta(&account.meta)
-            .map_err(|err| Error::Custom(format!("{:?}", err)))?;
+            .map_err(|err| Error::Custom(format!("{err:?}")))?;
 
         let vault_file: json::VaultKeyFile =
             account.into_vault_file(self.key.iterations, &self.key.password)?;
         vault_file
             .write(writer)
-            .map_err(|e| Error::Custom(format!("{:?}", e)))
+            .map_err(|e| Error::Custom(format!("{e:?}")))
     }
 }
 
@@ -301,7 +299,7 @@ where
     let vault_file_path = vault_dir_path.as_ref().join(VAULT_FILE_NAME);
     let temp_vault_file_name = disk::find_unique_filename_using_random_suffix(
         vault_dir_path.as_ref(),
-        &VAULT_TEMP_FILE_NAME,
+        VAULT_TEMP_FILE_NAME,
     )?;
     let temp_vault_file_path = vault_dir_path.as_ref().join(&temp_vault_file_name);
 
@@ -314,7 +312,7 @@ where
     };
     vault_file_contents
         .write(&mut vault_file)
-        .map_err(|e| Error::Custom(format!("{:?}", e)))?;
+        .map_err(|e| Error::Custom(format!("{e:?}")))?;
     drop(vault_file);
     fs::rename(&temp_vault_file_path, &vault_file_path)?;
 
@@ -331,7 +329,7 @@ where
 
     let vault_file = fs::File::open(vault_file_path)?;
     let vault_file_contents =
-        json::VaultFile::load(vault_file).map_err(|e| Error::Custom(format!("{:?}", e)))?;
+        json::VaultFile::load(vault_file).map_err(|e| Error::Custom(format!("{e:?}")))?;
     let vault_file_meta = vault_file_contents.meta.unwrap_or("{}".to_owned());
     let vault_file_crypto: Crypto = vault_file_contents.crypto.into();
 

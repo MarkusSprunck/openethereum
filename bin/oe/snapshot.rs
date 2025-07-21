@@ -87,7 +87,7 @@ fn restore_using<R: SnapshotReader>(
 
     snapshot
         .init_restore(manifest.clone(), recover)
-        .map_err(|e| format!("Failed to begin restoration: {}", e))?;
+        .map_err(|e| format!("Failed to begin restoration: {e}"))?;
 
     let (num_state, num_blocks) = (manifest.state_hashes.len(), manifest.block_hashes.len());
 
@@ -100,8 +100,7 @@ fn restore_using<R: SnapshotReader>(
         } = informant_handle.restoration_status()
         {
             info!(
-                "Processed {}/{} state chunks and {}/{} block chunks.",
-                state_chunks_done, num_state, block_chunks_done, num_blocks
+                "Processed {state_chunks_done}/{num_state} state chunks and {block_chunks_done}/{num_blocks} block chunks."
             );
             ::std::thread::sleep(Duration::from_secs(5));
         }
@@ -113,18 +112,14 @@ fn restore_using<R: SnapshotReader>(
             return Err("Restoration failed".into());
         }
 
-        let chunk = reader.chunk(state_hash).map_err(|e| {
-            format!(
-                "Encountered error while reading chunk {:?}: {}",
-                state_hash, e
-            )
-        })?;
+        let chunk = reader
+            .chunk(state_hash)
+            .map_err(|e| format!("Encountered error while reading chunk {state_hash:?}: {e}"))?;
 
         let hash = keccak(&chunk);
         if hash != state_hash {
             return Err(format!(
-                "Mismatched chunk hash. Expected {:?}, got {:?}",
-                state_hash, hash
+                "Mismatched chunk hash. Expected {state_hash:?}, got {hash:?}"
             ));
         }
 
@@ -137,18 +132,14 @@ fn restore_using<R: SnapshotReader>(
             return Err("Restoration failed".into());
         }
 
-        let chunk = reader.chunk(block_hash).map_err(|e| {
-            format!(
-                "Encountered error while reading chunk {:?}: {}",
-                block_hash, e
-            )
-        })?;
+        let chunk = reader
+            .chunk(block_hash)
+            .map_err(|e| format!("Encountered error while reading chunk {block_hash:?}: {e}"))?;
 
         let hash = keccak(&chunk);
         if hash != block_hash {
             return Err(format!(
-                "Mismatched chunk hash. Expected {:?}, got {:?}",
-                block_hash, hash
+                "Mismatched chunk hash. Expected {block_hash:?}, got {hash:?}"
             ));
         }
         snapshot.feed_block_chunk(block_hash, &chunk);
@@ -227,7 +218,7 @@ impl SnapshotCommand {
         let restoration_db_handler = db::restoration_db_handler(&client_path, &client_config);
         let client_db = restoration_db_handler
             .open(&client_path)
-            .map_err(|e| format!("Failed to open database {:?}", e))?;
+            .map_err(|e| format!("Failed to open database {e:?}"))?;
 
         let service = ClientService::start(
             client_config,
@@ -240,7 +231,7 @@ impl SnapshotCommand {
             // (actually don't require miner at all)
             Arc::new(Miner::new_for_tests(&spec, None)),
         )
-        .map_err(|e| format!("Client service error: {:?}", e))?;
+        .map_err(|e| format!("Client service error: {e:?}"))?;
 
         Ok(service)
     }
@@ -257,10 +248,10 @@ impl SnapshotCommand {
         let snapshot = service.snapshot_service();
 
         if let Some(file) = file {
-            info!("Attempting to restore from snapshot at '{}'", file);
+            info!("Attempting to restore from snapshot at '{file}'");
 
             let reader = PackedReader::new(Path::new(&file))
-                .map_err(|e| format!("Couldn't open snapshot file: {}", e))
+                .map_err(|e| format!("Couldn't open snapshot file: {e}"))
                 .and_then(|x| x.ok_or("Snapshot file has invalid format.".into()));
 
             let reader = reader?;
@@ -292,7 +283,7 @@ impl SnapshotCommand {
         warn!("Snapshots are currently experimental. File formats may be subject to change.");
 
         let writer = PackedWriter::new(&file_path)
-            .map_err(|e| format!("Failed to open snapshot writer: {}", e))?;
+            .map_err(|e| format!("Failed to open snapshot writer: {e}"))?;
 
         let progress = Arc::new(Progress::default());
         let p = progress.clone();
@@ -317,11 +308,10 @@ impl SnapshotCommand {
             }
         });
 
-        if let Err(e) = service.client().take_snapshot(writer, block_at, &*progress) {
+        if let Err(e) = service.client().take_snapshot(writer, block_at, &progress) {
             let _ = ::std::fs::remove_file(&file_path);
             return Err(format!(
-                "Encountered fatal error while creating snapshot: {}",
-                e
+                "Encountered fatal error while creating snapshot: {e}"
             ));
         }
 

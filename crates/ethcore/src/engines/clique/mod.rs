@@ -280,12 +280,9 @@ impl Clique {
         }
         // BlockState is not found in memory, which means we need to reconstruct state from last checkpoint.
         match self.client.read().as_ref().and_then(|w| w.upgrade()) {
-            None => {
-                return Err(EngineError::RequiresClient)?;
-            }
+            None => Err(EngineError::RequiresClient)?,
             Some(c) => {
-                let last_checkpoint_number =
-                    header.number() - header.number() % self.epoch_length as u64;
+                let last_checkpoint_number = header.number() - header.number() % self.epoch_length;
                 debug_assert_ne!(last_checkpoint_number, header.number());
 
                 // Catching up state, note that we don't really store block state for intermediary blocks,
@@ -414,16 +411,16 @@ impl Engine<EthereumMachine> for Clique {
                 .proposals
                 .read()
                 .iter()
-                .filter(|(address, vote_type)| state.is_valid_vote(*address, **vote_type))
+                .filter(|(address, vote_type)| state.is_valid_vote(address, **vote_type))
                 .map(|(address, vote_type)| (*address, *vote_type))
                 .collect_vec();
 
             if !votes.is_empty() {
                 // Pick a random vote.
-                let random_vote = rand::thread_rng().gen_range(0 as usize, votes.len());
+                let random_vote = rand::thread_rng().gen_range(0_usize, votes.len());
                 let (beneficiary, vote_type) = votes[random_vote];
 
-                trace!(target: "engine", "Casting vote: beneficiary {}, type {:?} ", beneficiary, vote_type);
+                trace!(target: "engine", "Casting vote: beneficiary {beneficiary}, type {vote_type:?} ");
 
                 header.set_author(beneficiary);
                 header.set_seal(vote_type.as_rlp());
@@ -458,7 +455,7 @@ impl Engine<EthereumMachine> for Clique {
         header.set_extra_data(seal.clone());
 
         // append signature onto extra_data
-        let (sig, _msg) = self.sign_header(&header)?;
+        let (sig, _msg) = self.sign_header(header)?;
         seal.extend_from_slice(&sig[..]);
         header.set_extra_data(seal.clone());
 
@@ -466,13 +463,13 @@ impl Engine<EthereumMachine> for Clique {
 
         // locally sealed block don't go through valid_block_family(), so we have to record state here.
         let mut new_state = state.clone();
-        new_state.apply(&header, is_checkpoint)?;
+        new_state.apply(header, is_checkpoint)?;
         new_state.calc_next_timestamp(header.timestamp(), self.period)?;
         self.block_state_by_hash
             .write()
             .insert(header.hash(), new_state);
 
-        trace!(target: "engine", "on_seal_block: finished, final header: {:?}", header);
+        trace!(target: "engine", "on_seal_block: finished, final header: {header:?}");
 
         Ok(())
     }
@@ -503,7 +500,7 @@ impl Engine<EthereumMachine> for Clique {
         // Check we actually have authority to seal.
         if let Some(author) = self.signer.read().as_ref().map(|x| x.address()) {
             // ensure the voting state exists
-            match self.state(&parent) {
+            match self.state(parent) {
                 Err(e) => {
                     warn!(target: "engine", "generate_seal: can't get parent state(number: {}, hash: {}): {} ",
 							parent.number(), parent.hash(), e);
@@ -530,14 +527,13 @@ impl Engine<EthereumMachine> for Clique {
                     // Wait for the right moment.
                     if now < limit {
                         trace!(target: "engine",
-								"generate_seal: sleeping to sign: inturn: {}, now: {:?}, to: {:?}.",
-								inturn, now, limit);
+								"generate_seal: sleeping to sign: inturn: {inturn}, now: {now:?}, to: {limit:?}.");
                         match limit.duration_since(SystemTime::now()) {
                             Ok(duration) => {
                                 thread::sleep(duration);
                             }
                             Err(e) => {
-                                warn!(target:"engine", "generate_seal: unable to sleep, err: {}", e);
+                                warn!(target:"engine", "generate_seal: unable to sleep, err: {e}");
                                 return Seal::None;
                             }
                         }
@@ -571,9 +567,9 @@ impl Engine<EthereumMachine> for Clique {
                     .ok_or(BlockError::TimestampOverflow)?;
 
             // This should succeed under the contraints that the system clock works
-            let limit_as_dur = limit.duration_since(UNIX_EPOCH).map_err(|e| {
-                Box::new(format!("Converting SystemTime to Duration failed: {}", e))
-            })?;
+            let limit_as_dur = limit
+                .duration_since(UNIX_EPOCH)
+                .map_err(|e| Box::new(format!("Converting SystemTime to Duration failed: {e}")))?;
 
             let hdr = Duration::from_secs(header.timestamp());
             if hdr > limit_as_dur {
@@ -702,7 +698,7 @@ impl Engine<EthereumMachine> for Clique {
         }
 
         // Retrieve the parent state
-        let parent_state = self.state(&parent)?;
+        let parent_state = self.state(parent)?;
         // Try to apply current state, apply() will further check signer and recent signer.
         let mut new_state = parent_state.clone();
         new_state.apply(header, header.number() % self.epoch_length == 0)?;
@@ -720,7 +716,7 @@ impl Engine<EthereumMachine> for Clique {
             .expect("Unable to parse genesis data.");
         state
             .calc_next_timestamp(header.timestamp(), self.period)
-            .map_err(|e| format!("{}", e))?;
+            .map_err(|e| format!("{e}"))?;
         self.block_state_by_hash
             .write()
             .insert(header.hash(), state);
@@ -740,9 +736,9 @@ impl Engine<EthereumMachine> for Clique {
             // It's unclear how to prevent creating new blocks unless we are authorized, the best way (and geth does this too)
             // it's just to ignore setting a correct difficulty here, we will check authorization in next step in generate_seal anyway.
             if let Some(signer) = self.signer.read().as_ref() {
-                let state = match self.state(&parent) {
+                let state = match self.state(parent) {
                     Err(e) => {
-                        trace!(target: "engine", "populate_from_parent: Unable to find parent state: {}, ignored.", e);
+                        trace!(target: "engine", "populate_from_parent: Unable to find parent state: {e}, ignored.");
                         return;
                     }
                     Ok(state) => state,
@@ -797,10 +793,7 @@ impl Engine<EthereumMachine> for Clique {
         let now = time::SystemTime::now()
             .duration_since(time::UNIX_EPOCH)
             .unwrap_or_default();
-        cmp::max(
-            now.as_secs() as u64,
-            parent_timestamp.saturating_add(self.period),
-        )
+        cmp::max(now.as_secs(), parent_timestamp.saturating_add(self.period))
     }
 
     fn is_timestamp_valid(&self, header_timestamp: u64, parent_timestamp: u64) -> bool {

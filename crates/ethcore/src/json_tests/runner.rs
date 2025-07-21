@@ -84,25 +84,25 @@ impl TestRunner {
     pub fn run(&self) -> TestResult {
         let mut res = TestResult::zero();
         for t in &self.0.local {
-            res += Self::run_local_tests(&t);
+            res += Self::run_local_tests(t);
         }
         for t in &self.0.chain {
-            res += Self::run_chain_tests(&t);
+            res += Self::run_chain_tests(t);
         }
         for t in &self.0.state {
-            res += Self::run_state_tests(&t);
+            res += Self::run_state_tests(t);
         }
         for t in &self.0.difficulty {
-            res += Self::run_difficuly_tests(&t);
+            res += Self::run_difficuly_tests(t);
         }
         for t in &self.0.executive {
-            res += Self::run_executive_tests(&t);
+            res += Self::run_executive_tests(t);
         }
         for t in &self.0.transaction {
-            res += Self::run_transaction_tests(&t);
+            res += Self::run_transaction_tests(t);
         }
         for t in &self.0.trie {
-            res += Self::run_trie_tests(&t);
+            res += Self::run_trie_tests(t);
         }
         res
     }
@@ -112,13 +112,13 @@ impl TestRunner {
         T: Send + Sync,
         F: Fn(&T, &Path, &[u8]) -> Vec<String> + Send + Sync,
     {
-        let result = super::find_json_files_recursive(&base_path)
+        let result = super::find_json_files_recursive(base_path)
             .into_par_iter()
             .map(|path| {
-                info!("{:?}", path);
+                info!("{path:?}");
                 let json = std::fs::read(&path).unwrap();
                 let faileds = f(test, &path, &json);
-                if faileds.len() > 0 {
+                if !faileds.is_empty() {
                     TestResult::failed(&faileds.join(","))
                 } else {
                     TestResult::success()
@@ -134,8 +134,8 @@ impl TestRunner {
 
     fn in_set(path: &Path, exprs: &[String]) -> bool {
         for pathexp in exprs {
-            let glob = Glob::new(&pathexp)
-                .expect(&format!("cannot parse expression {}", pathexp))
+            let glob = Glob::new(pathexp)
+                .unwrap_or_else(|_| panic!("{}", "cannot parse expression {pathexp}"))
                 .compile_matcher();
             if glob.is_match(path) {
                 return true;
@@ -150,7 +150,7 @@ impl TestRunner {
                 test,
                 &test.path,
                 |test: &LocalTests, path: &Path, json: &[u8]| {
-                    super::local::json_local_block_en_de_test(test, &path, &json, &mut |_, _| {})
+                    super::local::json_local_block_en_de_test(test, path, json, &mut |_, _| {})
                 },
             ),
             _ => TestResult::zero(),
@@ -163,12 +163,12 @@ impl TestRunner {
             &test.path,
             |test: &ChainTests, path: &Path, json: &[u8]| {
                 for skip in &test.skip {
-                    if Self::in_set(&path, &skip.paths) {
+                    if Self::in_set(path, &skip.paths) {
                         println!("   - {} ..SKIPPED", path.to_string_lossy());
                         return Vec::new();
                     }
                 }
-                super::chain::json_chain_test(&test, &path, &json, &mut |_, _| {})
+                super::chain::json_chain_test(test, path, json, &mut |_, _| {})
             },
         )
     }
@@ -179,12 +179,12 @@ impl TestRunner {
             &test.path,
             |test: &StateTests, path: &Path, json: &[u8]| {
                 for skip in &test.skip {
-                    if Self::in_set(&path, &skip.paths) {
+                    if Self::in_set(path, &skip.paths) {
                         println!("   - {} ..SKIPPED", path.to_string_lossy());
                         return Vec::new();
                     }
                 }
-                super::state::json_state_test(&test, &path, &json, &mut |_, _| {})
+                super::state::json_state_test(test, path, json, &mut |_, _| {})
             },
         )
     }
@@ -194,7 +194,7 @@ impl TestRunner {
         for path in &test.path {
             acc += Self::run1(
                 test,
-                &path,
+                path,
                 |test: &DifficultyTests, path: &Path, json: &[u8]| {
                     let spec = match &test.chainspec {
                         TestChainSpec::Foundation => {
@@ -204,7 +204,7 @@ impl TestRunner {
                         TestChainSpec::FrontierTest => crate::ethereum::new_frontier_test(),
                         TestChainSpec::HomesteadTest => crate::ethereum::new_homestead_test(),
                     };
-                    super::difficulty::json_difficulty_test(&path, &json, spec, &mut |_, _| {})
+                    super::difficulty::json_difficulty_test(path, json, spec, &mut |_, _| {})
                 },
             )
         }
@@ -216,7 +216,7 @@ impl TestRunner {
             test,
             &test.path,
             |_: &ExecutiveTests, path: &Path, json: &[u8]| {
-                super::executive::json_executive_test(&path, &json, &mut |_, _| {})
+                super::executive::json_executive_test(path, json, &mut |_, _| {})
             },
         )
     }
@@ -226,7 +226,7 @@ impl TestRunner {
             test,
             &test.path,
             |_: &TransactionTests, path: &Path, json: &[u8]| {
-                super::transaction::json_transaction_test(&path, &json, &mut |_, _| {})
+                super::transaction::json_transaction_test(path, json, &mut |_, _| {})
             },
         )
     }
@@ -234,12 +234,12 @@ impl TestRunner {
     fn run_trie_tests(test: &TrieTests) -> TestResult {
         let mut acc = TestResult::zero();
         for path in &test.path {
-            acc += Self::run1(test, &path, |test: &TrieTests, path: &Path, json: &[u8]| {
+            acc += Self::run1(test, path, |test: &TrieTests, path: &Path, json: &[u8]| {
                 let spec = match &test.triespec {
                     TestTrieSpec::Generic => TrieSpec::Generic,
                     TestTrieSpec::Secure => TrieSpec::Secure,
                 };
-                super::trie::json_trie_test(&path, &json, spec, &mut |_, _| {})
+                super::trie::json_trie_test(path, json, spec, &mut |_, _| {})
             });
         }
         acc
@@ -264,5 +264,5 @@ fn ethereum_json_tests() {
         result.failed.len(),
         result.failed
     );
-    assert!(result.failed.len() == 0);
+    assert!(result.failed.is_empty());
 }

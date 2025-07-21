@@ -79,7 +79,7 @@ impl From<ethjson::spec::State> for PodState {
 impl fmt::Display for PodState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (add, acc) in &self.0 {
-            writeln!(f, "{} => {}", add, acc)?;
+            writeln!(f, "{add} => {acc}")?;
         }
         Ok(())
     }
@@ -93,8 +93,7 @@ pub fn diff_pod(pre: &PodState, post: &PodState) -> StateDiff {
             .keys()
             .merge(post.get().keys())
             .filter_map(|acc| {
-                pod_account::diff_pod(pre.get().get(acc), post.get().get(acc))
-                    .map(|d| (acc.clone(), d))
+                pod_account::diff_pod(pre.get().get(acc), post.get().get(acc)).map(|d| (*acc, d))
             })
             .collect(),
     }

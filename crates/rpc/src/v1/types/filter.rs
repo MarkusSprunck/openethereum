@@ -59,7 +59,7 @@ where
         from_value(v.clone())
             .map(VariadicValue::Single)
             .or_else(|_| from_value(v).map(VariadicValue::Multiple))
-            .map_err(|err| D::Error::custom(format!("Invalid variadic value type: {}", err)))
+            .map_err(|err| D::Error::custom(format!("Invalid variadic value type: {err}")))
     }
 }
 
@@ -106,8 +106,8 @@ impl Filter {
         let (from_block, to_block) = match self.block_hash {
             Some(hash) => (BlockId::Hash(hash), BlockId::Hash(hash)),
             None => (
-                self.from_block.map_or_else(|| BlockId::Latest, &num_to_id),
-                self.to_block.map_or_else(|| BlockId::Latest, &num_to_id),
+                self.from_block.map_or_else(|| BlockId::Latest, num_to_id),
+                self.to_block.map_or_else(|| BlockId::Latest, num_to_id),
             ),
         };
 
@@ -147,7 +147,7 @@ impl Filter {
     }
 }
 
-/// Results of the filter_changes RPC.
+/// Results of the `filter_changes` RPC.
 #[derive(Debug, PartialEq)]
 pub enum FilterChanges {
     /// New logs.
@@ -192,20 +192,17 @@ mod tests {
                         "000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"
                     )
                     .unwrap()
-                    .into()
                 ),
                 VariadicValue::Null,
                 VariadicValue::Multiple(vec![
                     H256::from_str(
                         "000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"
                     )
-                    .unwrap()
-                    .into(),
+                    .unwrap(),
                     H256::from_str(
                         "0000000000000000000000000aff3454fce5edbc8cca8697c15331677e6ebccc"
                     )
-                    .unwrap()
-                    .into(),
+                    .unwrap(),
                 ])
             ]
         );

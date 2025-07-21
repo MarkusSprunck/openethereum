@@ -157,7 +157,7 @@ pub enum SignMessage {
 /// NOTE This signer is semi-correct, it's a temporary measure to avoid moving too much code.
 /// If accounts are ultimately removed all password-dealing endpoints will be wiped out.
 pub trait Accounts: Send + Sync {
-    /// Sign given filled transaction request for the specified chain_id.
+    /// Sign given filled transaction request for the specified `chain_id`.
     fn sign_transaction(
         &self,
         filled: FilledTransactionRequest,
@@ -195,9 +195,9 @@ pub trait Accounts: Send + Sync {
 /// action to execute after signing
 /// e.g importing a transaction into the chain
 pub trait PostSign: Send {
-    /// item that this PostSign returns
+    /// item that this `PostSign` returns
     type Item: Send;
-    /// incase you need to perform async PostSign actions
+    /// incase you need to perform async `PostSign` actions
     type Out: IntoFuture<Item = Self::Item, Error = Error> + Send;
     /// perform an action with the signed transaction
     fn execute(self, signer: WithToken<SignedTransaction>) -> Self::Out;
@@ -332,7 +332,7 @@ pub fn execute<D: Dispatcher + 'static>(
 
             Box::new(
                 dispatcher
-                    .sign(request, &signer, pass, post_sign)
+                    .sign(request, signer, pass, post_sign)
                     .map(|(hash, token)| {
                         WithToken::from((ConfirmationResponse::SendTransaction(hash), token))
                     }),
@@ -340,7 +340,7 @@ pub fn execute<D: Dispatcher + 'static>(
         }
         ConfirmationPayload::SignTransaction(request) => Box::new(
             dispatcher
-                .sign(request, &signer, pass, ())
+                .sign(request, signer, pass, ())
                 .map(move |result| {
                     result
                         .map(move |tx| dispatcher.enrich(tx))
@@ -380,7 +380,8 @@ pub fn execute<D: Dispatcher + 'static>(
 
 /// Returns a eth_sign-compatible hash of data to sign.
 /// The data is prepended with special message to prevent
-/// malicious DApps from using the function to sign forged transactions.
+/// malicious `DApps` from using the function to sign forged transactions.
+#[must_use]
 pub fn eth_data_hash(mut data: Bytes) -> H256 {
     let mut message_data = format!("\x19Ethereum Signed Message:\n{}", data.len()).into_bytes();
     message_data.append(&mut data);
@@ -396,7 +397,7 @@ where
     client
         .gas_price_corpus(100)
         .percentile(percentile)
-        .cloned()
+        .copied()
         .unwrap_or_else(|| miner.sensible_gas_price())
 }
 
@@ -414,7 +415,7 @@ where
     client
         .priority_gas_price_corpus(100, eip1559_transition)
         .percentile(percentile)
-        .cloned()
+        .copied()
         .unwrap_or_else(|| miner.sensible_max_priority_fee())
 }
 

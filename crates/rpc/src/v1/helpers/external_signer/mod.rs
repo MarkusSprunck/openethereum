@@ -53,17 +53,20 @@ impl SignerService {
     }
 
     /// Returns a reference to `ConfirmationsQueue`
+    #[must_use]
     pub fn queue(&self) -> Arc<ConfirmationsQueue> {
         self.queue.clone()
     }
 
     /// Returns true if Signer is enabled.
+    #[must_use]
     pub fn is_enabled(&self) -> bool {
         self.is_enabled
     }
 
     #[cfg(test)]
     /// Creates new Signer Service for tests.
+    #[must_use]
     pub fn new_test(is_enabled: bool) -> Self {
         SignerService::new(|| Ok("new_token".into()), is_enabled)
     }

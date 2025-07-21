@@ -17,7 +17,6 @@
 use crate::worker::{Work, WorkType, Worker};
 use crate::IoError;
 use crate::IoHandler;
-use deque;
 use mio::{
     deprecated::{EventLoop, EventLoopBuilder, Handler, Sender},
     timer::Timeout,
@@ -99,10 +98,7 @@ where
 {
     /// Create a new IO access point. Takes references to all the data that can be updated within the IO handler.
     pub fn new(channel: IoChannel<Message>, handler: HandlerId) -> IoContext<Message> {
-        IoContext {
-            handler: handler,
-            channel: channel,
-        }
+        IoContext { handler, channel }
     }
 
     /// Register a new recurring IO timer. 'IoHandler::timeout' will be called with the token.
@@ -130,7 +126,7 @@ where
     /// Delete a timer.
     pub fn clear_timer(&self, token: TimerToken) -> Result<(), IoError> {
         self.channel.send_io(IoMessage::RemoveTimer {
-            token: token,
+            token,
             handler_id: self.handler,
         })?;
         Ok(())
@@ -139,7 +135,7 @@ where
     /// Register a new IO stream.
     pub fn register_stream(&self, token: StreamToken) -> Result<(), IoError> {
         self.channel.send_io(IoMessage::RegisterStream {
-            token: token,
+            token,
             handler_id: self.handler,
         })?;
         Ok(())
@@ -148,7 +144,7 @@ where
     /// Deregister an IO stream.
     pub fn deregister_stream(&self, token: StreamToken) -> Result<(), IoError> {
         self.channel.send_io(IoMessage::DeregisterStream {
-            token: token,
+            token,
             handler_id: self.handler,
         })?;
         Ok(())
@@ -157,7 +153,7 @@ where
     /// Reregister an IO stream.
     pub fn update_registration(&self, token: StreamToken) -> Result<(), IoError> {
         self.channel.send_io(IoMessage::UpdateStreamRegistration {
-            token: token,
+            token,
             handler_id: self.handler,
         })?;
         Ok(())
@@ -222,7 +218,7 @@ where
         let workers = (0..num_workers)
             .map(|i| {
                 Worker::new(
-                    &format!("{}{}", symbolic_name, i),
+                    &format!("{symbolic_name}{i}"),
                     stealer.clone(),
                     IoChannel::new(event_loop.channel(), Arc::downgrade(&handlers)),
                     work_ready.clone(),
@@ -352,9 +348,9 @@ where
                 self.timers.write().insert(
                     timer_id,
                     UserTimer {
-                        delay: delay,
-                        timeout: timeout,
-                        once: once,
+                        delay,
+                        timeout,
+                        once,
                     },
                 );
             }
@@ -400,7 +396,7 @@ where
                         self.worker_channel.push(Work {
                             work_type: WorkType::Message(data.clone()),
                             token: 0,
-                            handler: handler,
+                            handler,
                             handler_id: id,
                         });
                     }
@@ -550,7 +546,7 @@ where
         Ok(IoService {
             thread: Some(thread),
             host_channel: Mutex::new(channel),
-            handlers: handlers,
+            handlers,
         })
     }
 
@@ -562,10 +558,10 @@ where
         self.host_channel
             .lock()
             .send(IoMessage::Shutdown)
-            .unwrap_or_else(|e| warn!("Error on IO service shutdown: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error on IO service shutdown: {e:?}"));
         if let Some(thread) = self.thread.take() {
             thread.join().unwrap_or_else(|e| {
-                debug!(target: "shutdown", "Error joining IO service event loop thread: {:?}", e);
+                debug!(target: "shutdown", "Error joining IO service event loop thread: {e:?}");
             });
         }
         trace!(target: "shutdown", "[IoService] Closed.");
@@ -578,7 +574,7 @@ where
     ) -> Result<(), IoError> {
         self.host_channel
             .lock()
-            .send(IoMessage::AddHandler { handler: handler })?;
+            .send(IoMessage::AddHandler { handler })?;
         Ok(())
     }
 

@@ -53,7 +53,7 @@ pub struct PersonalClient<D: Dispatcher> {
 }
 
 impl<D: Dispatcher> PersonalClient<D> {
-    /// Creates new PersonalClient
+    /// Creates new `PersonalClient`
     pub fn new(
         accounts: &Arc<AccountProvider>,
         dispatcher: D,
@@ -84,7 +84,7 @@ impl<D: Dispatcher + 'static> PersonalClient<D> {
         let accounts = self.accounts.clone();
 
         let default = match request.from.as_ref() {
-            Some(account) => Ok(account.clone().into()),
+            Some(account) => Ok(*account),
             None => accounts
                 .default_account()
                 .map_err(|e| errors::account("Cannot find default account.", e)),
@@ -121,7 +121,7 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
             .accounts
             .accounts()
             .map_err(|e| errors::account("Could not fetch accounts.", e))?;
-        Ok(accounts.into_iter().map(Into::into).collect::<Vec<H160>>())
+        Ok(accounts.into_iter().collect::<Vec<H160>>())
     }
 
     fn new_account(&self, pass: String) -> Result<H160> {
@@ -129,7 +129,6 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
             .print("personal_newAccount", deprecated::msgs::ACCOUNTS);
         self.accounts
             .new_account(&pass.into())
-            .map(Into::into)
             .map_err(|e| errors::account("Could not create account.", e))
     }
 
@@ -141,17 +140,17 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
     ) -> Result<bool> {
         self.deprecation_notice
             .print("personal_unlockAccount", deprecated::msgs::ACCOUNTS);
-        let account: Address = account.into();
+        let account: Address = account;
         let store = self.accounts.clone();
         let duration = match duration {
             None => None,
             Some(duration) => {
-                let duration: U128 = duration.into();
+                let duration: U128 = duration;
                 let v = duration.low_u64() as u32;
-                if duration != v.into() {
-                    return Err(errors::invalid_params("Duration", "Invalid Number"));
-                } else {
+                if duration == v.into() {
                     Some(v)
+                } else {
+                    return Err(errors::invalid_params("Duration", "Invalid Number"));
                 }
             }
         };
@@ -166,7 +165,7 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
             }
         };
         match r {
-            Ok(_) => Ok(true),
+            Ok(()) => Ok(true),
             Err(err) => Err(errors::account("Unable to unlock the account.", err)),
         }
     }
@@ -177,10 +176,10 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         let dispatcher = self.dispatcher.clone();
         let accounts = Arc::new(dispatch::Signer::new(self.accounts.clone())) as _;
 
-        let payload = RpcConfirmationPayload::EthSignMessage((account.clone(), data).into());
+        let payload = RpcConfirmationPayload::EthSignMessage((account, data).into());
 
         Box::new(
-            dispatch::from_rpc(payload, account.into(), &dispatcher)
+            dispatch::from_rpc(payload, account, &dispatcher)
                 .and_then(move |payload| {
                     dispatch::execute(
                         dispatcher,
@@ -189,7 +188,7 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
                         dispatch::SignWith::Password(password.into()),
                     )
                 })
-                .map(|v| v.into_value())
+                .map(super::super::helpers::dispatch::WithToken::into_value)
                 .then(|res| match res {
                     Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
                     Err(e) => Err(e),
@@ -216,11 +215,10 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         let dispatcher = self.dispatcher.clone();
         let accounts = Arc::new(dispatch::Signer::new(self.accounts.clone())) as _;
 
-        let payload =
-            RpcConfirmationPayload::EIP191SignMessage((account.clone(), data.into()).into());
+        let payload = RpcConfirmationPayload::EIP191SignMessage((account, data).into());
 
         Box::new(
-            dispatch::from_rpc(payload, account.into(), &dispatcher)
+            dispatch::from_rpc(payload, account, &dispatcher)
                 .and_then(move |payload| {
                     dispatch::execute(
                         dispatcher,
@@ -229,7 +227,7 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
                         dispatch::SignWith::Password(password.into()),
                     )
                 })
-                .map(|v| v.into_value())
+                .map(super::super::helpers::dispatch::WithToken::into_value)
                 .then(|res| match res {
                     Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
                     Err(e) => Err(e),
@@ -258,11 +256,10 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         let dispatcher = self.dispatcher.clone();
         let accounts = Arc::new(dispatch::Signer::new(self.accounts.clone())) as _;
 
-        let payload =
-            RpcConfirmationPayload::EIP191SignMessage((account.clone(), data.into()).into());
+        let payload = RpcConfirmationPayload::EIP191SignMessage((account, data).into());
 
         Box::new(
-            dispatch::from_rpc(payload, account.into(), &dispatcher)
+            dispatch::from_rpc(payload, account, &dispatcher)
                 .and_then(move |payload| {
                     dispatch::execute(
                         dispatcher,
@@ -271,7 +268,7 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
                         dispatch::SignWith::Password(password.into()),
                     )
                 })
-                .map(|v| v.into_value())
+                .map(super::super::helpers::dispatch::WithToken::into_value)
                 .then(|res| match res {
                     Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
                     Err(e) => Err(e),
@@ -281,14 +278,14 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
     }
 
     fn ec_recover(&self, data: RpcBytes, signature: H520) -> BoxFuture<H160> {
-        let signature: H520 = signature.into();
+        let signature: H520 = signature;
         let signature = Signature::from_electrum(signature.as_bytes());
         let data: Bytes = data.into();
 
         let hash = eth_data_hash(data);
-        let account = recover(&signature.into(), &hash)
+        let account = recover(&signature, &hash)
             .map_err(errors::encryption)
-            .map(|public| public_to_address(&public).into());
+            .map(|public| public_to_address(&public));
 
         Box::new(future::done(account))
     }

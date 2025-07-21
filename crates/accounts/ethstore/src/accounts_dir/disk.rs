@@ -30,7 +30,7 @@ use time::OffsetDateTime;
 use Error;
 use SafeAccount;
 
-const IGNORED_FILES: &'static [&'static str] = &[
+const IGNORED_FILES: &[&str] = &[
     "thumbs.db",
     "address_book.json",
     "dapps_policy.json",
@@ -53,14 +53,13 @@ pub fn find_unique_filename_using_random_suffix(
 
         while path.exists() {
             if retries >= MAX_RETRIES {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
+                return Err(io::Error::other(
                     "Exceeded maximum retries when deduplicating filename.",
                 ));
             }
 
             let suffix = ::random::random_string(4);
-            deduped_filename = format!("{}-{}", original_filename, suffix);
+            deduped_filename = format!("{original_filename}-{suffix}");
             path.set_file_name(&deduped_filename);
             retries += 1;
         }
@@ -173,7 +172,7 @@ where
     {
         DiskDirectory {
             path: path.as_ref().to_path_buf(),
-            key_manager: key_manager,
+            key_manager,
         }
     }
 
@@ -185,7 +184,7 @@ where
                 let file_name = entry.file_name();
                 let name = file_name.to_string_lossy();
                 // filter directories
-                metadata.map_or(false, |m| !m.is_dir()) &&
+                metadata.is_some_and(|m| !m.is_dir()) &&
 					// hidden files
 					!name.starts_with(".") &&
 					// other ignored files
@@ -235,7 +234,7 @@ where
                     .map_err(Into::into)
                     .and_then(|file| self.key_manager.read(filename, file))
                     .map_err(|err| {
-                        warn!("Invalid key file: {:?} ({})", path, err);
+                        warn!("Invalid key file: {path:?} ({err})");
                         err
                     })
                     .map(|account| (path, account))
@@ -275,7 +274,7 @@ where
             // write key content
             self.key_manager
                 .write(original_account, &mut file)
-                .map_err(|e| Error::Custom(format!("{:?}", e)))?;
+                .map_err(|e| Error::Custom(format!("{e:?}")))?;
 
             file.flush()?;
             file.sync_all()?;
@@ -295,11 +294,7 @@ where
     T: KeyFileManager,
 {
     fn load(&self) -> Result<Vec<SafeAccount>, Error> {
-        let accounts = self
-            .files_content()?
-            .into_iter()
-            .map(|(_, account)| account)
-            .collect();
+        let accounts = self.files_content()?.into_values().collect();
         Ok(accounts)
     }
 
@@ -320,7 +315,7 @@ where
         let to_remove = self
             .files_content()?
             .into_iter()
-            .find(|&(_, ref acc)| acc.id == account.id && acc.address == account.address);
+            .find(|(_, acc)| acc.id == account.id && acc.address == account.address);
 
         // remove it
         match to_remove {
@@ -383,8 +378,7 @@ impl KeyFileManager for DiskKeyFileManager {
     where
         T: io::Read,
     {
-        let key_file =
-            json::KeyFile::load(reader).map_err(|e| Error::Custom(format!("{:?}", e)))?;
+        let key_file = json::KeyFile::load(reader).map_err(|e| Error::Custom(format!("{e:?}")))?;
         SafeAccount::from_file(key_file, filename, &self.password)
     }
 
@@ -395,12 +389,12 @@ impl KeyFileManager for DiskKeyFileManager {
         // when account is moved back to root directory from vault
         // => remove vault field from meta
         account.meta = json::remove_vault_name_from_json_meta(&account.meta)
-            .map_err(|err| Error::Custom(format!("{:?}", err)))?;
+            .map_err(|err| Error::Custom(format!("{err:?}")))?;
 
         let key_file: json::KeyFile = account.into();
         key_file
             .write(writer)
-            .map_err(|e| Error::Custom(format!("{:?}", e)))
+            .map_err(|e| Error::Custom(format!("{e:?}")))
     }
 }
 
@@ -577,8 +571,8 @@ mod test {
         // then
         let vaults = vault_provider.list_vaults().unwrap();
         assert_eq!(vaults.len(), 2);
-        assert!(vaults.iter().any(|v| &*v == "vault1"));
-        assert!(vaults.iter().any(|v| &*v == "vault2"));
+        assert!(vaults.iter().any(|v| v == "vault1"));
+        assert!(vaults.iter().any(|v| v == "vault2"));
     }
 
     #[test]

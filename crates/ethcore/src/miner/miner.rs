@@ -394,7 +394,7 @@ impl Miner {
         let txq = self.transaction_queue.clone();
         let mut options = self.options.pool_verification_options.clone();
         self.gas_pricer.lock().recalibrate(move |gas_price| {
-            debug!(target: "miner", "minimal_gas_price: Got gas price! {}", gas_price);
+            debug!(target: "miner", "minimal_gas_price: Got gas price! {gas_price}");
             options.minimal_gas_price = gas_price;
             options.block_gas_limit = block_gas_limit;
             options.block_base_fee = block_base_fee;
@@ -402,9 +402,8 @@ impl Miner {
             txq.set_verifier_options(options);
         });
 
-        match block_base_fee {
-            Some(block_base_fee) => self.transaction_queue.update_scoring(block_base_fee),
-            None => (),
+        if let Some(block_base_fee) = block_base_fee {
+            self.transaction_queue.update_scoring(block_base_fee)
         }
     }
 
@@ -486,8 +485,8 @@ impl Miner {
                     ) {
                         Ok(block) => block,
                         Err(err) => {
-                            warn!(target: "miner", "Open new block failed with error {:?}. This is likely an error in \
-								  chain specification or on-chain consensus smart contracts.", err);
+                            warn!(target: "miner", "Open new block failed with error {err:?}. This is likely an error in \
+								  chain specification or on-chain consensus smart contracts.");
                             return None;
                         }
                     };
@@ -495,9 +494,9 @@ impl Miner {
                     match self.engine.generate_engine_transactions(&block) {
                         Ok(transactions) => (block, last_work_hash, transactions),
                         Err(err) => {
-                            error!(target: "miner", "Failed to prepare engine transactions for new block: {:?}. \
+                            error!(target: "miner", "Failed to prepare engine transactions for new block: {err:?}. \
 								   This is likely an error in chain specification or on-chain consensus smart \
-								   contracts.", err);
+								   contracts.");
                             return None;
                         }
                     }
@@ -599,11 +598,11 @@ impl Miner {
                     }),
                     _,
                 )) => {
-                    debug!(target: "miner", "Skipping adding transaction to block because of gas limit: {:?} (limit: {:?}, used: {:?}, gas: {:?})", hash, gas_limit, gas_used, gas);
+                    debug!(target: "miner", "Skipping adding transaction to block because of gas limit: {hash:?} (limit: {gas_limit:?}, used: {gas_used:?}, gas: {gas:?})");
 
                     // Penalize transaction if it's above current gas limit
                     if gas > gas_limit {
-                        debug!(target: "txqueue", "[{:?}] Transaction above block gas limit.", hash);
+                        debug!(target: "txqueue", "[{hash:?}] Transaction above block gas limit.");
                         invalid_transactions.insert(hash);
                     }
 
@@ -627,18 +626,18 @@ impl Miner {
                     ErrorKind::Execution(ExecutionError::InvalidNonce { expected, got }),
                     _,
                 )) => {
-                    debug!(target: "miner", "Skipping adding transaction to block because of invalid nonce: {:?} (expected: {:?}, got: {:?})", hash, expected, got);
+                    debug!(target: "miner", "Skipping adding transaction to block because of invalid nonce: {hash:?} (expected: {expected:?}, got: {got:?})");
                 }
                 // already have transaction - ignore
                 Err(Error(ErrorKind::Transaction(transaction::Error::AlreadyImported), _)) => {}
                 Err(Error(ErrorKind::Transaction(transaction::Error::NotAllowed), _)) => {
                     not_allowed_transactions.insert(hash);
-                    debug!(target: "miner", "Skipping non-allowed transaction for sender {:?}", hash);
+                    debug!(target: "miner", "Skipping non-allowed transaction for sender {hash:?}");
                 }
                 Err(e) => {
-                    debug!(target: "txqueue", "[{:?}] Marking as invalid: {:?}.", hash, e);
+                    debug!(target: "txqueue", "[{hash:?}] Marking as invalid: {e:?}.");
                     debug!(
-                        target: "miner", "Error adding transaction to block: number={}. transaction_hash={:?}, Error: {:?}", block_number, hash, e
+                        target: "miner", "Error adding transaction to block: number={block_number}. transaction_hash={hash:?}, Error: {e:?}"
                     );
                     invalid_transactions.insert(hash);
                 }
@@ -652,7 +651,7 @@ impl Miner {
         let block = match open_block.close() {
             Ok(block) => block,
             Err(err) => {
-                warn!(target: "miner", "Closing the block failed with error {:?}. This is likely an error in chain specificiations or on-chain consensus smart contracts.", err);
+                warn!(target: "miner", "Closing the block failed with error {err:?}. This is likely an error in chain specificiations or on-chain consensus smart contracts.");
                 return None;
             }
         };
@@ -786,10 +785,7 @@ impl Miner {
                         true
                     })
                     .unwrap_or_else(|e| {
-                        warn!(
-                            "ERROR: seal failed when given internally generated seal: {}",
-                            e
-                        );
+                        warn!("ERROR: seal failed when given internally generated seal: {e}");
                         false
                     })
             }
@@ -806,10 +802,7 @@ impl Miner {
                     .seal(&*self.engine, seal)
                     .map(|sealed| chain.import_sealed_block(sealed).is_ok())
                     .unwrap_or_else(|e| {
-                        warn!(
-                            "ERROR: seal failed when given internally generated seal: {}",
-                            e
-                        );
+                        warn!("ERROR: seal failed when given internally generated seal: {e}");
                         false
                     })
             }
@@ -828,17 +821,15 @@ impl Miner {
 
             trace!(
                 target: "miner",
-                "prepare_work: Checking whether we need to reseal: orig={:?} last={:?}, this={:?}",
-                original_work_hash, last_work_hash, block_hash
+                "prepare_work: Checking whether we need to reseal: orig={original_work_hash:?} last={last_work_hash:?}, this={block_hash:?}"
             );
 
-            let (work, is_new) = if last_work_hash.map_or(true, |h| h != block_hash) {
+            let (work, is_new) = if last_work_hash != Some(block_hash) {
                 trace!(
                     target: "miner",
-                    "prepare_work: Pushing a new, refreshed or borrowed pending {}...",
-                    block_hash
+                    "prepare_work: Pushing a new, refreshed or borrowed pending {block_hash}..."
                 );
-                let is_new = original_work_hash.map_or(true, |h| h != block_hash);
+                let is_new = original_work_hash != Some(block_hash);
 
                 sealing.queue.set_pending(block);
 
@@ -897,7 +888,7 @@ impl Miner {
         let prepare_new = {
             let mut sealing = self.sealing.lock();
             let have_work = sealing.queue.peek_last_ref().is_some();
-            trace!(target: "miner", "prepare_pending_block: have_work={}", have_work);
+            trace!(target: "miner", "prepare_pending_block: have_work={have_work}");
             if !have_work {
                 sealing.enabled = true;
                 true
@@ -1039,7 +1030,7 @@ impl miner::MinerService for Miner {
                 let txq = self.transaction_queue.clone();
                 let mut options = self.options.pool_verification_options.clone();
                 gp.recalibrate(move |gas_price| {
-                    debug!(target: "miner", "minimal_gas_price: Got gas price! {}", gas_price);
+                    debug!(target: "miner", "minimal_gas_price: Got gas price! {gas_price}");
                     options.minimal_gas_price = gas_price;
                     txq.set_verifier_options(options);
                 });
@@ -1050,7 +1041,7 @@ impl miner::MinerService for Miner {
             GasPricer::Calibrated(_) => {
                 let error_msg =
                     "Can't update fixed gas price while automatic gas calibration is enabled.";
-                return Err(error_msg);
+                Err(error_msg)
             }
         }
     }
@@ -1091,7 +1082,7 @@ impl miner::MinerService for Miner {
     ) -> Result<(), transaction::Error> {
         // note: you may want to use `import_claimed_local_transaction` instead of this one.
 
-        trace!(target: "own_tx", "Importing transaction: {:?}", pending);
+        trace!(target: "own_tx", "Importing transaction: {pending:?}");
 
         let client = self.pool_client(chain);
         let imported = self
@@ -1359,7 +1350,7 @@ impl miner::MinerService for Miner {
         if block.header.number() == 1 {
             if let Some(name) = self.engine.params().nonzero_bugfix_hard_fork() {
                 warn!("Your chain specification contains one or more hard forks which are required to be \
-						on by default. Please remove these forks and start your chain again: {}.", name);
+						on by default. Please remove these forks and start your chain again: {name}.");
                 return;
             }
         }
@@ -1370,7 +1361,6 @@ impl miner::MinerService for Miner {
                 if self.seal_and_import_block_internally(chain, block) {
                     trace!(target: "miner", "update_sealing: imported internally sealed block");
                 }
-                return;
             }
             SealingState::NotReady => {
                 unreachable!("We returned right after sealing_state was computed. qed.")
@@ -1384,7 +1374,7 @@ impl miner::MinerService for Miner {
                 trace!(target: "miner", "update_sealing: engine does not seal internally, preparing work");
                 self.prepare_work(block, original_work_hash);
             }
-        };
+        }
     }
 
     fn is_currently_sealing(&self) -> bool {
@@ -1420,23 +1410,22 @@ impl miner::MinerService for Miner {
             } else {
                 GetAction::Take
             },
-            |b| &b.header.bare_hash() == &block_hash,
+            |b| b.header.bare_hash() == block_hash,
         ) {
             trace!(target: "miner", "Submitted block {}={} with seal {:?}", block_hash, b.header.bare_hash(), seal);
-            b.lock().try_seal(&*self.engine, seal).or_else(|e| {
-                warn!(target: "miner", "Mined solution rejected: {}", e);
-                Err(ErrorKind::PowInvalid.into())
+            b.lock().try_seal(&*self.engine, seal).map_err(|e| {
+                warn!(target: "miner", "Mined solution rejected: {e}");
+                ErrorKind::PowInvalid.into()
             })
         } else {
             warn!(target: "miner", "Submitted solution rejected: Block unknown or out of date.");
             Err(ErrorKind::PowHashInvalid.into())
         };
 
-        result.and_then(|sealed| {
+        result.inspect(|sealed| {
             let n = sealed.header.number();
             let h = sealed.header.hash();
-            info!(target: "miner", "Submitted block imported OK. #{}: {}", Colour::White.bold().paint(format!("{}", n)), Colour::White.bold().paint(format!("{:x}", h)));
-            Ok(sealed)
+            info!(target: "miner", "Submitted block imported OK. #{}: {}", Colour::White.bold().paint(format!("{n}")), Colour::White.bold().paint(format!("{h:x}")));
         })
     }
 
@@ -1458,7 +1447,7 @@ impl miner::MinerService for Miner {
         // 2. We ignore blocks that are `invalid` because it doesn't have any meaning in terms of the transactions that
         //    are in those blocks
 
-        let has_new_best_block = enacted.len() > 0;
+        let has_new_best_block = !enacted.is_empty();
 
         if has_new_best_block {
             // Clear nonce cache
@@ -1503,7 +1492,7 @@ impl miner::MinerService for Miner {
                 });
         }
 
-        if has_new_best_block || (imported.len() > 0 && self.options.reseal_on_uncle) {
+        if has_new_best_block || (!imported.is_empty() && self.options.reseal_on_uncle) {
             // t_nb 10.3 Reset `next_allowed_reseal` in case a block is imported.
             // Even if min_period is high, we will always attempt to create
             // new pending block.
@@ -1554,7 +1543,7 @@ impl miner::MinerService for Miner {
                 };
 
                 if let Err(e) = channel.send(ClientIoMessage::execute(cull)) {
-                    warn!(target: "miner", "Error queueing cull: {:?}", e);
+                    warn!(target: "miner", "Error queueing cull: {e:?}");
                 }
             } else {
                 // t_nb 10.5 do culling
@@ -1576,7 +1565,7 @@ impl miner::MinerService for Miner {
                     trace!(target: "client", "Registrar or/and service transactions contract does not exist");
                 }
                 Err(e) => {
-                    error!(target: "client", "Error occurred while refreshing service transaction cache: {}", e)
+                    error!(target: "client", "Error occurred while refreshing service transaction cache: {e}")
                 }
             };
         };
@@ -1605,10 +1594,7 @@ impl miner::MinerService for Miner {
         &self,
         latest_block_number: BlockNumber,
     ) -> Option<Vec<SignedTransaction>> {
-        self.map_existing_pending_block(
-            |b| b.transactions.iter().cloned().collect(),
-            latest_block_number,
-        )
+        self.map_existing_pending_block(|b| b.transactions.to_vec(), latest_block_number)
     }
 }
 
@@ -1752,7 +1738,7 @@ mod tests {
         let res = miner.work_package(&client);
         assert_eq!(res.unwrap().1, 1);
         // This should be true, since there were some requests.
-        assert_eq!(miner.requires_reseal(0), true);
+        assert!(miner.requires_reseal(0));
 
         // when new block is imported
         let client = generate_dummy_client(2);
@@ -1762,7 +1748,7 @@ mod tests {
 
         // then
         // This should be false, because it's too early.
-        assert_eq!(miner.requires_reseal(2), false);
+        assert!(!miner.requires_reseal(2));
         // but still work package should be ready
         let res = miner.work_package(&*client);
         assert_eq!(res.unwrap().1, 3);
@@ -1983,7 +1969,7 @@ mod tests {
             },
             GasPricer::new_fixed(0u64.into()),
             &Spec::new_test(),
-            HashSet::from_iter(vec![transaction.sender()].into_iter()),
+            HashSet::from_iter(vec![transaction.sender()]),
         );
         let best_block = 0;
 
@@ -2054,7 +2040,7 @@ mod tests {
         assert!(miner
             .import_own_transaction(
                 &*client,
-                PendingTransaction::new(transaction_with_chain_id(spec.chain_id()).into(), None)
+                PendingTransaction::new(transaction_with_chain_id(spec.chain_id()), None)
             )
             .is_ok());
 

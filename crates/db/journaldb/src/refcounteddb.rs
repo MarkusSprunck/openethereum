@@ -92,15 +92,15 @@ impl HashDB<KeccakHasher, DBValue> for RefCountedDB {
     }
     fn insert(&mut self, value: &[u8]) -> H256 {
         let r = self.forward.insert(value);
-        self.inserts.push(r.clone());
+        self.inserts.push(r);
         r
     }
     fn emplace(&mut self, key: H256, value: DBValue) {
-        self.inserts.push(key.clone());
+        self.inserts.push(key);
         self.forward.emplace(key, value);
     }
     fn remove(&mut self, key: &H256) {
-        self.removes.push(key.clone());
+        self.removes.push(*key);
     }
 }
 
@@ -118,7 +118,7 @@ impl JournalDB for RefCountedDB {
             latest_era: self.latest_era,
             inserts: self.inserts.clone(),
             removes: self.removes.clone(),
-            column: self.column.clone(),
+            column: self.column,
         })
     }
 
@@ -182,7 +182,7 @@ impl JournalDB for RefCountedDB {
         self.inserts.clear();
         self.removes.clear();
 
-        if self.latest_era.map_or(true, |e| now > e) {
+        if self.latest_era.is_none_or(|e| now > e) {
             batch.put(self.column, &LATEST_ERA_KEY, &encode(&now));
             self.latest_era = Some(now);
         }

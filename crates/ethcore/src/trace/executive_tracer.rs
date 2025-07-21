@@ -173,7 +173,7 @@ impl Tracer for ExecutiveTracer {
             result: Res::None,
             trace_address: self.index_stack.clone(),
         };
-        debug!(target: "trace", "Traced suicide {:?}", trace);
+        debug!(target: "trace", "Traced suicide {trace:?}");
         self.traces.push(trace);
 
         if let Some(index) = self.index_stack.last_mut() {
@@ -196,7 +196,7 @@ impl Tracer for ExecutiveTracer {
             result: Res::None,
             trace_address: self.index_stack.clone(),
         };
-        debug!(target: "trace", "Traced reward {:?}", trace);
+        debug!(target: "trace", "Traced reward {trace:?}");
         self.traces.push(trace);
 
         if let Some(index) = self.index_stack.last_mut() {
@@ -262,9 +262,9 @@ impl VMTracer for ExecutiveVMTracer {
     ) {
         Self::with_trace_in_depth(&mut self.data, self.depth, move |trace| {
             trace.operations.push(VMOperation {
-                pc: pc,
-                instruction: instruction,
-                gas_cost: gas_cost,
+                pc,
+                instruction,
+                gas_cost,
                 executed: None,
             });
         });
@@ -298,7 +298,7 @@ impl VMTracer for ExecutiveVMTracer {
         let store_diff = store_written;
         Self::with_trace_in_depth(&mut self.data, self.depth, move |trace| {
             let ex = VMExecutedOperation {
-                gas_used: gas_used,
+                gas_used,
                 stack_push: stack_push.to_vec(),
                 mem_diff: mem_diff.map(|(s, r)| MemoryDiff {
                     offset: s,
@@ -355,7 +355,7 @@ mod tests {
         tracer.done_trace_call(U256::zero(), &[]);
 
         let drained = tracer.drain();
-        assert!(drained[0].trace_address.len() == 0);
+        assert!(drained[0].trace_address.is_empty());
         assert_eq!(&drained[1].trace_address, &[0]);
         assert_eq!(&drained[2].trace_address, &[0, 0]);
         assert_eq!(&drained[3].trace_address, &[0, 1]);

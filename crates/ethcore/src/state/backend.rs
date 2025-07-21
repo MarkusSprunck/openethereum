@@ -248,7 +248,7 @@ impl<H: AsHashDB<KeccakHasher, DBValue>> Proving<H> {
     /// This will store all values ever fetched from that base.
     pub fn new(base: H) -> Self {
         Proving {
-            base: base,
+            base,
             changed: journaldb::new_memory_db(),
             proof: Mutex::new(HashSet::new()),
         }

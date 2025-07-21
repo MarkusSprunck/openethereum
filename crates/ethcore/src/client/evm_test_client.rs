@@ -59,10 +59,10 @@ impl fmt::Display for EvmTestError {
         use self::EvmTestError::*;
 
         match *self {
-            Trie(ref err) => write!(fmt, "Trie: {}", err),
-            Evm(ref err) => write!(fmt, "EVM: {}", err),
-            ClientError(ref err) => write!(fmt, "{}", err),
-            PostCondition(ref err) => write!(fmt, "{}", err),
+            Trie(ref err) => write!(fmt, "Trie: {err}"),
+            Evm(ref err) => write!(fmt, "EVM: {err}"),
+            ClientError(ref err) => write!(fmt, "{err}"),
+            PostCondition(ref err) => write!(fmt, "{err}"),
         }
     }
 }
@@ -267,7 +267,7 @@ impl<'a> EvmTestClient<'a> {
         let mut substate = state::Substate::new();
         let machine = self.spec.engine.machine();
         let schedule = machine.schedule(info.number);
-        let mut executive = executive::Executive::new(&mut self.state, &info, &machine, &schedule);
+        let mut executive = executive::Executive::new(&mut self.state, &info, machine, &schedule);
         executive
             .call(params, &mut substate, tracer, vm_tracer)
             .map_err(EvmTestError::Evm)
@@ -295,7 +295,7 @@ impl<'a> EvmTestClient<'a> {
 
         // Apply transaction
         let result = self.state.apply_with_tracing(
-            &env_info,
+            env_info,
             self.spec.engine.machine(),
             &transaction,
             tracer,

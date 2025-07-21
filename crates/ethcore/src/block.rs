@@ -119,13 +119,13 @@ impl ExecutedBlock {
             uncles: Default::default(),
             receipts: Default::default(),
             transactions_set: Default::default(),
-            state: state,
+            state,
             traces: if tracing {
                 Tracing::enabled()
             } else {
                 Tracing::Disabled
             },
-            last_hashes: last_hashes,
+            last_hashes,
         }
     }
 
@@ -134,9 +134,9 @@ impl ExecutedBlock {
         // TODO: memoise.
         EnvInfo {
             number: self.header.number(),
-            author: self.header.author().clone(),
+            author: *self.header.author(),
             timestamp: self.header.timestamp(),
-            difficulty: self.header.difficulty().clone(),
+            difficulty: *self.header.difficulty(),
             last_hashes: self.last_hashes.clone(),
             gas_used: self.receipts.last().map_or(U256::zero(), |r| r.gas_used),
             gas_limit: *self.header.gas_limit(),
@@ -181,13 +181,13 @@ impl<'x> OpenBlock<'x> {
         // t_nb 8.1.1 get parent StateDB.
         let state = State::from_existing(
             db,
-            parent.state_root().clone(),
+            *parent.state_root(),
             engine.account_start_nonce(number),
             factories,
         )?;
         let mut r = OpenBlock {
             block: ExecutedBlock::new(state, last_hashes, tracing),
-            engine: engine,
+            engine,
         };
 
         r.block.header.set_parent_hash(parent.hash());
@@ -278,7 +278,7 @@ impl<'x> OpenBlock<'x> {
         self.block
             .transactions_set
             .insert(h.unwrap_or_else(|| t.hash()));
-        self.block.transactions.push(t.into());
+        self.block.transactions.push(t);
         if let Tracing::Enabled(ref mut traces) = self.block.traces {
             traces.push(outcome.trace.into());
         }
@@ -373,7 +373,7 @@ impl<'x> OpenBlock<'x> {
         ));
         let uncle_bytes = encode_list(&s.block.uncles);
         s.block.header.set_uncles_hash(keccak(&uncle_bytes));
-        s.block.header.set_state_root(s.block.state.root().clone());
+        s.block.header.set_state_root(*s.block.state.root());
         s.block.header.set_receipts_root(ordered_trie_root(
             s.block.receipts.iter().map(|r| r.encode()),
         ));
@@ -443,10 +443,7 @@ impl ClosedBlock {
         // revert rewards (i.e. set state back at last transaction's state).
         let mut block = self.block;
         block.state = self.unclosed_state;
-        OpenBlock {
-            block: block,
-            engine: engine,
-        }
+        OpenBlock { block, engine }
     }
 }
 
@@ -542,7 +539,7 @@ pub(crate) fn enact(
     let trace_state = if log_enabled!(target: "enact", ::log::Level::Trace) {
         Some(State::from_existing(
             db.boxed_clone(),
-            parent.state_root().clone(),
+            *parent.state_root(),
             engine.account_start_nonce(parent.number() + 1),
             factories.clone(),
         )?)
@@ -568,7 +565,7 @@ pub(crate) fn enact(
     )?;
 
     if let Some(ref s) = trace_state {
-        let author_balance = s.balance(&b.header.author())?;
+        let author_balance = s.balance(b.header.author())?;
         trace!(target: "enact", "num={}, root={}, author={}, author_balance={}\n",
 				b.block.header.number(), s.root(), b.header.author(), author_balance);
     }
@@ -653,12 +650,12 @@ mod tests {
             if ::log::max_level() >= ::log::Level::Trace {
                 let s = State::from_existing(
                     db.boxed_clone(),
-                    parent.state_root().clone(),
+                    *parent.state_root(),
                     engine.account_start_nonce(parent.number() + 1),
                     factories.clone(),
                 )?;
                 trace!(target: "enact", "num={}, root={}, author={}, author_balance={}\n",
-					header.number(), s.root(), header.author(), s.balance(&header.author())?);
+					header.number(), s.root(), header.author(), s.balance(header.author())?);
             }
         }
 
@@ -698,7 +695,7 @@ mod tests {
     ) -> Result<SealedBlock, Error> {
         let header =
             Unverified::from_rlp(block_bytes.clone(), engine.params().eip1559_transition)?.header;
-        Ok(enact_bytes(
+        enact_bytes(
             block_bytes,
             engine,
             tracing,
@@ -707,7 +704,7 @@ mod tests {
             last_hashes,
             factories,
         )?
-        .seal(engine, header.seal().to_vec())?)
+        .seal(engine, header.seal().to_vec())
     }
 
     #[test]
@@ -787,15 +784,12 @@ mod tests {
 
         let db = e.drain().state.drop().1;
         assert_eq!(orig_db.journal_db().keys(), db.journal_db().keys());
-        assert!(
-            orig_db
-                .journal_db()
-                .keys()
-                .iter()
-                .filter(|k| orig_db.journal_db().get(k.0) != db.journal_db().get(k.0))
-                .next()
-                == None
-        );
+        assert!(orig_db
+            .journal_db()
+            .keys()
+            .iter()
+            .find(|k| orig_db.journal_db().get(k.0) != db.journal_db().get(k.0))
+            .is_none());
     }
 
     #[test]
@@ -859,14 +853,11 @@ mod tests {
 
         let db = e.drain().state.drop().1;
         assert_eq!(orig_db.journal_db().keys(), db.journal_db().keys());
-        assert!(
-            orig_db
-                .journal_db()
-                .keys()
-                .iter()
-                .filter(|k| orig_db.journal_db().get(k.0) != db.journal_db().get(k.0))
-                .next()
-                == None
-        );
+        assert!(orig_db
+            .journal_db()
+            .keys()
+            .iter()
+            .find(|k| orig_db.journal_db().get(k.0) != db.journal_db().get(k.0))
+            .is_none());
     }
 }

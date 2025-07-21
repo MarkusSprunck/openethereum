@@ -85,9 +85,9 @@ impl EthTester {
         EthTester {
             runtime,
             client,
+            accounts_provider,
             miner,
             io,
-            accounts_provider,
         }
     }
 }
@@ -106,7 +106,7 @@ fn rpc_eth_send_transaction() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -178,7 +178,7 @@ fn rpc_eth_sign_transaction() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -214,7 +214,7 @@ fn rpc_eth_sign_transaction() {
         + r#""blockHash":null,"blockNumber":null,"#
         + &format!(
             "\"chainId\":{},",
-            t.chain_id().map_or("null".to_owned(), |n| format!("{}", n))
+            t.chain_id().map_or("null".to_owned(), |n| format!("{n}"))
         )
         + r#""condition":null,"creates":null,"#
         + &format!("\"from\":\"0x{:x}\",", &address)
@@ -248,7 +248,7 @@ fn rpc_eth_send_transaction_with_bad_to() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "",
 			"gas": "0x76c0",
@@ -276,7 +276,7 @@ fn rpc_eth_send_transaction_error() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",

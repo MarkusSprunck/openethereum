@@ -25,7 +25,7 @@ pub struct EncryptedDocumentKey {
     pub common_point: H512,
     /// Encrypted point. Pass this to Secret Store 'Document key storing session'.
     pub encrypted_point: H512,
-    /// Document key itself, encrypted with passed account public. Pass this to 'secretstore_encrypt'.
+    /// Document key itself, encrypted with passed account public. Pass this to '`secretstore_encrypt`'.
     pub encrypted_key: Bytes,
 }
 

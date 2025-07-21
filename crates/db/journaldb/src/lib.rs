@@ -95,7 +95,7 @@ impl str::FromStr for Algorithm {
             "light" => Ok(Algorithm::EarlyMerge),
             "fast" => Ok(Algorithm::OverlayRecent),
             "basic" => Ok(Algorithm::RefCounted),
-            e => Err(format!("Invalid algorithm: {}", e)),
+            e => Err(format!("Invalid algorithm: {e}")),
         }
     }
 }
@@ -169,13 +169,9 @@ fn error_key_already_exists(hash: &ethereum_types::H256) -> io::Error {
 }
 
 fn error_negatively_reference_hash(hash: &ethereum_types::H256) -> io::Error {
-    io::Error::new(
-        io::ErrorKind::Other,
-        format!(
-            "Entry {} removed from database more times than it was added.",
-            hash
-        ),
-    )
+    io::Error::other(format!(
+        "Entry {hash} removed from database more times than it was added."
+    ))
 }
 
 pub fn new_memory_db() -> memory_db::MemoryDB<keccak_hasher::KeccakHasher, kvdb::DBValue> {

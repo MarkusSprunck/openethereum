@@ -58,10 +58,8 @@ impl From<ethjson::spec::Genesis> for Genesis {
             gas_limit: g.gas_limit.into(),
             transactions_root: g
                 .transactions_root
-                .map_or_else(|| KECCAK_NULL_RLP.clone(), Into::into),
-            receipts_root: g
-                .receipts_root
-                .map_or_else(|| KECCAK_NULL_RLP.clone(), Into::into),
+                .map_or_else(|| KECCAK_NULL_RLP, Into::into),
+            receipts_root: g.receipts_root.map_or_else(|| KECCAK_NULL_RLP, Into::into),
             state_root: g.state_root.map(Into::into),
             gas_used: g.gas_used.map_or_else(U256::zero, Into::into),
             extra_data: g.extra_data.map_or_else(Vec::new, Into::into),

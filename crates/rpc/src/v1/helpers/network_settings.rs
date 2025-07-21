@@ -38,7 +38,7 @@ pub struct NetworkSettings {
 impl Default for NetworkSettings {
     fn default() -> Self {
         NetworkSettings {
-            name: "".into(),
+            name: String::new(),
             chain: "foundation".into(),
             is_dev_chain: false,
             network_port: 30303,

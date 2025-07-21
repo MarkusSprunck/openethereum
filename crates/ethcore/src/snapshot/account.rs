@@ -99,7 +99,7 @@ pub fn to_fat_rlps(
         } else {
             match acct_db.get(&acc.code_hash) {
                 Some(c) => {
-                    used_code.insert(acc.code_hash.clone());
+                    used_code.insert(acc.code_hash);
                     account_stream.append(&CodeState::Inline.raw()).append(&&*c);
                 }
                 None => {
@@ -210,10 +210,10 @@ pub fn from_fat_rlp(
     }
 
     let acc = BasicAccount {
-        nonce: nonce,
-        balance: balance,
-        storage_root: storage_root,
-        code_hash: code_hash,
+        nonce,
+        balance,
+        storage_root,
+        code_hash,
     };
 
     Ok((acc, new_code))
@@ -252,7 +252,7 @@ mod tests {
         assert_eq!(::rlp::decode::<BasicAccount>(&thin_rlp).unwrap(), account);
         let p = Progress::default();
         let fat_rlps = to_fat_rlps(
-            &keccak(&addr),
+            &keccak(addr),
             &account,
             &AccountDB::new(db.as_hash_db(), &addr),
             &mut Default::default(),
@@ -297,7 +297,7 @@ mod tests {
         let p = Progress::default();
 
         let fat_rlp = to_fat_rlps(
-            &keccak(&addr),
+            &keccak(addr),
             &account,
             &AccountDB::new(db.as_hash_db(), &addr),
             &mut Default::default(),
@@ -363,7 +363,7 @@ mod tests {
                 .unwrap()
                 .0,
             );
-            root = restored_account.as_ref().unwrap().storage_root.clone();
+            root = restored_account.as_ref().unwrap().storage_root;
         }
         assert_eq!(restored_account, Some(account));
     }
@@ -382,10 +382,7 @@ mod tests {
 
         {
             let mut acct_db = AccountDBMut::new(db.as_hash_db_mut(), &addr2);
-            acct_db.emplace(
-                code_hash.clone(),
-                DBValue::from_slice(b"this is definitely code"),
-            );
+            acct_db.emplace(code_hash, DBValue::from_slice(b"this is definitely code"));
         }
 
         let account1 = BasicAccount {
@@ -406,7 +403,7 @@ mod tests {
         let p1 = Progress::default();
         let p2 = Progress::default();
         let fat_rlp1 = to_fat_rlps(
-            &keccak(&addr1),
+            &keccak(addr1),
             &account1,
             &AccountDB::new(db.as_hash_db(), &addr1),
             &mut used_code,
@@ -416,7 +413,7 @@ mod tests {
         )
         .unwrap();
         let fat_rlp2 = to_fat_rlps(
-            &keccak(&addr2),
+            &keccak(addr2),
             &account2,
             &AccountDB::new(db.as_hash_db(), &addr2),
             &mut used_code,

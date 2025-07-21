@@ -19,7 +19,6 @@
 use super::{kvdb_rocksdb::DatabaseConfig, open_database};
 use ethcore::error::Error;
 use ethereum_types::Bloom;
-use rlp;
 use std::path::Path;
 
 const LOG_BLOOMS_ELEMENTS_PER_INDEX: u64 = 16;

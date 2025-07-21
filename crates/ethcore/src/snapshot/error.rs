@@ -74,23 +74,20 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::InvalidStartingBlock(ref id) => write!(f, "Invalid starting block: {:?}", id),
-            Error::BlockNotFound(ref hash) => write!(f, "Block not found in chain: {}", hash),
+            Error::InvalidStartingBlock(ref id) => write!(f, "Invalid starting block: {id:?}"),
+            Error::BlockNotFound(ref hash) => write!(f, "Block not found in chain: {hash}"),
             Error::IncompleteChain => write!(f, "Incomplete blockchain."),
             Error::WrongStateRoot(ref expected, ref found) => write!(
                 f,
-                "Final block has wrong state root. Expected {:?}, got {:?}",
-                expected, found
+                "Final block has wrong state root. Expected {expected:?}, got {found:?}"
             ),
             Error::WrongBlockHash(ref num, ref expected, ref found) => write!(
                 f,
-                "Block {} had wrong hash. expected {:?}, got {:?}",
-                num, expected, found
+                "Block {num} had wrong hash. expected {expected:?}, got {found:?}"
             ),
             Error::TooManyBlocks(ref expected, ref found) => write!(
                 f,
-                "Snapshot contained too many blocks. Expected {}, got {}",
-                expected, found
+                "Snapshot contained too many blocks. Expected {expected}, got {found}"
             ),
             Error::OldBlockPrunedDB => write!(
                 f,
@@ -103,21 +100,21 @@ impl fmt::Display for Error {
                 missing.len()
             ),
             Error::UnrecognizedCodeState(state) => {
-                write!(f, "Unrecognized code encoding ({})", state)
+                write!(f, "Unrecognized code encoding ({state})")
             }
             Error::RestorationAborted => write!(f, "Snapshot restoration aborted."),
             Error::Io(ref err) => err.fmt(f),
             Error::Decoder(ref err) => err.fmt(f),
             Error::Trie(ref err) => err.fmt(f),
             Error::VersionNotSupported(ref ver) => {
-                write!(f, "Snapshot version {} is not supprted.", ver)
+                write!(f, "Snapshot version {ver} is not supprted.")
             }
             Error::ChunkTooSmall => write!(f, "Chunk size is too small."),
             Error::ChunkTooLarge => write!(f, "Chunk size is too large."),
             Error::SnapshotsUnsupported => write!(f, "Snapshots unsupported by consensus engine."),
             Error::SnapshotAborted => write!(f, "Snapshot was aborted."),
-            Error::BadEpochProof(i) => write!(f, "Bad epoch proof for transition to epoch {}", i),
-            Error::WrongChunkFormat(ref msg) => write!(f, "Wrong chunk format: {}", msg),
+            Error::BadEpochProof(i) => write!(f, "Bad epoch proof for transition to epoch {i}"),
+            Error::WrongChunkFormat(ref msg) => write!(f, "Wrong chunk format: {msg}"),
             Error::UnlinkedAncientBlockChain => write!(f, "Unlinked ancient blocks chain"),
         }
     }

@@ -21,7 +21,6 @@ use std::{collections::HashMap, time::Instant};
 use crypto::publickey::Address;
 use ethkey::Password;
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 
 /// Type of unlock.
 #[derive(Clone, PartialEq)]

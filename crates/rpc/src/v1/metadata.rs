@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! OpenEthereum RPC requests Metadata.
+//! `OpenEthereum` RPC requests Metadata.
 use std::sync::Arc;
 
 use jsonrpc_core;
@@ -27,7 +27,7 @@ use v1::types::Origin;
 pub struct Metadata {
     /// Request origin
     pub origin: Origin,
-    /// Request PubSub Session
+    /// Request `PubSub` Session
     pub session: Option<Arc<Session>>,
 }
 

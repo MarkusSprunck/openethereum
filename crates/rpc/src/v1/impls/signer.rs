@@ -81,9 +81,7 @@ impl<D: Dispatcher + 'static> SignerClient<D> {
                         subscription
                             .notify(Ok(requests.clone()))
                             .map(|_| ())
-                            .map_err(
-                                |e| warn!(target: "rpc", "Unable to send notification: {}", e),
-                            ),
+                            .map_err(|e| warn!(target: "rpc", "Unable to send notification: {e}")),
                     );
                 }
             }
@@ -131,7 +129,7 @@ impl<D: Dispatcher + 'static> SignerClient<D> {
                             request.gas = gas;
                         }
                         if let Some(ref condition) = modification.condition {
-                            request.condition = condition.clone().map(Into::into);
+                            request.condition = condition.clone();
                         }
                     }
                     let fut = f(dispatcher, &self.accounts, payload);
@@ -182,16 +180,16 @@ impl<D: Dispatcher + 'static> SignerClient<D> {
         } else {
             let mut error = Vec::new();
             if !sender_matches {
-                error.push("from")
+                error.push("from");
             }
             if !data_matches {
-                error.push("data")
+                error.push("data");
             }
             if !value_matches {
-                error.push("value")
+                error.push("value");
             }
             if !nonce_matches {
-                error.push("nonce")
+                error.push("nonce");
             }
 
             Err(errors::invalid_params(
@@ -277,7 +275,6 @@ impl<D: Dispatcher + 'static> Signer for SignerClient<D> {
                         Self::verify_transaction(bytes, request, |pending_transaction| {
                             self.dispatcher
                                 .dispatch_transaction(pending_transaction)
-                                .map(Into::into)
                                 .map(ConfirmationResponse::SendTransaction)
                         })
                     }
@@ -357,7 +354,7 @@ impl<D: Dispatcher + 'static> Signer for SignerClient<D> {
         self.deprecation_notice
             .print("signer_subscribePending", deprecated::msgs::ACCOUNTS);
 
-        self.subscribers.lock().push(sub)
+        self.subscribers.lock().push(sub);
     }
 
     fn unsubscribe_pending(&self, _: Option<Self::Metadata>, id: SubscriptionId) -> Result<bool> {

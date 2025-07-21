@@ -286,12 +286,7 @@ impl Block {
     /// Decode the header.
     pub fn decode_header(&self, eip1559_transition: BlockNumber) -> FullHeader {
         FullHeader::decode_rlp(&self.view().rlp().at(0).rlp, eip1559_transition).unwrap_or_else(
-            |e| {
-                panic!(
-                    "block header, view rlp is trusted and should be valid: {:?}",
-                    e
-                )
-            },
+            |e| panic!("block header, view rlp is trusted and should be valid: {e:?}"),
         )
     }
 

@@ -50,12 +50,8 @@ fn clean_0x(s: &str) -> &str {
 }
 
 fn to_seconds(s: &str) -> Result<u64, String> {
-    let bad = |_| {
-        format!(
-            "{}: Invalid duration given. See openethereum --help for more information.",
-            s
-        )
-    };
+    let bad =
+        |_| format!("{s}: Invalid duration given. See openethereum --help for more information.");
 
     match s {
         "twice-daily" => Ok(12 * 60 * 60),
@@ -94,8 +90,7 @@ pub fn to_mode(s: &str, timeout: u64, alarm: u64) -> Result<Mode, String> {
         "dark" => Ok(Mode::Dark(Duration::from_secs(timeout))),
         "offline" => Ok(Mode::Off),
         _ => Err(format!(
-            "{}: Invalid value for --mode. Must be one of active, passive, dark or offline.",
-            s
+            "{s}: Invalid value for --mode. Must be one of active, passive, dark or offline."
         )),
     }
 }
@@ -118,7 +113,7 @@ pub fn to_u256(s: &str) -> Result<U256, String> {
     } else {
         clean_0x(s)
             .parse()
-            .map_err(|_| format!("Invalid numeric value: {}", s))
+            .map_err(|_| format!("Invalid numeric value: {s}"))
     }
 }
 
@@ -127,14 +122,14 @@ pub fn to_pending_set(s: &str) -> Result<PendingSet, String> {
         "cheap" => Ok(PendingSet::AlwaysQueue),
         "strict" => Ok(PendingSet::AlwaysSealing),
         "lenient" => Ok(PendingSet::SealingOrElseQueue),
-        other => Err(format!("Invalid pending set value: {:?}", other)),
+        other => Err(format!("Invalid pending set value: {other:?}")),
     }
 }
 
 pub fn to_queue_strategy(s: &str) -> Result<PrioritizationStrategy, String> {
     match s {
         "gas_price" => Ok(PrioritizationStrategy::GasPriceOnly),
-        other => Err(format!("Invalid queue strategy: {}", other)),
+        other => Err(format!("Invalid queue strategy: {other}")),
     }
 }
 
@@ -151,7 +146,7 @@ pub fn to_address(s: Option<String>) -> Result<Address, String> {
     match s {
         Some(ref a) => clean_0x(a)
             .parse()
-            .map_err(|_| format!("Invalid address: {:?}", a)),
+            .map_err(|_| format!("Invalid address: {a:?}")),
         None => Ok(Address::default()),
     }
 }
@@ -163,7 +158,7 @@ pub fn to_addresses(s: &Option<String>) -> Result<Vec<Address>, String> {
             .map(|a| {
                 clean_0x(a)
                     .parse()
-                    .map_err(|_| format!("Invalid address: {:?}", a))
+                    .map_err(|_| format!("Invalid address: {a:?}"))
             })
             .collect(),
         _ => Ok(Vec::new()),
@@ -172,12 +167,8 @@ pub fn to_addresses(s: &Option<String>) -> Result<Vec<Address>, String> {
 
 /// Tries to parse string as a price.
 pub fn to_price(s: &str) -> Result<f32, String> {
-    s.parse::<f32>().map_err(|_| {
-        format!(
-            "Invalid transaction price {:?} given. Must be a decimal number.",
-            s
-        )
-    })
+    s.parse::<f32>()
+        .map_err(|_| format!("Invalid transaction price {s:?} given. Must be a decimal number."))
 }
 
 pub fn join_set(set: Option<&HashSet<String>>) -> Option<String> {
@@ -198,7 +189,7 @@ pub fn flush_stdout() {
 pub fn parity_ipc_path(base: &str, path: &str, shift: u16) -> String {
     let mut path = path.to_owned();
     if shift != 0 {
-        path = path.replace("jsonrpc.ipc", &format!("jsonrpc-{}.ipc", shift));
+        path = path.replace("jsonrpc.ipc", &format!("jsonrpc-{shift}.ipc"));
     }
     replace_home(base, &path)
 }
@@ -211,11 +202,10 @@ pub fn to_bootnodes(bootnodes: &Option<String>) -> Result<Vec<String>, String> {
             .map(|s| match validate_node_url(s).map(Into::into) {
                 None => Ok(s.to_owned()),
                 Some(sync::ErrorKind::AddressResolve(_)) => {
-                    Err(format!("Failed to resolve hostname of a boot node: {}", s))
+                    Err(format!("Failed to resolve hostname of a boot node: {s}"))
                 }
                 Some(_) => Err(format!(
-                    "Invalid node address format given for a boot node: {}",
-                    s
+                    "Invalid node address format given for a boot node: {s}"
                 )),
             })
             .collect(),
@@ -314,22 +304,22 @@ pub fn execute_upgrades(
 
     match upgrade(&dirs.path) {
         Ok(upgrades_applied) if upgrades_applied > 0 => {
-            debug!("Executed {} upgrade scripts - ok", upgrades_applied);
+            debug!("Executed {upgrades_applied} upgrade scripts - ok");
         }
         Err(e) => {
-            return Err(format!("Error upgrading OpenEthereum data: {:?}", e));
+            return Err(format!("Error upgrading OpenEthereum data: {e:?}"));
         }
         _ => {}
     }
 
     let client_path = dirs.db_path(pruning);
-    migrate(&client_path, compaction_profile).map_err(|e| format!("{}", e))
+    migrate(&client_path, compaction_profile).map_err(|e| format!("{e}"))
 }
 
 /// Prompts user asking for password.
 pub fn password_prompt() -> Result<Password, String> {
     use rpassword::read_password;
-    const STDIN_ERROR: &'static str = "Unable to ask for password on non-interactive terminal.";
+    const STDIN_ERROR: &str = "Unable to ask for password on non-interactive terminal.";
 
     println!("Please note that password is NOT RECOVERABLE.");
     print!("Type password: ");
@@ -354,15 +344,15 @@ pub fn password_from_file(path: String) -> Result<Password, String> {
     let passwords = passwords_from_files(&[path])?;
     // use only first password from the file
     passwords
-        .get(0)
-        .map(Password::clone)
+        .first()
+        .cloned()
         .ok_or_else(|| "Password file seems to be empty.".to_owned())
 }
 
 /// Reads passwords from files. Treats each line as a separate password.
 pub fn passwords_from_files(files: &[String]) -> Result<Vec<Password>, String> {
     let passwords = files.iter().map(|filename| {
-		let file = File::open(filename).map_err(|_| format!("{} Unable to read password file. Ensure it exists and permissions are correct.", filename))?;
+		let file = File::open(filename).map_err(|_| format!("{filename} Unable to read password file. Ensure it exists and permissions are correct."))?;
 		let reader = BufReader::new(&file);
 		let lines = reader.lines()
 			.filter_map(|l| l.ok())
@@ -370,7 +360,7 @@ pub fn passwords_from_files(files: &[String]) -> Result<Vec<Password>, String> {
 			.collect::<Vec<Password>>();
 		Ok(lines)
 	}).collect::<Result<Vec<Vec<Password>>, String>>();
-    Ok(passwords?.into_iter().flat_map(|x| x).collect())
+    Ok(passwords?.into_iter().flatten().collect())
 }
 
 #[cfg(test)]
@@ -401,7 +391,7 @@ mod tests {
         assert_eq!(to_duration("1second").unwrap(), Duration::from_secs(1));
         assert_eq!(to_duration("2seconds").unwrap(), Duration::from_secs(2));
         assert_eq!(to_duration("15seconds").unwrap(), Duration::from_secs(15));
-        assert_eq!(to_duration("1minute").unwrap(), Duration::from_secs(1 * 60));
+        assert_eq!(to_duration("1minute").unwrap(), Duration::from_secs(60));
         assert_eq!(
             to_duration("2minutes").unwrap(),
             Duration::from_secs(2 * 60)
@@ -415,10 +405,7 @@ mod tests {
             to_duration("daily").unwrap(),
             Duration::from_secs(24 * 60 * 60)
         );
-        assert_eq!(
-            to_duration("1hour").unwrap(),
-            Duration::from_secs(1 * 60 * 60)
-        );
+        assert_eq!(to_duration("1hour").unwrap(), Duration::from_secs(60 * 60));
         assert_eq!(
             to_duration("2hours").unwrap(),
             Duration::from_secs(2 * 60 * 60)
@@ -429,7 +416,7 @@ mod tests {
         );
         assert_eq!(
             to_duration("1day").unwrap(),
-            Duration::from_secs(1 * 24 * 60 * 60)
+            Duration::from_secs(24 * 60 * 60)
         );
         assert_eq!(
             to_duration("2days").unwrap(),

@@ -239,7 +239,7 @@ impl StoreAccountRef {
     pub fn new(vault_ref: SecretVaultRef, address: Address) -> Self {
         StoreAccountRef {
             vault: vault_ref,
-            address: address,
+            address,
         }
     }
 }

@@ -166,7 +166,7 @@ impl RpcStats {
 
     /// Add roundtrip time (microseconds)
     pub fn add_roundtrip(&self, microseconds: u128) {
-        self.roundtrips.write().add(microseconds)
+        self.roundtrips.write().add(microseconds);
     }
 
     /// Returns number of open sessions
@@ -250,7 +250,7 @@ pub struct ClientNotifier {
 
 impl ActivityNotifier for ClientNotifier {
     fn active(&self) {
-        self.client.keep_alive()
+        self.client.keep_alive();
     }
 }
 
@@ -321,6 +321,6 @@ mod tests {
     }
 
     fn is_sync<F: Send + Sync>(x: F) {
-        drop(x)
+        drop(x);
     }
 }

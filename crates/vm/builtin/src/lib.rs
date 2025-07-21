@@ -23,7 +23,6 @@ use std::{
     collections::BTreeMap,
     convert::{TryFrom, TryInto},
     io::{self, Cursor, Read},
-    mem::size_of,
     str::FromStr,
 };
 
@@ -34,7 +33,6 @@ use eth_pairings::public_interface::eip2537::{
     SERIALIZED_G2_POINT_BYTE_LENGTH,
 };
 use ethereum_types::{H256, U256};
-use ethjson;
 use keccak_hash::keccak;
 use log::{trace, warn};
 use num::Zero;
@@ -73,7 +71,7 @@ impl Pricer for Blake2FPricer {
         }
         let (rounds_bytes, _) = input.split_at(FOUR);
         let rounds = u32::from_be_bytes(rounds_bytes.try_into().unwrap_or([0u8; 4]));
-        U256::from(*self as u64 * rounds as u64)
+        U256::from(*self * rounds as u64)
     }
 }
 
@@ -128,7 +126,7 @@ struct Modexp2565Pricer {}
 
 impl Pricer for Linear {
     fn cost(&self, input: &[u8]) -> U256 {
-        U256::from(self.base) + U256::from(self.word) * U256::from((input.len() + 31) / 32)
+        U256::from(self.base) + U256::from(self.word) * U256::from(input.len().div_ceil(32))
     }
 }
 
@@ -182,7 +180,7 @@ impl Pricer for ModexpPricer {
         if overflow {
             return U256::max_value();
         }
-        (gas / self.divisor as u64).into()
+        (gas / self.divisor).into()
     }
 }
 
@@ -260,7 +258,7 @@ impl Pricer for Modexp2565Pricer {
             let mut bit_no = 255u64;
             while bit_no > 0 {
                 if a.bit(bit_no as usize) {
-                    return 1 + bit_no as u64;
+                    return 1 + bit_no;
                 }
                 bit_no -= 1;
             }
@@ -712,7 +710,7 @@ impl FromStr for EthereumBuiltin {
             "bls12_381_pairing" => Ok(EthereumBuiltin::Bls12Pairing(Bls12Pairing)),
             "bls12_381_fp_to_g1" => Ok(EthereumBuiltin::Bls12MapFpToG1(Bls12MapFpToG1)),
             "bls12_381_fp2_to_g2" => Ok(EthereumBuiltin::Bls12MapFp2ToG2(Bls12MapFp2ToG2)),
-            _ => return Err(format!("invalid builtin name: {}", name)),
+            _ => Err(format!("invalid builtin name: {name}")),
         }
     }
 }
@@ -853,7 +851,7 @@ impl Implementation for EcRecover {
 impl Implementation for Sha256 {
     fn execute(&self, input: &[u8], output: &mut BytesRef) -> Result<(), &'static str> {
         let d = digest::sha256(input);
-        output.write(0, &*d);
+        output.write(0, &d);
         Ok(())
     }
 }
@@ -867,7 +865,7 @@ impl Implementation for Blake2F {
 
         if input.len() != BLAKE2_F_ARG_LEN {
             trace!(target: "builtin", "input length for Blake2 F precompile should be exactly 213 bytes, was {}", input.len());
-            return Err("input length for Blake2 F precompile should be exactly 213 bytes".into());
+            return Err("input length for Blake2 F precompile should be exactly 213 bytes");
         }
 
         let mut cursor = Cursor::new(input);
@@ -897,13 +895,13 @@ impl Implementation for Blake2F {
             Some(0) => false,
             _ => {
                 trace!(target: "builtin", "incorrect final block indicator flag, was: {:?}", input.last());
-                return Err("incorrect final block indicator flag".into());
+                return Err("incorrect final block indicator flag");
             }
         };
 
         compress(&mut h, m, t, f, rounds as usize);
 
-        let mut output_buf = [0u8; 8 * size_of::<u64>()];
+        let mut output_buf = [0u8; u64::BITS as usize];
         for (i, state_word) in h.iter().enumerate() {
             output_buf[i * 8..(i + 1) * 8].copy_from_slice(&state_word.to_le_bytes());
         }
@@ -1042,7 +1040,7 @@ impl Implementation for Bls12G1Add {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12G1Add error: {:?}", e);
+                trace!(target: "builtin", "Bls12G1Add error: {e:?}");
 
                 Err("Bls12G1Add error")
             }
@@ -1061,7 +1059,7 @@ impl Implementation for Bls12G1Mul {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12G1Mul error: {:?}", e);
+                trace!(target: "builtin", "Bls12G1Mul error: {e:?}");
 
                 Err("Bls12G1Mul error")
             }
@@ -1080,7 +1078,7 @@ impl Implementation for Bls12G1MultiExp {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12G1MultiExp error: {:?}", e);
+                trace!(target: "builtin", "Bls12G1MultiExp error: {e:?}");
 
                 Err("Bls12G1MultiExp error")
             }
@@ -1099,7 +1097,7 @@ impl Implementation for Bls12G2Add {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12G2Add error: {:?}", e);
+                trace!(target: "builtin", "Bls12G2Add error: {e:?}");
 
                 Err("Bls12G2Add error")
             }
@@ -1118,7 +1116,7 @@ impl Implementation for Bls12G2Mul {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12G2Mul error: {:?}", e);
+                trace!(target: "builtin", "Bls12G2Mul error: {e:?}");
 
                 Err("Bls12G2Mul error")
             }
@@ -1137,7 +1135,7 @@ impl Implementation for Bls12G2MultiExp {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12G2MultiExp error: {:?}", e);
+                trace!(target: "builtin", "Bls12G2MultiExp error: {e:?}");
 
                 Err("Bls12G2MultiExp error")
             }
@@ -1156,7 +1154,7 @@ impl Implementation for Bls12Pairing {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12Pairing error: {:?}", e);
+                trace!(target: "builtin", "Bls12Pairing error: {e:?}");
 
                 Err("Bls12Pairing error")
             }
@@ -1175,7 +1173,7 @@ impl Implementation for Bls12MapFpToG1 {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12MapFpToG1 error: {:?}", e);
+                trace!(target: "builtin", "Bls12MapFpToG1 error: {e:?}");
 
                 Err("Bls12MapFpToG1 error")
             }
@@ -1194,7 +1192,7 @@ impl Implementation for Bls12MapFp2ToG2 {
                 Ok(())
             }
             Err(e) => {
-                trace!(target: "builtin", "Bls12MapFp2ToG2 error: {:?}", e);
+                trace!(target: "builtin", "Bls12MapFp2ToG2 error: {e:?}");
 
                 Err("Bls12MapFp2ToG2 error")
             }
@@ -1290,11 +1288,11 @@ impl Implementation for Bn128Pairing {
     ///     - any of even points does not belong to the twisted bn128 curve over the field F_p^2 = F_p[i] / (i^2 + 1)
     fn execute(&self, input: &[u8], output: &mut BytesRef) -> Result<(), &'static str> {
         if input.len() % 192 != 0 {
-            return Err("Invalid input length, must be multiple of 192 (3 * (32*2))".into());
+            return Err("Invalid input length, must be multiple of 192 (3 * (32*2))");
         }
 
         if let Err(err) = self.execute_with_error(input, output) {
-            trace!(target: "builtin", "Pairing error: {:?}", err);
+            trace!(target: "builtin", "Pairing error: {err:?}");
             return Err(err);
         }
         Ok(())
@@ -1958,7 +1956,7 @@ mod tests {
 				1111111111111111111111111111111111111111111111111111111111111111"
             );
 
-            let mut output = vec![0u8; 64];
+            let mut output = [0u8; 64];
 
             let res = f.execute(&input[..], &mut BytesRef::Fixed(&mut output[..]));
             assert!(res.is_err(), "There should be built-in error here");
@@ -2002,7 +2000,7 @@ mod tests {
 				0f00000000000000000000000000000000000000000000000000000000000000"
             );
 
-            let mut output = vec![0u8; 64];
+            let mut output = [0u8; 64];
 
             let res = f.execute(&input[..], &mut BytesRef::Fixed(&mut output[..]));
             assert!(res.is_err(), "There should be built-in error here");
@@ -2028,15 +2026,12 @@ mod tests {
     }
 
     fn error_test(f: Builtin, input: &[u8], msg_contains: Option<&str>) {
-        let mut output = vec![0u8; 64];
+        let mut output = [0u8; 64];
         let res = f.execute(input, &mut BytesRef::Fixed(&mut output[..]));
         if let Some(msg) = msg_contains {
             if let Err(e) = res {
                 if !e.contains(msg) {
-                    panic!(
-                        "There should be error containing '{}' here, but got: '{}'",
-                        msg, e
-                    );
+                    panic!("There should be error containing '{msg}' here, but got: '{e}'");
                 }
             }
         } else {
@@ -2767,14 +2762,12 @@ mod tests {
             assert_eq!(
                 eip198pricer.cost(&input).as_u64(),
                 U256::from(eip198gas).low_u64(),
-                "eip198 gas estimates not equal for {}",
-                name
+                "eip198 gas estimates not equal for {name}"
             );
             assert_eq!(
                 eip2565pricer.cost(&input).as_u64(),
                 U256::from(eip2565gas).low_u64(),
-                "eip2565 gas estimates not equal for {}",
-                name
+                "eip2565 gas estimates not equal for {name}"
             );
         }
     }

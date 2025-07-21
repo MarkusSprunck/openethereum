@@ -33,7 +33,7 @@ pub use parity_rpc::{HttpServer, IpcServer};
 //pub use parity_rpc::ws::Server as WsServer;
 pub use parity_rpc::ws::{ws, Server as WsServer};
 
-pub const DAPPS_DOMAIN: &'static str = "web3.site";
+pub const DAPPS_DOMAIN: &str = "web3.site";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct HttpConfiguration {
@@ -140,7 +140,7 @@ fn address(
 
     match *hosts {
         Some(ref hosts) if !hosts.is_empty() => Some(hosts[0].clone().into()),
-        _ => Some(format!("{}:{}", bind_iface, bind_port).into()),
+        _ => Some(format!("{bind_iface}:{bind_port}").into()),
     }
 }
 
@@ -163,7 +163,7 @@ pub fn new_ws<D: rpc_apis::Dependencies>(
     let url = format!("{}:{}", conf.interface, conf.port);
     let addr = url
         .parse()
-        .map_err(|_| format!("Invalid WebSockets listen host/port given: {}", url))?;
+        .map_err(|_| format!("Invalid WebSockets listen host/port given: {url}"))?;
 
     let full_handler = setup_apis(rpc_apis::ApiSet::All, deps);
     let handler = {
@@ -194,8 +194,8 @@ pub fn new_ws<D: rpc_apis::Dependencies>(
         allowed_origins,
         allowed_hosts,
         conf.max_connections,
-        rpc::WsExtractor::new(path.clone()),
-        rpc::WsExtractor::new(path.clone()),
+        rpc::WsExtractor::new(path),
+        rpc::WsExtractor::new(path),
         rpc::WsStats::new(deps.stats.clone()),
         conf.max_payload,
     );
@@ -212,9 +212,9 @@ pub fn new_ws<D: rpc_apis::Dependencies>(
 		Err(rpc::ws::Error::WsError(ws::Error {
 			                            kind: ws::ErrorKind::Io(ref err), ..
 		                            })) if err.kind() == io::ErrorKind::AddrInUse => Err(
-			format!("WebSockets address {} is already in use, make sure that another instance of an Ethereum client is not running or change the address using the --ws-port and --ws-interface options.", url)
+			format!("WebSockets address {url} is already in use, make sure that another instance of an Ethereum client is not running or change the address using the --ws-port and --ws-interface options.")
 		),
-		Err(e) => Err(format!("WebSockets error: {:?}", e)),
+		Err(e) => Err(format!("WebSockets error: {e:?}")),
 	}
 }
 
@@ -232,7 +232,7 @@ pub fn new_http<D: rpc_apis::Dependencies>(
     let url = format!("{}:{}", conf.interface, conf.port);
     let addr = url
         .parse()
-        .map_err(|_| format!("Invalid {} listen host/port given: {}", id, url))?;
+        .map_err(|_| format!("Invalid {id} listen host/port given: {url}"))?;
     let handler = setup_apis(conf.apis, deps);
 
     let cors_domains = into_domains(conf.cors);
@@ -254,9 +254,9 @@ pub fn new_http<D: rpc_apis::Dependencies>(
     match start_result {
 		Ok(server) => Ok(Some(server)),
 		Err(ref err) if err.kind() == io::ErrorKind::AddrInUse => Err(
-			format!("{} address {} is already in use, make sure that another instance of an Ethereum client is not running or change the address using the --{}-port and --{}-interface options.", id, url, options, options)
+			format!("{id} address {url} is already in use, make sure that another instance of an Ethereum client is not running or change the address using the --{options}-port and --{options}-interface options.")
 		),
-		Err(e) => Err(format!("{} error: {:?}", id, e)),
+		Err(e) => Err(format!("{id} error: {e:?}")),
 	}
 }
 
@@ -272,7 +272,7 @@ pub fn new_ipc<D: rpc_apis::Dependencies>(
     let path = PathBuf::from(&conf.socket_addr);
     // Make sure socket file can be created on unix-like OS.
     if let Some(dir) = path.parent() {
-        ::std::fs::create_dir_all(&dir).map_err(|err| {
+        ::std::fs::create_dir_all(dir).map_err(|err| {
             format!(
                 "Unable to create IPC directory at {}: {}",
                 dir.display(),
@@ -283,7 +283,7 @@ pub fn new_ipc<D: rpc_apis::Dependencies>(
 
     match rpc_servers::start_ipc(&conf.socket_addr, handler, rpc::RpcExtractor) {
         Ok(server) => Ok(Some(server)),
-        Err(io_error) => Err(format!("IPC error: {}", io_error)),
+        Err(io_error) => Err(format!("IPC error: {io_error}")),
     }
 }
 
@@ -309,9 +309,9 @@ fn with_domain(
                 if let Some(host) = address.clone() {
                     items.insert(host.to_string());
                     items.insert(host.replace("127.0.0.1", "localhost"));
-                    items.insert(format!("http://*.{}", domain)); //proxypac
-                    if let Some(port) = extract_port(&*host) {
-                        items.insert(format!("http://*.{}:{}", domain, port));
+                    items.insert(format!("http://*.{domain}")); //proxypac
+                    if let Some(port) = extract_port(&host) {
+                        items.insert(format!("http://*.{domain}:{port}"));
                     }
                 }
             };

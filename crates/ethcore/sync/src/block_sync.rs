@@ -150,9 +150,9 @@ impl BlockDownloader {
             state: State::Idle,
             highest_block: None,
             last_imported_block: start_number,
-            last_imported_hash: start_hash.clone(),
+            last_imported_hash: *start_hash,
             last_round_start: start_number,
-            last_round_start_hash: start_hash.clone(),
+            last_round_start_hash: *start_hash,
             blocks: BlockCollection::new(sync_receipts),
             imported_this_round: None,
             round_parents: VecDeque::new(),
@@ -172,12 +172,12 @@ impl BlockDownloader {
 
     /// Mark a block as known in the chain
     pub fn mark_as_known(&mut self, hash: &H256, number: BlockNumber) {
-        if number >= self.last_imported_block + 1 {
+        if number > self.last_imported_block {
             self.last_imported_block = number;
-            self.last_imported_hash = hash.clone();
+            self.last_imported_hash = *hash;
             self.imported_this_round = Some(self.imported_this_round.unwrap_or(0) + 1);
             self.last_round_start = number;
-            self.last_round_start_hash = hash.clone();
+            self.last_round_start_hash = *hash;
         }
     }
 
@@ -193,7 +193,7 @@ impl BlockDownloader {
 
     /// Set starting sync block
     pub fn set_target(&mut self, hash: &H256) {
-        self.target_hash = Some(hash.clone());
+        self.target_hash = Some(*hash);
     }
 
     /// Unmark header as being downloaded.
@@ -230,9 +230,9 @@ impl BlockDownloader {
     fn reset_to_block(&mut self, start_hash: &H256, start_number: BlockNumber) {
         self.reset();
         self.last_imported_block = start_number;
-        self.last_imported_hash = start_hash.clone();
+        self.last_imported_hash = *start_hash;
         self.last_round_start = start_number;
-        self.last_round_start_hash = start_hash.clone();
+        self.last_round_start_hash = *start_hash;
         self.imported_this_round = None;
         self.round_parents = VecDeque::new();
         //self.target_hash = None; // target_hash is only used for old (ancient) block download. And once set should not be reseted in any way.
@@ -314,7 +314,7 @@ impl BlockDownloader {
             }
 
             // Check if received header is present in chain. If it is in chain include header into list that will be inserted
-            match io.chain().block_status(BlockId::Hash(hash.clone())) {
+            match io.chain().block_status(BlockId::Hash(hash)) {
                 BlockStatus::InChain | BlockStatus::Queued => {
                     match self.state {
                         State::Blocks => {
@@ -343,7 +343,7 @@ impl BlockDownloader {
 
         // Set highest block that we receive from network. This is only used as stat and nothing more.
         if let Some((number, _)) = last_header {
-            if self.highest_block.as_ref().map_or(true, |n| number > *n) {
+            if self.highest_block.as_ref().is_none_or(|n| number > *n) {
                 self.highest_block = Some(number);
             }
         }
@@ -504,7 +504,7 @@ impl BlockDownloader {
                 // search parent in last round known parents first
                 if let Some(&(_, p)) = self.round_parents.iter().find(|&&(h, _)| h == start_hash) {
                     self.last_imported_block = start - 1;
-                    self.last_imported_hash = p.clone();
+                    self.last_imported_hash = p;
                     trace_sync!(
                         self,
                         "Searching common header from the last round {} ({})",
@@ -600,7 +600,7 @@ impl BlockDownloader {
                     // Request MAX_HEADERS_TO_REQUEST - 2 headers apart so that
                     // MAX_HEADERS_TO_REQUEST would include headers for neighbouring subchains
                     return Some(BlockRequest::Headers {
-                        start: self.last_imported_hash.clone(),
+                        start: self.last_imported_hash,
                         count: SUBCHAIN_SIZE,
                         skip: (MAX_HEADERS_TO_REQUEST - 2) as u64,
                     });
@@ -669,7 +669,7 @@ impl BlockDownloader {
             let number = block.header.number();
             let parent = *block.header.parent_hash();
 
-            if self.target_hash.as_ref().map_or(false, |t| t == &h) {
+            if self.target_hash.as_ref() == Some(&h) {
                 self.state = State::Complete;
                 info!(
                     "Sync target {:?} for old blocks reached. Syncing ancient blocks finished.",
@@ -695,7 +695,7 @@ impl BlockDownloader {
                 }
                 Ok(_) => {
                     trace_sync!(self, "Block queued {:?}", h);
-                    imported.insert(h.clone());
+                    imported.insert(h);
                     self.block_imported(&h, number, &parent);
                 }
                 Err(EthcoreError(EthcoreErrorKind::Block(BlockError::UnknownParent(_)), _))
@@ -739,8 +739,8 @@ impl BlockDownloader {
 
     fn block_imported(&mut self, hash: &H256, number: BlockNumber, parent: &H256) {
         self.last_imported_block = number;
-        self.last_imported_hash = hash.clone();
-        self.round_parents.push_back((hash.clone(), parent.clone()));
+        self.last_imported_hash = *hash;
+        self.round_parents.push_back((*hash, *parent));
         if self.round_parents.len() > MAX_ROUND_PARENTS {
             self.round_parents.pop_front();
         }
@@ -754,7 +754,7 @@ where
 {
     let mut expected_iter = expected_values.iter();
     values.iter().all(|val1| {
-        while let Some(val2) = expected_iter.next() {
+        for val2 in expected_iter.by_ref() {
             if is_expected(val1, val2) {
                 return true;
             }

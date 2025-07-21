@@ -33,18 +33,15 @@ use std::{
 use futures::Future;
 
 fn sign_interactive(signer: &mut SignerRpc, password: &str, request: ConfirmationRequest) {
-    print!(
-        "\n{}\nSign this transaction? (y)es/(N)o/(r)eject: ",
-        request
-    );
+    print!("\n{request}\nSign this transaction? (y)es/(N)o/(r)eject: ");
     let _ = stdout().flush();
     match BufReader::new(stdin()).lines().next() {
-        Some(Ok(line)) => match line.to_lowercase().chars().nth(0) {
+        Some(Ok(line)) => match line.to_lowercase().chars().next() {
             Some('y') => match sign_transaction(signer, request.id, password) {
-                Ok(s) | Err(s) => println!("{}", s),
+                Ok(s) | Err(s) => println!("{s}"),
             },
             Some('r') => match reject_transaction(signer, request.id) {
-                Ok(s) | Err(s) => println!("{}", s),
+                Ok(s) | Err(s) => println!("{s}"),
             },
             _ => (),
         },
@@ -63,9 +60,9 @@ fn sign_transactions(signer: &mut SignerRpc, password: String) -> Result<String,
                 }
                 Ok("".to_owned())
             }
-            Err(err) => Err(format!("error: {:?}", err)),
+            Err(err) => Err(format!("error: {err:?}")),
         })
-        .map_err(|err| format!("{:?}", err))
+        .map_err(|err| format!("{err:?}"))
         .wait()?
 }
 
@@ -77,13 +74,13 @@ fn list_transactions(signer: &mut SignerRpc) -> Result<String, String> {
             Ok(ref reqs) => Ok(format!(
                 "Transaction queue:\n{}",
                 reqs.iter()
-                    .map(|r| format!("{}", r))
+                    .map(|r| format!("{r}"))
                     .collect::<Vec<String>>()
                     .join("\n")
             )),
-            Err(err) => Err(format!("error: {:?}", err)),
+            Err(err) => Err(format!("error: {err:?}")),
         })
-        .map_err(|err| format!("{:?}", err))
+        .map_err(|err| format!("{err:?}"))
         .wait()?
 }
 
@@ -91,10 +88,10 @@ fn sign_transaction(signer: &mut SignerRpc, id: U256, password: &str) -> Result<
     signer
         .confirm_request(id, None, None, None, password)
         .map(|res| match res {
-            Ok(u) => Ok(format!("Signed transaction id: {:#x}", u)),
-            Err(e) => Err(format!("{:?}", e)),
+            Ok(u) => Ok(format!("Signed transaction id: {u:#x}")),
+            Err(e) => Err(format!("{e:?}")),
         })
-        .map_err(|err| format!("{:?}", err))
+        .map_err(|err| format!("{err:?}"))
         .wait()?
 }
 
@@ -102,19 +99,19 @@ fn reject_transaction(signer: &mut SignerRpc, id: U256) -> Result<String, String
     signer
         .reject_request(id)
         .map(|res| match res {
-            Ok(true) => Ok(format!("Rejected transaction id {:#x}", id)),
-            Ok(false) => Err(format!("No such request")),
-            Err(e) => Err(format!("{:?}", e)),
+            Ok(true) => Ok(format!("Rejected transaction id {id:#x}")),
+            Ok(false) => Err("No such request".to_string()),
+            Err(e) => Err(format!("{e:?}")),
         })
-        .map_err(|err| format!("{:?}", err))
+        .map_err(|err| format!("{err:?}"))
         .wait()?
 }
 
 // cmds
 
 pub fn signer_list(signerport: u16, authfile: PathBuf) -> Result<String, String> {
-    let addr = &format!("ws://127.0.0.1:{}", signerport);
-    let mut signer = SignerRpc::new(addr, &authfile).map_err(|err| format!("{:?}", err))?;
+    let addr = &format!("ws://127.0.0.1:{signerport}");
+    let mut signer = SignerRpc::new(addr, &authfile).map_err(|err| format!("{err:?}"))?;
     list_transactions(&mut signer)
 }
 
@@ -123,9 +120,9 @@ pub fn signer_reject(
     signerport: u16,
     authfile: PathBuf,
 ) -> Result<String, String> {
-    let id = id.ok_or(format!("id required for signer reject"))?;
-    let addr = &format!("ws://127.0.0.1:{}", signerport);
-    let mut signer = SignerRpc::new(addr, &authfile).map_err(|err| format!("{:?}", err))?;
+    let id = id.ok_or("id required for signer reject".to_string())?;
+    let addr = &format!("ws://127.0.0.1:{signerport}");
+    let mut signer = SignerRpc::new(addr, &authfile).map_err(|err| format!("{err:?}"))?;
     reject_transaction(&mut signer, U256::from(id))
 }
 
@@ -140,20 +137,20 @@ pub fn signer_sign(
         Some(pwfile) => match File::open(pwfile) {
             Ok(fd) => match BufReader::new(fd).lines().next() {
                 Some(Ok(line)) => password = line,
-                _ => return Err(format!("No password in file")),
+                _ => return Err("No password in file".to_string()),
             },
-            Err(e) => return Err(format!("Could not open password file: {}", e)),
+            Err(e) => return Err(format!("Could not open password file: {e}")),
         },
         None => {
             password = match rpassword::prompt_password_stdout("Password: ") {
                 Ok(p) => p,
-                Err(e) => return Err(format!("{}", e)),
+                Err(e) => return Err(format!("{e}")),
             }
         }
     }
 
-    let addr = &format!("ws://127.0.0.1:{}", signerport);
-    let mut signer = SignerRpc::new(addr, &authfile).map_err(|err| format!("{:?}", err))?;
+    let addr = &format!("ws://127.0.0.1:{signerport}");
+    let mut signer = SignerRpc::new(addr, &authfile).map_err(|err| format!("{err:?}"))?;
 
     match id {
         Some(id) => sign_transaction(&mut signer, U256::from(id), &password),

@@ -21,12 +21,13 @@ use sync::SyncState;
 
 /// Check if client is during major sync or during block import and allows defining whether 'waiting for peers' should
 /// be considered a syncing state.
+#[must_use]
 pub fn is_major_importing_or_waiting(
     sync_state: Option<SyncState>,
     queue_info: BlockQueueInfo,
     waiting_is_syncing_state: bool,
 ) -> bool {
-    let is_syncing_state = sync_state.map_or(false, |s| match s {
+    let is_syncing_state = sync_state.is_some_and(|s| match s {
         SyncState::Idle | SyncState::NewBlocks => false,
         SyncState::WaitingPeers if !waiting_is_syncing_state => false,
         _ => true,
@@ -36,6 +37,7 @@ pub fn is_major_importing_or_waiting(
 }
 
 /// Check if client is during major sync or during block import.
+#[must_use]
 pub fn is_major_importing(sync_state: Option<SyncState>, queue_info: BlockQueueInfo) -> bool {
     is_major_importing_or_waiting(sync_state, queue_info, true)
 }

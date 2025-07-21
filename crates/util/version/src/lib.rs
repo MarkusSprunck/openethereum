@@ -33,7 +33,7 @@ const THIS_TRACK: &'static str = "stable";
 // ^^^ should be reset in Cargo.toml to "stable"
 
 #[cfg(not(feature = "final"))]
-const THIS_TRACK: &'static str = "unstable";
+const THIS_TRACK: &str = "unstable";
 // ^^^ This gets used when we're not building a final release; should stay as "unstable".
 
 /// Get the platform identifier.

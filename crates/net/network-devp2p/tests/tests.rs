@@ -52,7 +52,7 @@ impl TestProtocol {
             packet: Mutex::new(Vec::new()),
             got_timeout: AtomicBool::new(false),
             got_disconnect: AtomicBool::new(false),
-            drop_session: drop_session,
+            drop_session,
         }
     }
     /// Creates and register protocol with the network service

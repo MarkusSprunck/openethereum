@@ -87,7 +87,7 @@ impl<P: PostSign> ProspectiveSigner<P> {
     fn poll_reserved(&mut self) -> Poll<nonce::Ready, Error> {
         self.reserved
             .poll()
-            .map_err(|_| errors::internal("Nonce reservation failure", ""))
+            .map_err(|()| errors::internal("Nonce reservation failure", ""))
     }
 }
 
@@ -96,7 +96,7 @@ impl<P: PostSign> Future for ProspectiveSigner<P> {
     type Error = Error;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        use self::ProspectiveSignerState::*;
+        use self::ProspectiveSignerState::{TryProspectiveSign, WaitForNonce, WaitForPostSign};
 
         loop {
             match self.state {
@@ -148,9 +148,8 @@ impl<P: PostSign> Future for ProspectiveSigner<P> {
                             }
                             Async::NotReady => return Ok(Async::NotReady),
                         }
-                    } else {
-                        panic!("Poll after ready.");
                     }
+                    panic!("Poll after ready.");
                 }
             }
         }

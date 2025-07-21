@@ -30,7 +30,7 @@ pub fn replace_home(base: &str, arg: &str) -> String {
         arg.to_owned()
     };
     let r = r.replace("$BASE", base);
-    r.replace("/", &::std::path::MAIN_SEPARATOR.to_string())
+    r.replace("/", std::path::MAIN_SEPARATOR_STR)
 }
 
 /// Replaces `$HOME` str with home directory path and `$LOCAL` with local path.

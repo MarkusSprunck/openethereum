@@ -200,7 +200,7 @@ where
             let transactions = self
                 .transactions
                 .entry(transaction.sender().clone())
-                .or_insert_with(Transactions::default);
+                .or_default();
             // get worst and best transactions for comparison
             let prev = transactions.worst_and_best();
             let result = transactions.add(transaction, &self.scoring, self.options.max_per_sender);
@@ -225,13 +225,13 @@ where
             AddResult::TooCheap { new, old } => {
                 let error = error::Error::TooCheapToReplace(old.hash().clone(), new.hash().clone());
                 self.listener.rejected(&new, &error);
-                return Err(error);
+                Err(error)
             }
             AddResult::TooCheapToEnter(new, score) => {
                 let error =
-                    error::Error::TooCheapToEnter(new.hash().clone(), format!("{:#x}", score));
+                    error::Error::TooCheapToEnter(new.hash().clone(), format!("{score:#x}"));
                 self.listener.rejected(&new, &error);
-                return Err(error);
+                Err(error)
             }
         }
     }
@@ -327,8 +327,8 @@ where
                         .map(|txs| txs.iter_transactions().as_slice());
                     ReplaceTransaction::new(tx, sender_txs)
                 };
-                let old_replace = get_replace_tx(&old.transaction.sender(), &old.transaction);
-                let new_replace = get_replace_tx(&transaction.sender(), transaction);
+                let old_replace = get_replace_tx(old.transaction.sender(), &old.transaction);
+                let new_replace = get_replace_tx(transaction.sender(), transaction);
 
                 match replace.should_replace(&old_replace, &new_replace) {
                     // We can't decide which of them should be removed, so accept both.
@@ -555,7 +555,7 @@ where
     pub fn status<R: Ready<T>>(&self, mut ready: R) -> Status {
         let mut status = Status::default();
 
-        for (_sender, transactions) in &self.transactions {
+        for transactions in self.transactions.values() {
             let len = transactions.len();
             for (idx, tx) in transactions.iter_transactions().enumerate() {
                 match ready.is_ready(tx) {
@@ -647,7 +647,7 @@ where
                     loop {
                         if let Some(tx) = transactions.next() {
                             if let Some(score) = scores.next() {
-                                match self.ready.is_ready(&tx) {
+                                match self.ready.is_ready(tx) {
                                     Readiness::Ready => {
                                         //return transaction with score higher or equal to desired
                                         if score >= &self.includable_boundary

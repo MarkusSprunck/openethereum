@@ -121,7 +121,7 @@ impl From<ethjson::vm::Transaction> for ActionParams {
         ActionParams {
             code_address: Address::default(),
             code_hash: Some(keccak(&*t.code)),
-            address: address,
+            address,
             sender: t.sender.into(),
             origin: t.origin.into(),
             code: Some(Arc::new(t.code.into())),

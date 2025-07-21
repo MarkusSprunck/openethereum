@@ -83,7 +83,7 @@ impl BasicAuthority {
     /// Create a new instance of BasicAuthority engine
     pub fn new(our_params: BasicAuthorityParams, machine: EthereumMachine) -> Self {
         BasicAuthority {
-            machine: machine,
+            machine,
             signer: RwLock::new(None),
             validators: new_validator_set(our_params.validators),
         }
@@ -185,7 +185,7 @@ impl Engine<EthereumMachine> for BasicAuthority {
             .epoch_set(first, &self.machine, header.number(), proof)
         {
             Ok((list, finalize)) => {
-                let verifier = Box::new(EpochVerifier { list: list });
+                let verifier = Box::new(EpochVerifier { list });
 
                 // our epoch verifier will ensure no unverified verifier is ever verified.
                 match finalize {
@@ -210,7 +210,7 @@ impl Engine<EthereumMachine> for BasicAuthority {
             .signer
             .read()
             .as_ref()
-            .ok_or_else(|| publickey::Error::InvalidAddress)?
+            .ok_or(publickey::Error::InvalidAddress)?
             .sign(hash)?)
     }
 

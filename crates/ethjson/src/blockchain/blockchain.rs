@@ -24,18 +24,13 @@ use crate::{
 };
 
 /// Json Block test possible engine kind.
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Deserialize, Default)]
 pub enum Engine {
     /// Default (old) behaviour.
+    #[default]
     Ethash,
     /// No check of block's difficulty and nonce for tests.
     NoProof,
-}
-
-impl Default for Engine {
-    fn default() -> Self {
-        Engine::Ethash
-    }
 }
 
 /// Blockchain deserialization.

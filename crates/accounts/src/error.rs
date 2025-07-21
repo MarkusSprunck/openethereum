@@ -34,7 +34,7 @@ impl fmt::Display for SignError {
         match *self {
             SignError::NotUnlocked => write!(f, "Account is locked"),
             SignError::NotFound => write!(f, "Account does not exist"),
-            SignError::SStore(ref e) => write!(f, "{}", e),
+            SignError::SStore(ref e) => write!(f, "{e}"),
         }
     }
 }

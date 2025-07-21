@@ -91,7 +91,7 @@ mod tests {
         time: &'a Cell<i64>,
     }
 
-    impl<'a> Timer for TestTimer<'a> {
+    impl Timer for TestTimer<'_> {
         fn get_time(&self) -> i64 {
             self.time.get()
         }

@@ -76,10 +76,10 @@ fn signer_tester() -> SignerTester {
 
     SignerTester {
         _runtime: runtime,
-        signer: signer,
-        accounts: accounts,
-        io: io,
-        miner: miner,
+        signer,
+        accounts,
+        io,
+        miner,
     }
 }
 
@@ -111,7 +111,7 @@ fn should_return_list_of_items_to_confirm() {
     let _sign_future = tester
         .signer
         .add_request(
-            ConfirmationPayload::EthSignMessage(Address::from_low_u64_be(1), vec![5].into()),
+            ConfirmationPayload::EthSignMessage(Address::from_low_u64_be(1), vec![5]),
             Origin::Unknown,
         )
         .unwrap();
@@ -127,7 +127,7 @@ fn should_return_list_of_items_to_confirm() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
 }
@@ -165,7 +165,7 @@ fn should_reject_transaction_from_queue_without_dispatching() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
     assert_eq!(tester.signer.requests().len(), 0);
@@ -206,7 +206,7 @@ fn should_not_remove_transaction_if_password_is_invalid() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
     assert_eq!(tester.signer.requests().len(), 1);
@@ -219,7 +219,7 @@ fn should_not_remove_sign_if_password_is_invalid() {
     let _confirmation_future = tester
         .signer
         .add_request(
-            ConfirmationPayload::EthSignMessage(Address::from_low_u64_be(0), vec![5].into()),
+            ConfirmationPayload::EthSignMessage(Address::from_low_u64_be(0), vec![5]),
             Origin::Unknown,
         )
         .unwrap();
@@ -232,7 +232,7 @@ fn should_not_remove_sign_if_password_is_invalid() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
     assert_eq!(tester.signer.requests().len(), 1);
@@ -299,8 +299,8 @@ fn should_confirm_transaction_and_dispatch() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        tester.io.handle_request_sync(request),
+        Some(response.clone())
     );
     assert_eq!(tester.signer.requests().len(), 0);
     assert_eq!(tester.miner.imported_transactions.lock().len(), 1);
@@ -357,7 +357,7 @@ fn should_alter_the_sender_and_nonce() {
 		"method":"signer_confirmRequest",
 		"params":["0x1", {"sender":""#
         .to_owned()
-        + &format!("0x{:x}", address)
+        + &format!("0x{address:x}")
         + r#"","gasPrice":"0x1000","gas":"0x50505"}, "test"],
 		"id":1
 	}"#;
@@ -367,7 +367,7 @@ fn should_alter_the_sender_and_nonce() {
     // then
     assert_eq!(
         tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
     assert_eq!(tester.signer.requests().len(), 0);
     assert_eq!(tester.miner.imported_transactions.lock().len(), 1);
@@ -505,7 +505,7 @@ fn should_confirm_transaction_with_rlp() {
     // then
     assert_eq!(
         tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
     assert_eq!(tester.signer.requests().len(), 0);
     assert_eq!(tester.miner.imported_transactions.lock().len(), 1);
@@ -642,7 +642,7 @@ fn should_confirm_sign_transaction_with_rlp() {
         + r#""blockHash":null,"blockNumber":null,"#
         + &format!(
             "\"chainId\":{},",
-            t.chain_id().map_or("null".to_owned(), |n| format!("{}", n))
+            t.chain_id().map_or("null".to_owned(), |n| format!("{n}"))
         )
         + r#""condition":null,"creates":null,"#
         + &format!("\"from\":\"0x{:x}\",", &address)
@@ -664,7 +664,7 @@ fn should_confirm_sign_transaction_with_rlp() {
     // then
     assert_eq!(
         tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
     assert_eq!(tester.signer.requests().len(), 0);
     assert_eq!(tester.miner.imported_transactions.lock().len(), 0);
@@ -678,13 +678,13 @@ fn should_confirm_data_sign_with_signature() {
     let _confirmation_future = tester
         .signer
         .add_request(
-            ConfirmationPayload::EthSignMessage(address, vec![1, 2, 3, 4].into()),
+            ConfirmationPayload::EthSignMessage(address, vec![1, 2, 3, 4]),
             Origin::Unknown,
         )
         .unwrap();
     assert_eq!(tester.signer.requests().len(), 1);
 
-    let data_hash = eth_data_hash(vec![1, 2, 3, 4].into());
+    let data_hash = eth_data_hash(vec![1, 2, 3, 4]);
     let signature = H520(
         tester
             .accounts
@@ -692,7 +692,7 @@ fn should_confirm_data_sign_with_signature() {
             .unwrap()
             .into_electrum(),
     );
-    let signature = format!("{:?}", signature);
+    let signature = format!("{signature:?}");
 
     // when
     let request = r#"{
@@ -709,7 +709,7 @@ fn should_confirm_data_sign_with_signature() {
     // then
     assert_eq!(
         tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
     assert_eq!(tester.signer.requests().len(), 0);
     assert_eq!(tester.miner.imported_transactions.lock().len(), 0);
@@ -723,7 +723,7 @@ fn should_confirm_decrypt_with_phrase() {
     let _confirmation_future = tester
         .signer
         .add_request(
-            ConfirmationPayload::Decrypt(address, vec![1, 2, 3, 4].into()),
+            ConfirmationPayload::Decrypt(address, vec![1, 2, 3, 4]),
             Origin::Unknown,
         )
         .unwrap();
@@ -746,7 +746,7 @@ fn should_confirm_decrypt_with_phrase() {
     // then
     assert_eq!(
         tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
     assert_eq!(tester.signer.requests().len(), 0);
     assert_eq!(tester.miner.imported_transactions.lock().len(), 0);
@@ -768,7 +768,7 @@ fn should_generate_new_token() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
 }

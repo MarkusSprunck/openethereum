@@ -126,7 +126,7 @@ pub fn slow_hash_block_number(block_number: u64) -> H256 {
 }
 
 fn fnv_hash(x: u32, y: u32) -> u32 {
-    return x.wrapping_mul(FNV_PRIME) ^ y;
+    x.wrapping_mul(FNV_PRIME) ^ y
 }
 
 /// Difficulty quick check for POW preverification
@@ -275,7 +275,7 @@ fn hash_compute(light: &Light, full_size: usize, header_hash: &H256, nonce: u64)
         for i in 0..8 {
             let w = i * 4;
 
-            let mut reduction = mix_words[w + 0];
+            let mut reduction = mix_words[w];
             reduction = reduction.wrapping_mul(FNV_PRIME) ^ mix_words[w + 1];
             reduction = reduction.wrapping_mul(FNV_PRIME) ^ mix_words[w + 2];
             reduction = reduction.wrapping_mul(FNV_PRIME) ^ mix_words[w + 3];
@@ -313,7 +313,7 @@ pub fn calculate_dag_item(node_index: u32, cache: &[Node]) -> Node {
     keccak_512::inplace(ret.as_bytes_mut());
 
     debug_assert_eq!(NODE_WORDS, 16);
-    for i in 0..ETHASH_DATASET_PARENTS as u32 {
+    for i in 0..ETHASH_DATASET_PARENTS {
         let parent_index = fnv_hash(node_index ^ i, ret.as_words()[i as usize % NODE_WORDS])
             % num_parent_nodes as u32;
         let parent = &cache[parent_index as usize];

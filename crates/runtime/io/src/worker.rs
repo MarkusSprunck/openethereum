@@ -16,7 +16,6 @@
 
 use crate::service_mio::{HandlerId, IoChannel, IoContext};
 use crate::{IoHandler, LOCAL_STACK_SIZE};
-use deque;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering as AtomicOrdering},
@@ -75,7 +74,7 @@ impl Worker {
         worker.thread = Some(
             thread::Builder::new()
                 .stack_size(STACK_SIZE)
-                .name(format!("Worker {}", name))
+                .name(format!("Worker {name}"))
                 .spawn(move || {
                     LOCAL_STACK_SIZE.with(|val| val.set(STACK_SIZE));
                     let runtime = tokio::runtime::Builder::new_current_thread()

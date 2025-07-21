@@ -145,9 +145,9 @@ impl AbridgedBlock {
         }
 
         Ok(Block {
-            header: header,
-            transactions: transactions,
-            uncles: uncles,
+            header,
+            transactions,
+            uncles,
         })
     }
 }
@@ -173,7 +173,7 @@ mod tests {
     #[test]
     fn empty_block_abridging() {
         let b = Block::default();
-        let receipts_root = b.header.receipts_root().clone();
+        let receipts_root = *b.header.receipts_root();
         let encoded = encode_block(&b);
 
         let abridged =
@@ -191,7 +191,7 @@ mod tests {
         let mut b = Block::default();
         b.header.set_base_fee(Some(U256::from(100)));
         b.header.set_seal(vec![vec![50u8], vec![60u8]]);
-        let receipts_root = b.header.receipts_root().clone();
+        let receipts_root = *b.header.receipts_root();
         let encoded = encode_block(&b);
 
         let abridged =
@@ -208,7 +208,7 @@ mod tests {
     #[should_panic]
     fn wrong_number() {
         let b = Block::default();
-        let receipts_root = b.header.receipts_root().clone();
+        let receipts_root = *b.header.receipts_root();
         let encoded = encode_block(&b);
 
         let abridged =
@@ -248,7 +248,7 @@ mod tests {
         b.transactions.push(t1.into());
         b.transactions.push(t2.into());
 
-        let receipts_root = b.header.receipts_root().clone();
+        let receipts_root = *b.header.receipts_root();
         b.header
             .set_transactions_root(::triehash::ordered_trie_root(
                 b.transactions.iter().map(|tx| tx.encode()),

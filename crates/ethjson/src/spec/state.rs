@@ -33,7 +33,7 @@ impl State {
     pub fn builtins(&self) -> BTreeMap<Address, Builtin> {
         self.0
             .iter()
-            .filter_map(|(add, ref acc)| acc.builtin.clone().map(|b| (add.clone(), b.into())))
+            .filter_map(|(add, acc)| acc.builtin.clone().map(|b| (add.clone(), b.into())))
             .collect()
     }
 
@@ -41,7 +41,7 @@ impl State {
     pub fn constructors(&self) -> BTreeMap<Address, Bytes> {
         self.0
             .iter()
-            .filter_map(|(add, ref acc)| acc.constructor.clone().map(|b| (add.clone(), b)))
+            .filter_map(|(add, acc)| acc.constructor.clone().map(|b| (add.clone(), b)))
             .collect()
     }
 }

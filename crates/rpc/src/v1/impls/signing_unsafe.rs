@@ -46,7 +46,7 @@ pub struct SigningUnsafeClient<D> {
 }
 
 impl<D: Dispatcher + 'static> SigningUnsafeClient<D> {
-    /// Creates new SigningUnsafeClient.
+    /// Creates new `SigningUnsafeClient`.
     pub fn new(accounts: &Arc<dyn dispatch::Accounts>, dispatcher: D) -> Self {
         SigningUnsafeClient {
             accounts: accounts.clone(),

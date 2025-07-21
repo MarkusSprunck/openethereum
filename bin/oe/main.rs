@@ -64,15 +64,12 @@ fn main() -> Result<(), i32> {
     };
 
     let logger = setup_log(&conf.logger_config()).unwrap_or_else(|e| {
-        eprintln!("{}", e);
+        eprintln!("{e}");
         process::exit(2)
     });
 
     if let Some(pid) = conf.args.arg_daemon_pid_file.clone() {
-        info!(
-            "{}",
-            Colour::Blue.paint("starting in daemon mode").to_string()
-        );
+        info!("{}", Colour::Blue.paint("starting in daemon mode"));
         let _ = std::io::stdout().flush();
 
         let daemonize = Daemonize::new().pid_file(pid);
@@ -85,7 +82,7 @@ fn main() -> Result<(), i32> {
             Err(e) => {
                 error!(
                     "{}",
-                    Colour::Red.paint(format!("Daemonization failed: {}", e))
+                    Colour::Red.paint(format!("Daemonization failed: {e}"))
                 );
                 return Err(1);
             }
@@ -116,7 +113,7 @@ fn main() -> Result<(), i32> {
         Ok(result) => match result {
             ExecutionAction::Instant(output) => {
                 if let Some(s) = output {
-                    println!("{}", s);
+                    println!("{s}");
                 }
             }
             ExecutionAction::Running(client) => {
@@ -125,7 +122,7 @@ fn main() -> Result<(), i32> {
                     let exiting = exiting.clone();
                     move |panic_msg| {
                         warn!("Panic occured, see stderr for details");
-                        eprintln!("{}", panic_msg);
+                        eprintln!("{panic_msg}");
                         if !exiting.swap(true, Ordering::SeqCst) {
                             *e.0.lock() = ExitStatus {
                                 panicking: true,
@@ -153,7 +150,7 @@ fn main() -> Result<(), i32> {
                 // Wait for signal
                 let mut lock = exit.0.lock();
                 if !lock.should_exit {
-                    let _ = exit.1.wait(&mut lock);
+                    exit.1.wait(&mut lock);
                 }
 
                 client.shutdown();
@@ -164,7 +161,7 @@ fn main() -> Result<(), i32> {
             }
         },
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             return Err(1);
         }
     };

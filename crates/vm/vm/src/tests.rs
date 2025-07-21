@@ -176,7 +176,7 @@ impl Ext for FakeExt {
     }
 
     fn storage_at(&self, key: &H256) -> Result<H256> {
-        Ok(self.store.get(key).unwrap_or(&H256::default()).clone())
+        Ok(*self.store.get(key).unwrap_or(&H256::default()))
     }
 
     fn set_storage(&mut self, key: H256, value: H256) -> Result<()> {
@@ -189,7 +189,7 @@ impl Ext for FakeExt {
     }
 
     fn exists_and_not_null(&self, address: &Address) -> Result<bool> {
-        Ok(self.balances.get(address).map_or(false, |b| !b.is_zero()))
+        Ok(self.balances.get(address).is_some_and(|b| !b.is_zero()))
     }
 
     fn origin_balance(&self) -> Result<U256> {
@@ -201,10 +201,7 @@ impl Ext for FakeExt {
     }
 
     fn blockhash(&mut self, number: &U256) -> H256 {
-        self.blockhashes
-            .get(number)
-            .unwrap_or(&H256::default())
-            .clone()
+        *self.blockhashes.get(number).unwrap_or(&H256::default())
     }
 
     fn create(
@@ -248,11 +245,11 @@ impl Ext for FakeExt {
             call_type: FakeCallType::Call,
             create_scheme: None,
             gas: *gas,
-            sender_address: Some(sender_address.clone()),
-            receive_address: Some(receive_address.clone()),
-            value: value,
+            sender_address: Some(*sender_address),
+            receive_address: Some(*receive_address),
+            value,
             data: data.to_vec(),
-            code_address: Some(code_address.clone()),
+            code_address: Some(*code_address),
         });
         // TODO: support traps in testing.
         Ok(MessageCallResult::Success(*gas, ReturnData::empty()))
@@ -283,7 +280,7 @@ impl Ext for FakeExt {
     }
 
     fn suicide(&mut self, refund_address: &Address) -> Result<()> {
-        self.suicides.insert(refund_address.clone());
+        self.suicides.insert(*refund_address);
         Ok(())
     }
 

@@ -141,7 +141,7 @@ impl<F: Fetch> Client<F> {
             }
         }
         .map_err(|err: Error| {
-            warn!("Failed to auto-update latest ETH price: {:?}", err);
+            warn!("Failed to auto-update latest ETH price: {err:?}");
         });
 
         self.pool.spawn_03(future.map(|_| ()).boxed())
@@ -216,7 +216,7 @@ mod test {
         });
 
         // then
-        assert_eq!(b.load(Ordering::SeqCst), false);
+        assert!(!b.load(Ordering::SeqCst));
     }
 
     #[test]
@@ -234,6 +234,6 @@ mod test {
         });
 
         // then
-        assert_eq!(b.load(Ordering::SeqCst), false);
+        assert!(!b.load(Ordering::SeqCst));
     }
 }

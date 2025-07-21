@@ -72,7 +72,7 @@ impl From<::ethjson::spec::EthashParams> for EthashExtensions {
                 .map_or_else(Address::default, Into::into),
             dao_hardfork_accounts: p
                 .dao_hardfork_accounts
-                .unwrap_or_else(Vec::new)
+                .unwrap_or_default()
                 .into_iter()
                 .map(Into::into)
                 .collect(),
@@ -97,9 +97,9 @@ impl EthereumMachine {
     pub fn regular(params: CommonParams, builtins: BTreeMap<Address, Builtin>) -> EthereumMachine {
         let tx_filter = TransactionFilter::from_params(&params).map(Arc::new);
         EthereumMachine {
-            params: params,
+            params,
             builtins: Arc::new(builtins),
-            tx_filter: tx_filter,
+            tx_filter,
             ethash_extensions: None,
             schedule_rules: None,
         }
@@ -184,7 +184,7 @@ impl EthereumMachine {
             env_info
         };
 
-        let mut state = block.state_mut();
+        let state = block.state_mut();
 
         let params = ActionParams {
             code_address: contract_address.unwrap_or(UNSIGNED_SENDER),
@@ -202,12 +202,12 @@ impl EthereumMachine {
             access_list: AccessList::default(),
         };
         let schedule = self.schedule(env_info.number);
-        let mut ex = Executive::new(&mut state, &env_info, self, &schedule);
+        let mut ex = Executive::new(state, &env_info, self, &schedule);
         let mut substate = Substate::new();
 
         let res = ex
             .call(params, &mut substate, &mut NoopTracer, &mut NoopVMTracer)
-            .map_err(|e| ::engines::EngineError::FailedSystemCall(format!("{}", e)))?;
+            .map_err(|e| ::engines::EngineError::FailedSystemCall(format!("{e}")))?;
         let output = res.return_data.to_vec();
 
         Ok(output)
@@ -265,7 +265,7 @@ impl EthereumMachine {
         gas_floor_target: U256,
         gas_ceil_target: U256,
     ) {
-        header.set_difficulty(parent.difficulty().clone());
+        header.set_difficulty(*parent.difficulty());
         let gas_limit = parent.gas_limit() * self.schedule(header.number()).eip1559_gas_limit_bump;
         assert!(!gas_limit.is_zero(), "Gas limit should be > 0");
 
@@ -320,7 +320,7 @@ impl EthereumMachine {
 
     /// Builtin-contracts for the chain..
     pub fn builtins(&self) -> &BTreeMap<Address, Builtin> {
-        &*self.builtins
+        &self.builtins
     }
 
     /// Attempt to get a handle to a built-in contract.
@@ -416,9 +416,9 @@ impl EthereumMachine {
         parent: &Header,
         client: &C,
     ) -> Result<(), transaction::Error> {
-        if let Some(ref filter) = self.tx_filter.as_ref() {
+        if let Some(filter) = self.tx_filter.as_ref() {
             if !filter.transaction_allowed(&parent.hash(), parent.number() + 1, t, client) {
-                return Err(transaction::Error::NotAllowed.into());
+                return Err(transaction::Error::NotAllowed);
             }
         }
 

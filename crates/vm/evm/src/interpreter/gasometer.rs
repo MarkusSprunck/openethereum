@@ -56,7 +56,7 @@ pub struct Gasometer<Gas> {
 impl<Gas: evm::CostType> Gasometer<Gas> {
     pub fn new(current_gas: Gas) -> Self {
         Gasometer {
-            current_gas: current_gas,
+            current_gas,
             current_mem_gas: Gas::from(0),
         }
     }
@@ -147,15 +147,13 @@ impl<Gas: evm::CostType> Gasometer<Gas> {
 
                 let gas = if schedule.eip1283 {
                     let orig = ext.initial_storage_at(&key)?.into_uint();
-                    calculate_eip1283_eip2929_sstore_gas(schedule, is_cold, &orig, &val, &newval)
+                    calculate_eip1283_eip2929_sstore_gas(schedule, is_cold, &orig, &val, newval)
+                } else if val.is_zero() && !newval.is_zero() {
+                    schedule.sstore_set_gas
                 } else {
-                    if val.is_zero() && !newval.is_zero() {
-                        schedule.sstore_set_gas
-                    } else {
-                        // Refund for below case is added when actually executing sstore
-                        // !is_zero(&val) && is_zero(newval)
-                        schedule.sstore_reset_gas
-                    }
+                    // Refund for below case is added when actually executing sstore
+                    // !is_zero(&val) && is_zero(newval)
+                    schedule.sstore_reset_gas
                 };
 
                 Request::Gas(gas.into())
@@ -322,7 +320,7 @@ impl<Gas: evm::CostType> Gasometer<Gas> {
             }
             instructions::EXP => {
                 let expon = stack.peek(1);
-                let bytes = ((expon.bits() + 7) / 8) as usize;
+                let bytes = expon.bits().div_ceil(8);
                 let gas = Gas::from(schedule.exp_gas + schedule.exp_byte_gas * bytes);
                 Request::Gas(gas)
             }

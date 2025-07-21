@@ -45,7 +45,7 @@ extern crate ethkey;
 #[cfg(test)]
 extern crate kvdb_memorydb;
 
-const LOCAL_TRANSACTIONS_KEY: &'static [u8] = &*b"LOCAL_TXS";
+const LOCAL_TRANSACTIONS_KEY: &[u8] = b"LOCAL_TXS";
 
 const UPDATE_TIMER: ::io::TimerToken = 0;
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(15 * 60); // once every 15 minutes.
@@ -62,8 +62,8 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::Io(ref val) => write!(f, "{}", val),
-            Error::Json(ref err) => write!(f, "{}", err),
+            Error::Io(ref val) => write!(f, "{val}"),
+            Error::Json(ref err) => write!(f, "{err}"),
         }
     }
 }
@@ -83,9 +83,9 @@ impl From<TransactionCondition> for Condition {
     }
 }
 
-impl Into<TransactionCondition> for Condition {
-    fn into(self) -> TransactionCondition {
-        match self {
+impl From<Condition> for TransactionCondition {
+    fn from(val: Condition) -> Self {
+        match val {
             Condition::Number(num) => TransactionCondition::Number(num),
             Condition::Timestamp(tm) => TransactionCondition::Timestamp(tm),
         }
@@ -102,7 +102,7 @@ impl TransactionEntry {
     fn into_pending(self) -> Option<PendingTransaction> {
         let tx: UnverifiedTransaction = match TypedTransaction::decode(&self.rlp_bytes) {
             Err(e) => {
-                warn!(target: "local_store", "Invalid persistent transaction stored: {}", e);
+                warn!(target: "local_store", "Invalid persistent transaction stored: {e}");
                 return None;
             }
             Ok(tx) => tx,
@@ -112,8 +112,8 @@ impl TransactionEntry {
         match SignedTransaction::new(tx) {
             Ok(tx) => Some(PendingTransaction::new(tx, self.condition.map(Into::into))),
             Err(_) => {
-                warn!(target: "local_store", "Bad signature on persistent transaction: {}", hash);
-                return None;
+                warn!(target: "local_store", "Bad signature on persistent transaction: {hash}");
+                None
             }
         }
     }
@@ -141,11 +141,7 @@ pub fn create<T: NodeInfo>(
     col: Option<u32>,
     node: T,
 ) -> LocalDataStore<T> {
-    LocalDataStore {
-        db: db,
-        col: col,
-        node: node,
-    }
+    LocalDataStore { db, col, node }
 }
 
 /// Manages local node data.
@@ -204,7 +200,7 @@ impl<T: NodeInfo> LocalDataStore<T> {
         let mut batch = self.db.transaction();
 
         let local_json = ::serde_json::to_value(txs).map_err(Error::Json)?;
-        let json_str = format!("{}", local_json);
+        let json_str = format!("{local_json}");
 
         batch.put_vec(self.col, LOCAL_TRANSACTIONS_KEY, json_str.into_bytes());
         self.db.write(batch).map_err(Error::Io)
@@ -214,14 +210,14 @@ impl<T: NodeInfo> LocalDataStore<T> {
 impl<T: NodeInfo, M: Send + Sync + 'static> IoHandler<M> for LocalDataStore<T> {
     fn initialize(&self, io: &::io::IoContext<M>) {
         if let Err(e) = io.register_timer(UPDATE_TIMER, UPDATE_TIMEOUT) {
-            warn!(target: "local_store", "Error registering local store update timer: {}", e);
+            warn!(target: "local_store", "Error registering local store update timer: {e}");
         }
     }
 
     fn timeout(&self, _io: &::io::IoContext<M>, timer: ::io::TimerToken) {
         if let UPDATE_TIMER = timer {
             if let Err(e) = self.update() {
-                debug!(target: "local_store", "Error updating local store: {}", e);
+                debug!(target: "local_store", "Error updating local store: {e}");
             }
         }
     }

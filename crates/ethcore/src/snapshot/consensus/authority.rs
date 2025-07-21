@@ -66,14 +66,14 @@ impl SnapshotComponents for PoaSnapshot {
     ) -> Result<(), Error> {
         let number = chain
             .block_number(&block_at)
-            .ok_or_else(|| Error::InvalidStartingBlock(BlockId::Hash(block_at)))?;
+            .ok_or(Error::InvalidStartingBlock(BlockId::Hash(block_at)))?;
 
         let mut pending_size = 0;
         let mut rlps = Vec::new();
 
         for (_, transition) in chain
             .epoch_transitions()
-            .take_while(|&(_, ref t)| t.block_number <= number)
+            .take_while(|(_, t)| t.block_number <= number)
         {
             // this can happen when our starting block is non-canonical.
             if transition.block_number == number && transition.block_hash != block_at {
@@ -82,7 +82,7 @@ impl SnapshotComponents for PoaSnapshot {
 
             let header = chain
                 .block_header_data(&transition.block_hash)
-                .ok_or_else(|| Error::BlockNotFound(transition.block_hash))?;
+                .ok_or(Error::BlockNotFound(transition.block_hash))?;
 
             let entry = {
                 let mut entry_stream = RlpStream::new_list(2);
@@ -108,13 +108,13 @@ impl SnapshotComponents for PoaSnapshot {
         let (block, receipts) = chain
             .block(&block_at)
             .and_then(|b| chain.block_receipts(&block_at).map(|r| (b, r)))
-            .ok_or_else(|| Error::BlockNotFound(block_at))?;
+            .ok_or(Error::BlockNotFound(block_at))?;
         let block = block.decode(eip1559_transition)?;
 
         let parent_td = chain
             .block_details(block.header.parent_hash())
             .map(|d| d.total_difficulty)
-            .ok_or_else(|| Error::BlockNotFound(block_at))?;
+            .ok_or(Error::BlockNotFound(block_at))?;
 
         rlps.push({
             let mut stream = RlpStream::new_list(5);
@@ -141,7 +141,7 @@ impl SnapshotComponents for PoaSnapshot {
         Ok(Box::new(ChunkRebuilder {
             manifest: manifest.clone(),
             warp_target: None,
-            chain: chain,
+            chain,
             db: db.key_value().clone(),
             had_genesis: false,
             unverified_firsts: Vec::new(),
@@ -216,7 +216,7 @@ impl ChunkRebuilder {
                     Some(ref last) => {
                         if last
                             .check_finality_proof(finality_proof)
-                            .map_or(true, |hashes| !hashes.contains(&hash))
+                            .is_none_or(|hashes| !hashes.contains(&hash))
                         {
                             return Err(Error::BadEpochProof(header.number()).into());
                         }
@@ -226,7 +226,7 @@ impl ChunkRebuilder {
 
                         let idx = self
                             .unverified_firsts
-                            .binary_search_by_key(&header.number(), |&(ref h, _, _)| h.number())
+                            .binary_search_by_key(&header.number(), |(h, _, _)| h.number())
                             .unwrap_or_else(|x| x);
 
                         let entry = (header.clone(), finality_proof.to_owned(), hash);
@@ -249,7 +249,7 @@ impl ChunkRebuilder {
                 block_number: header.number(),
                 proof: epoch_data,
             },
-            header: header,
+            header,
         })
     }
 }
@@ -295,7 +295,7 @@ impl Rebuilder for ChunkRebuilder {
             let transition_rlp = transition_rlp.into_inner();
             let verified = self.verify_transition(&mut last_verifier, transition_rlp, engine)?;
 
-            if last_number.map_or(false, |num| verified.header.number() <= num) {
+            if last_number.is_some_and(|num| verified.header.number() <= num) {
                 return Err(Error::WrongChunkFormat(
                     "Later epoch transition in earlier or same block.".into(),
                 )
@@ -324,7 +324,7 @@ impl Rebuilder for ChunkRebuilder {
             if is_last {
                 let idx = self
                     .last_epochs
-                    .binary_search_by_key(&verified.header.number(), |&(ref h, _)| h.number())
+                    .binary_search_by_key(&verified.header.number(), |(h, _)| h.number())
                     .unwrap_or_else(|x| x);
 
                 let entry = (
@@ -412,11 +412,11 @@ impl Rebuilder for ChunkRebuilder {
         let mut lasts_reversed = self.last_epochs.iter().rev();
         for &(ref header, ref finality_proof, hash) in self.unverified_firsts.iter().rev() {
             let mut found = false;
-            while let Some(&(ref last_header, ref last_verifier)) = lasts_reversed.next() {
+            for (last_header, last_verifier) in lasts_reversed.by_ref() {
                 if last_header.number() < header.number() {
                     if last_verifier
-                        .check_finality_proof(&finality_proof)
-                        .map_or(true, |hashes| !hashes.contains(&hash))
+                        .check_finality_proof(finality_proof)
+                        .is_none_or(|hashes| !hashes.contains(&hash))
                     {
                         return Err(Error::BadEpochProof(header.number()).into());
                     }
@@ -433,7 +433,7 @@ impl Rebuilder for ChunkRebuilder {
         // verify that the warp target verifies correctly the
         // most recent epoch. if the warp target was a transition itself,
         // it's already verified and doesn't need any more verification.
-        let &(ref header, ref last_epoch) = self
+        let (header, last_epoch) = self
             .last_epochs
             .last()
             .expect("last_epochs known to have at least one element by the check above; qed");

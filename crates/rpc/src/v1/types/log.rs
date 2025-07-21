@@ -52,7 +52,7 @@ impl From<LocalizedLogEntry> for Log {
     fn from(e: LocalizedLogEntry) -> Log {
         Log {
             address: e.entry.address,
-            topics: e.entry.topics.into_iter().map(Into::into).collect(),
+            topics: e.entry.topics.into_iter().collect(),
             data: e.entry.data.into(),
             block_hash: Some(e.block_hash),
             block_number: Some(e.block_number.into()),
@@ -70,7 +70,7 @@ impl From<LogEntry> for Log {
     fn from(e: LogEntry) -> Log {
         Log {
             address: e.address,
-            topics: e.topics.into_iter().map(Into::into).collect(),
+            topics: e.topics.into_iter().collect(),
             data: e.data.into(),
             block_hash: None,
             block_number: None,

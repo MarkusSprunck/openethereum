@@ -68,7 +68,7 @@ impl<K, V> Cache<K, V> {
             return value;
         }
 
-        debug!(target: "txpool", "{}Cache: reached limit.", self.name().to_string());
+        debug!(target: "txpool", "{}Cache: reached limit.", self.name());
         trace_time!("txpool_cache:clear");
 
         // Remove excessive amount of entries from the cache.

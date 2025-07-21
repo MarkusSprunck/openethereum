@@ -64,7 +64,7 @@ impl ipc::MetaExtractor<Metadata> for RpcExtractor {
     }
 }
 
-/// WebSockets server metadata extractor and request middleware.
+/// `WebSockets` server metadata extractor and request middleware.
 pub struct WsExtractor {
     authcodes_path: Option<PathBuf>,
 }
@@ -80,14 +80,14 @@ impl WsExtractor {
 
 impl ws::MetaExtractor<Metadata> for WsExtractor {
     fn extract(&self, req: &ws::RequestContext) -> Metadata {
-        let id = req.session_id as u64;
+        let id = req.session_id;
 
         let origin = match self.authcodes_path {
             Some(ref path) => {
                 let authorization = req
                     .protocols
-                    .get(0)
-                    .and_then(|p| auth_token_hash(&path, p, true));
+                    .first()
+                    .and_then(|p| auth_token_hash(path, p, true));
                 match authorization {
                     Some(id) => Origin::Signer { session: id },
                     None => Origin::Ws {
@@ -127,10 +127,10 @@ impl ws::RequestMiddleware for WsExtractor {
         }
 
         // If protocol is provided it needs to be valid.
-        let protocols = req.protocols().ok().unwrap_or_else(Vec::new);
+        let protocols = req.protocols().ok().unwrap_or_default();
         if let Some(ref path) = self.authcodes_path {
             if protocols.len() == 1 {
-                let authorization = auth_token_hash(&path, protocols[0], false);
+                let authorization = auth_token_hash(path, protocols[0], false);
                 if authorization.is_none() {
                     warn!(
                         "Blocked connection from {} using invalid token.",
@@ -195,7 +195,7 @@ fn auth_token_hash(codes_path: &Path, protocol: &str, save_file: bool) -> Option
     None
 }
 
-/// WebSockets RPC usage statistics.
+/// `WebSockets` RPC usage statistics.
 pub struct WsStats {
     stats: Arc<RpcStats>,
 }
@@ -209,15 +209,15 @@ impl WsStats {
 
 impl ws::SessionStats for WsStats {
     fn open_session(&self, _id: ws::SessionId) {
-        self.stats.open_session()
+        self.stats.open_session();
     }
 
     fn close_session(&self, _id: ws::SessionId) {
-        self.stats.close_session()
+        self.stats.close_session();
     }
 }
 
-/// WebSockets middleware dispatching requests to different handles dependning on metadata.
+/// `WebSockets` middleware dispatching requests to different handles dependning on metadata.
 pub struct WsDispatcher<M: core::Middleware<Metadata>> {
     full_handler: core::MetaIoHandler<Metadata, M>,
 }

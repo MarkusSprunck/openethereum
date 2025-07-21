@@ -98,7 +98,7 @@ impl<C: miner::BlockChainClient, M: MinerService> FullDispatcher<C, M> {
         miner
             .import_claimed_local_transaction(client, signed_transaction, trusted)
             .map_err(errors::transaction)
-            .map(|_| hash)
+            .map(|()| hash)
     }
 }
 
@@ -133,7 +133,7 @@ impl<C: miner::BlockChainClient + BlockChainClient, M: MinerService> Dispatcher
                 .gas
                 .unwrap_or_else(|| self.miner.sensible_gas_limit()),
             value: request.value.unwrap_or_else(|| 0.into()),
-            data: request.data.unwrap_or_else(Vec::new),
+            data: request.data.unwrap_or_default(),
             condition: request.condition,
             access_list: request.access_list,
             max_priority_fee_per_gas: request.max_priority_fee_per_gas,

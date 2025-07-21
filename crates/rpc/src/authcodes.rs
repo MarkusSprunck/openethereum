@@ -17,7 +17,6 @@
 use std::{
     fs,
     io::{self, Read, Write},
-    mem,
     path::Path,
     time,
 };
@@ -63,9 +62,9 @@ const UNUSED_TOKEN_TIMEOUT: u64 = 3600 * 24; // a day
 
 struct Code {
     code: String,
-    /// Duration since unix_epoch
+    /// Duration since `unix_epoch`
     created_at: time::Duration,
-    /// Duration since unix_epoch
+    /// Duration since `unix_epoch`
     last_used_at: Option<time::Duration>,
 }
 
@@ -93,10 +92,10 @@ impl AuthCodes<DefaultTimeProvider> {
                 let _ = file.read_to_string(&mut s)?;
                 s
             } else {
-                "".into()
+                String::new()
             }
         };
-        let time_provider = DefaultTimeProvider::default();
+        let time_provider = DefaultTimeProvider;
 
         let codes = content
             .lines()
@@ -165,11 +164,11 @@ impl<T: TimeProvider> AuthCodes<T> {
         let now = self.now.now();
         // check time
         if time >= now + TIME_THRESHOLD || time <= now - TIME_THRESHOLD {
-            warn!(target: "signer", "Received old authentication request. ({} vs {})", now, time);
+            warn!(target: "signer", "Received old authentication request. ({now} vs {time})");
             return false;
         }
 
-        let as_token = |code| keccak(format!("{}:{}", code, time));
+        let as_token = |code| keccak(format!("{code}:{time}"));
 
         // look for code
         for code in &mut self.codes {
@@ -214,7 +213,7 @@ impl<T: TimeProvider> AuthCodes<T> {
         let now = self.now.now();
         let threshold = time::Duration::from_secs(now.saturating_sub(UNUSED_TOKEN_TIMEOUT));
 
-        let codes = mem::replace(&mut self.codes, Vec::new());
+        let codes = std::mem::take(&mut self.codes);
         for code in codes {
             // Skip codes that are old and were never used.
             if code.last_used_at.is_none() && code.created_at <= threshold {
@@ -240,7 +239,7 @@ mod tests {
     use ethereum_types::H256;
 
     fn generate_hash(val: &str, time: u64) -> H256 {
-        keccak(format!("{}:{}", val, time))
+        keccak(format!("{val}:{time}"))
     }
 
     #[test]
@@ -255,8 +254,8 @@ mod tests {
         let res2 = codes.is_valid(&generate_hash(code, time), time);
 
         // then
-        assert_eq!(res1, false);
-        assert_eq!(res2, false);
+        assert!(!res1);
+        assert!(!res2);
     }
 
     #[test]
@@ -270,7 +269,7 @@ mod tests {
         let res = codes.is_valid(&generate_hash(code, time), time);
 
         // then
-        assert_eq!(res, true);
+        assert!(res);
     }
 
     #[test]
@@ -284,7 +283,7 @@ mod tests {
         let res = codes.is_valid(&generate_hash(code, time), time);
 
         // then
-        assert_eq!(res, false);
+        assert!(!res);
     }
 
     #[test]
@@ -300,8 +299,8 @@ mod tests {
         let res2 = codes.is_valid(&generate_hash(code, time2), time2);
 
         // then
-        assert_eq!(res1, false);
-        assert_eq!(res2, false);
+        assert!(!res1);
+        assert!(!res2);
     }
 
     #[test]

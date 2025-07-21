@@ -75,9 +75,9 @@ fn io() -> Tester {
     io.extend_with(traces.to_delegate());
 
     Tester {
-        client: client,
+        client,
         _miner: miner,
-        io: io,
+        io,
     }
 }
 

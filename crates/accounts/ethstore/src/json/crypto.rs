@@ -88,7 +88,7 @@ impl<'a> Visitor<'a> for CryptoFieldVisitor {
             "kdfparams" => Ok(CryptoField::KdfParams),
             "mac" => Ok(CryptoField::Mac),
             "version" => Ok(CryptoField::Version),
-            _ => Err(Error::custom(format!("Unknown field: '{}'", value))),
+            _ => Err(Error::custom(format!("Unknown field: '{value}'"))),
         }
     }
 }
@@ -98,7 +98,7 @@ impl<'a> Deserialize<'a> for Crypto {
     where
         D: Deserializer<'a>,
     {
-        static FIELDS: &'static [&'static str] = &["id", "version", "crypto", "Crypto", "address"];
+        static FIELDS: &[&str] = &["id", "version", "crypto", "Crypto", "address"];
         deserializer.deserialize_struct("Crypto", FIELDS, CryptoVisitor)
     }
 }
@@ -172,10 +172,10 @@ impl<'a> Visitor<'a> for CryptoVisitor {
         let mac = mac.ok_or_else(|| V::Error::missing_field("mac"))?;
 
         let result = Crypto {
-            cipher: cipher,
-            ciphertext: ciphertext,
-            kdf: kdf,
-            mac: mac,
+            cipher,
+            ciphertext,
+            kdf,
+            mac,
         };
 
         Ok(result)

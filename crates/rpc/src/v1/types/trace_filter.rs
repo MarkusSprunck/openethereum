@@ -39,8 +39,8 @@ pub struct TraceFilter {
     pub count: Option<usize>,
 }
 
-impl Into<client::TraceFilter> for TraceFilter {
-    fn into(self) -> client::TraceFilter {
+impl From<TraceFilter> for client::TraceFilter {
+    fn from(val: TraceFilter) -> Self {
         let num_to_id = |num| match num {
             BlockNumber::Hash { hash, .. } => BlockId::Hash(hash),
             BlockNumber::Num(n) => BlockId::Number(n),
@@ -51,18 +51,18 @@ impl Into<client::TraceFilter> for TraceFilter {
                 BlockId::Latest
             }
         };
-        let start = self.from_block.map_or(BlockId::Latest, &num_to_id);
-        let end = self.to_block.map_or(BlockId::Latest, &num_to_id);
+        let start = val.from_block.map_or(BlockId::Latest, num_to_id);
+        let end = val.to_block.map_or(BlockId::Latest, num_to_id);
         client::TraceFilter {
             range: start..end,
-            from_address: self
+            from_address: val
                 .from_address
-                .map_or_else(Vec::new, |x| x.into_iter().map(Into::into).collect()),
-            to_address: self
+                .map_or_else(Vec::new, |x| x.into_iter().collect()),
+            to_address: val
                 .to_address
-                .map_or_else(Vec::new, |x| x.into_iter().map(Into::into).collect()),
-            after: self.after,
-            count: self.count,
+                .map_or_else(Vec::new, |x| x.into_iter().collect()),
+            after: val.after,
+            count: val.count,
         }
     }
 }
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_empty_trace_filter_deserialize() {
-        let s = r#"{}"#;
+        let s = r"{}";
         let deserialized: TraceFilter = serde_json::from_str(s).unwrap();
         assert_eq!(
             deserialized,
@@ -106,8 +106,8 @@ mod tests {
             TraceFilter {
                 from_block: Some(BlockNumber::Latest),
                 to_block: Some(BlockNumber::Latest),
-                from_address: Some(vec![Address::from_low_u64_be(3).into()]),
-                to_address: Some(vec![Address::from_low_u64_be(5).into()]),
+                from_address: Some(vec![Address::from_low_u64_be(3)]),
+                to_address: Some(vec![Address::from_low_u64_be(5)]),
                 after: 50.into(),
                 count: 100.into(),
             }

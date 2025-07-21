@@ -141,21 +141,20 @@ mod tests {
             &format!(
                 "\
 				OPTIONS / HTTP/1.1\r\n\
-				Host: {}\r\n\
+				Host: {address}\r\n\
 				Origin: http://openethereum.github.io\r\n\
 				Content-Length: 0\r\n\
 				Content-Type: application/json\r\n\
 				Connection: close\r\n\
-				Access-Control-Request-Headers: {}\r\n\
+				Access-Control-Request-Headers: {headers}\r\n\
 				\r\n\
-			",
-                address, headers
+			"
             ),
         );
 
         // then
         assert_eq!(res.status, "HTTP/1.1 200 OK".to_owned());
-        let expected = format!("access-control-allow-headers: {}", headers);
+        let expected = format!("access-control-allow-headers: {headers}");
         assert!(
             res.headers.contains(&expected),
             "Headers missing in {:?}",

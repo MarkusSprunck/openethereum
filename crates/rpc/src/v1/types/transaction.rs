@@ -113,7 +113,9 @@ impl Serialize for LocalTransactionStatus {
     where
         S: Serializer,
     {
-        use self::LocalTransactionStatus::*;
+        use self::LocalTransactionStatus::{
+            Canceled, Culled, Dropped, Future, Invalid, Mined, Pending, Rejected, Replaced,
+        };
 
         let elems = match *self {
             Pending | Future => 1,
@@ -166,7 +168,7 @@ impl Serialize for LocalTransactionStatus {
     }
 }
 
-/// Geth-compatible output for eth_signTransaction method
+/// Geth-compatible output for `eth_signTransaction` method
 #[derive(Debug, Default, Clone, PartialEq, Serialize)]
 pub struct RichRawTransaction {
     /// Raw transaction RLP
@@ -244,7 +246,7 @@ impl Transaction {
                 Action::Call(_) => None,
             },
             raw: Bytes::new(t.signed.encode()),
-            public_key: t.recover_public().ok().map(Into::into),
+            public_key: t.recover_public().ok(),
             chain_id: t.chain_id().map(U64::from),
             standard_v: standard_v.map(Into::into),
             v: t.v().into(),
@@ -313,7 +315,7 @@ impl Transaction {
                 Action::Call(_) => None,
             },
             raw: t.encode().into(),
-            public_key: t.public_key().map(Into::into),
+            public_key: t.public_key(),
             chain_id: t.chain_id().map(U64::from),
             standard_v: standard_v.map(Into::into),
             v: t.v().into(),
@@ -329,7 +331,7 @@ impl Transaction {
     /// Convert `PendingTransaction` into RPC Transaction.
     pub fn from_pending(t: PendingTransaction) -> Transaction {
         let mut r = Transaction::from_signed(t.transaction);
-        r.condition = r.condition.map(Into::into);
+        r.condition = r.condition;
         r
     }
 }
@@ -340,7 +342,9 @@ impl LocalTransactionStatus {
         let convert = |tx: Arc<miner::pool::VerifiedTransaction>| {
             Transaction::from_signed(tx.signed().clone())
         };
-        use miner::pool::local_transactions::Status::*;
+        use miner::pool::local_transactions::Status::{
+            Canceled, Culled, Dropped, Invalid, Mined, Pending, Rejected, Replaced,
+        };
         match s {
             Pending(_) => LocalTransactionStatus::Pending,
             Mined(tx) => LocalTransactionStatus::Mined(convert(tx)),
@@ -404,26 +408,26 @@ mod tests {
         );
         assert_eq!(
             serde_json::to_string(&status3).unwrap(),
-            r#"{"status":"mined","transaction":"#.to_owned() + &format!("{}", tx_ser) + r#"}"#
+            r#"{"status":"mined","transaction":"#.to_owned() + &tx_ser.to_string() + r"}"
         );
         assert_eq!(
             serde_json::to_string(&status4).unwrap(),
-            r#"{"status":"dropped","transaction":"#.to_owned() + &format!("{}", tx_ser) + r#"}"#
+            r#"{"status":"dropped","transaction":"#.to_owned() + &tx_ser.to_string() + r"}"
         );
         assert_eq!(
             serde_json::to_string(&status5).unwrap(),
-            r#"{"status":"invalid","transaction":"#.to_owned() + &format!("{}", tx_ser) + r#"}"#
+            r#"{"status":"invalid","transaction":"#.to_owned() + &tx_ser.to_string() + r"}"
         );
         assert_eq!(
             serde_json::to_string(&status6).unwrap(),
             r#"{"status":"rejected","transaction":"#.to_owned()
-                + &format!("{}", tx_ser)
+                + &tx_ser.to_string()
                 + r#","error":"Just because"}"#
         );
         assert_eq!(
             serde_json::to_string(&status7).unwrap(),
             r#"{"status":"replaced","transaction":"#.to_owned()
-                + &format!("{}", tx_ser)
+                + &tx_ser.to_string()
                 + r#","hash":"0x000000000000000000000000000000000000000000000000000000000000000a","gasPrice":"0x5"}"#
         );
     }

@@ -16,7 +16,7 @@
 
 //! JSON VM output.
 
-use std::{collections::HashMap, mem};
+use std::collections::HashMap;
 
 use super::config::Config;
 use bytes::ToPretty;
@@ -119,7 +119,7 @@ impl vm::Informant for Informant {
         match result {
             Ok(success) => {
                 for trace in success.traces.unwrap_or_else(Vec::new) {
-                    println!("{}", trace);
+                    println!("{trace}");
                 }
 
                 let success_msg = json!({
@@ -128,12 +128,12 @@ impl vm::Informant for Informant {
                     "time": display::as_micros(&success.time),
                 });
 
-                println!("{}", success_msg)
+                println!("{success_msg}")
             }
             Err(failure) => {
                 if !config.omit_storage_output() {
                     for trace in failure.traces.unwrap_or_else(Vec::new) {
-                        println!("{}", trace);
+                        println!("{trace}");
                     }
                 }
 
@@ -143,7 +143,7 @@ impl vm::Informant for Informant {
                     "time": display::as_micros(&failure.time),
                 });
 
-                println!("{}", failure_msg)
+                println!("{failure_msg}")
             }
         }
     }
@@ -183,7 +183,7 @@ impl trace::VMTracer for Informant {
     fn trace_executed(&mut self, gas_used: U256, stack_push: &[U256], mem: &[u8]) {
         let subdepth = self.subdepth;
         Self::with_informant_in_depth(self, subdepth, |informant: &mut Informant| {
-            let store_diff = informant.store_written.clone();
+            let store_diff = informant.store_written;
             let info = ::evm::Instruction::from_u8(informant.instruction).map(|i| i.info());
 
             let trace = Self::informant_trace(informant, gas_used);
@@ -194,13 +194,11 @@ impl trace::VMTracer for Informant {
 
             let len = informant.stack.len();
             let info_args = info.map(|i| i.args).unwrap_or(0);
-            informant
-                .stack
-                .truncate(if len > info_args { len - info_args } else { 0 });
+            informant.stack.truncate(len.saturating_sub(info_args));
             informant.stack.extend_from_slice(stack_push);
 
             // TODO [ToDr] Align memory?
-            if let Some((pos, size)) = informant.mem_written.clone() {
+            if let Some((pos, size)) = informant.mem_written {
                 if informant.memory.len() < (pos + size) {
                     informant.memory.resize(pos + size, 0);
                 }
@@ -217,7 +215,7 @@ impl trace::VMTracer for Informant {
             if !informant.subtraces.is_empty() {
                 informant
                     .traces
-                    .extend(mem::replace(&mut informant.subtraces, vec![]));
+                    .extend(std::mem::take(&mut informant.subtraces));
             }
         });
     }
@@ -262,8 +260,7 @@ impl trace::VMTracer for Informant {
                 informant.traces.push(trace);
             });
         } else if !self.subtraces.is_empty() {
-            self.traces
-                .extend(mem::replace(&mut self.subtraces, vec![]));
+            self.traces.extend(std::mem::take(&mut self.subtraces));
         }
         Some(self.traces)
     }
@@ -302,7 +299,7 @@ mod tests {
                     let actual: TestTrace = serde_json::from_str(a).unwrap();
                     let expected: TestTrace = serde_json::from_str(b).unwrap();
                     assert_eq!(actual, expected);
-                    println!("{}", a);
+                    println!("{a}");
                 }
                 (None, None) => return,
                 e => {
@@ -326,7 +323,7 @@ mod tests {
     fn should_trace_failure() {
         run_test(
             Informant::default(),
-            &compare_json,
+            compare_json,
             "60F8d6",
             0xffff,
             r#"
@@ -337,7 +334,7 @@ mod tests {
 
         run_test(
             Informant::default(),
-            &compare_json,
+            compare_json,
             "F8d6",
             0xffff,
             r#"
@@ -347,7 +344,7 @@ mod tests {
 
         run_test(
             Informant::default(),
-            &compare_json,
+            compare_json,
             "5A51",
             0xfffff,
             r#"
@@ -361,7 +358,7 @@ mod tests {
     fn should_trace_create_correctly() {
         run_test(
             Informant::default(),
-            &compare_json,
+            compare_json,
             "32343434345830f138343438323439f0",
             0xffff,
             r#"
@@ -394,7 +391,7 @@ mod tests {
 
         run_test(
             Informant::default(),
-            &compare_json,
+            compare_json,
             "3260D85554",
             0xffff,
             r#"
@@ -411,7 +408,7 @@ mod tests {
         // should omit storage
         run_test(
             Informant::new(Config::new(true, true)),
-            &compare_json,
+            compare_json,
             "3260D85554",
             0xffff,
             r#"

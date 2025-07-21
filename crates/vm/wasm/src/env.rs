@@ -115,9 +115,9 @@ pub mod signatures {
 
     pub const ELOG: StaticSignature = StaticSignature(&[I32, I32, I32, I32], None);
 
-    impl Into<wasmi::Signature> for StaticSignature {
-        fn into(self) -> wasmi::Signature {
-            wasmi::Signature::new(self.0, self.1)
+    impl From<StaticSignature> for wasmi::Signature {
+        fn from(val: StaticSignature) -> Self {
+            wasmi::Signature::new(val.0, val.1)
         }
     }
 }
@@ -142,7 +142,7 @@ impl ImportResolver {
     /// New import resolver with specifed maximum amount of inital memory (in wasm pages = 64kb)
     pub fn with_limit(max_memory: u32, schedule: &WasmCosts) -> ImportResolver {
         ImportResolver {
-            max_memory: max_memory,
+            max_memory,
             memory: RefCell::new(None),
 
             have_create2: schedule.have_create2,
@@ -208,8 +208,7 @@ impl wasmi::ModuleImportResolver for ImportResolver {
             "gasleft" if self.have_gasleft => host(signatures::GASLEFT, ids::GASLEFT_FUNC),
             _ => {
                 return Err(wasmi::Error::Instantiation(format!(
-                    "Export {} not found",
-                    field_name
+                    "Export {field_name} not found"
                 )))
             }
         };

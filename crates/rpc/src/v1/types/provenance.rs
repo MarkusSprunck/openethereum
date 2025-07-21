@@ -23,6 +23,7 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum Origin {
     /// RPC server (includes request origin)
     Rpc(String),
@@ -39,22 +40,17 @@ pub enum Origin {
         session: H256,
     },
     /// Unknown
+    #[default]
     Unknown,
-}
-
-impl Default for Origin {
-    fn default() -> Self {
-        Origin::Unknown
-    }
 }
 
 impl fmt::Display for Origin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Origin::Rpc(ref origin) => write!(f, "{} via RPC", origin),
-            Origin::Ipc(ref session) => write!(f, "IPC (session: {})", session),
-            Origin::Ws { ref session } => write!(f, "WebSocket (session: {})", session),
-            Origin::Signer { ref session } => write!(f, "Secure Session (session: {})", session),
+            Origin::Rpc(ref origin) => write!(f, "{origin} via RPC"),
+            Origin::Ipc(ref session) => write!(f, "IPC (session: {session})"),
+            Origin::Ws { ref session } => write!(f, "WebSocket (session: {session})"),
+            Origin::Signer { ref session } => write!(f, "Secure Session (session: {session})"),
             Origin::Unknown => write!(f, "unknown origin"),
         }
     }

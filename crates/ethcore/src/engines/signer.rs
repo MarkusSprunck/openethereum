@@ -52,7 +52,7 @@ impl EngineSigner for Signer {
     }
 
     fn decrypt(&self, auth_data: &[u8], cipher: &[u8]) -> Result<Vec<u8>, Error> {
-        ecies::decrypt(self.0.secret(), auth_data, cipher).map_err(From::from)
+        ecies::decrypt(self.0.secret(), auth_data, cipher)
     }
 
     fn public(&self) -> Option<Public> {
@@ -79,11 +79,11 @@ mod test_signer {
                 Err(SignError::NotFound) => Err(crypto::publickey::Error::InvalidAddress),
                 Err(SignError::SStore(accounts::Error::EthCryptoPublicKey(err))) => Err(err),
                 Err(SignError::SStore(accounts::Error::EthCrypto(err))) => {
-                    warn!("Low level crypto error: {:?}", err);
+                    warn!("Low level crypto error: {err:?}");
                     Err(crypto::publickey::Error::InvalidSecretKey)
                 }
                 Err(SignError::SStore(err)) => {
-                    warn!("Error signing for engine: {:?}", err);
+                    warn!("Error signing for engine: {err:?}");
                     Err(crypto::publickey::Error::InvalidSignature)
                 }
                 Ok(ok) => Ok(ok),
@@ -98,7 +98,7 @@ mod test_signer {
             self.0
                 .decrypt(self.1, None, auth_data, cipher)
                 .map_err(|e| {
-                    warn!("Unable to decrypt message: {:?}", e);
+                    warn!("Unable to decrypt message: {e:?}");
                     Error::InvalidMessage
                 })
         }

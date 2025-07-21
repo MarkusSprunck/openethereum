@@ -230,7 +230,7 @@ impl<D: Dispatcher + 'static> ParitySigning for SigningQueueClient<D> {
         match self.confirmations.lock().get(&id) {
             None => Err(errors::request_not_found()), // Request info has been dropped, or even never been there
             Some(&None) => Ok(None), // No confirmation yet, request is known, confirmation is pending
-            Some(&Some(ref confirmation)) => confirmation.clone().map(Some), // Confirmation is there
+            Some(Some(confirmation)) => confirmation.clone().map(Some), // Confirmation is there
         }
     }
 

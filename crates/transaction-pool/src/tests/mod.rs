@@ -161,7 +161,7 @@ fn should_reject_if_above_count() {
     // Reject second
     let tx1 = b.tx().nonce(0).new();
     let tx2 = b.tx().nonce(1).new();
-    let hash = tx2.hash.clone();
+    let hash = tx2.hash;
     import(&mut txq, tx1).unwrap();
     assert_eq!(
         import(&mut txq, tx2).unwrap_err(),
@@ -190,7 +190,7 @@ fn should_reject_if_above_mem_usage() {
     // Reject second
     let tx1 = b.tx().nonce(1).mem_usage(1).new();
     let tx2 = b.tx().nonce(2).mem_usage(2).new();
-    let hash = tx2.hash.clone();
+    let hash = tx2.hash;
     import(&mut txq, tx1).unwrap();
     assert_eq!(
         import(&mut txq, tx2).unwrap_err(),
@@ -219,7 +219,7 @@ fn should_reject_if_above_sender_count() {
     // Reject second
     let tx1 = b.tx().nonce(1).new();
     let tx2 = b.tx().nonce(2).new();
-    let hash = tx2.hash.clone();
+    let hash = tx2.hash;
     import(&mut txq, tx1).unwrap();
     assert_eq!(
         import(&mut txq, tx2).unwrap_err(),
@@ -232,7 +232,7 @@ fn should_reject_if_above_sender_count() {
     // Replace first
     let tx1 = b.tx().nonce(1).new();
     let tx2 = b.tx().nonce(2).gas_price(2).new();
-    let hash = tx2.hash.clone();
+    let hash = tx2.hash;
     import(&mut txq, tx1).unwrap();
     // This results in error because we also compare nonces
     assert_eq!(
@@ -303,7 +303,7 @@ fn should_construct_pending() {
         .take_while(|tx| {
             let should_take = tx.gas + current_gas <= limit;
             if should_take {
-                current_gas = current_gas + tx.gas
+                current_gas += tx.gas
             }
             should_take
         });
@@ -466,7 +466,7 @@ fn should_update_scoring_correctly() {
         .take_while(|tx| {
             let should_take = tx.gas + current_gas <= limit;
             if should_take {
-                current_gas = current_gas + tx.gas
+                current_gas += tx.gas
             }
             should_take
         });
@@ -494,7 +494,7 @@ fn should_update_scoring_correctly() {
         .take_while(|tx| {
             let should_take = tx.gas + current_gas <= limit;
             if should_take {
-                current_gas = current_gas + tx.gas
+                current_gas += tx.gas
             }
             should_take
         });
@@ -515,7 +515,7 @@ fn should_remove_transaction() {
     assert_eq!(txq.light_status().transaction_count, 3);
 
     // when
-    assert!(txq.remove(&tx2.hash(), false).is_some());
+    assert!(txq.remove(tx2.hash(), false).is_some());
 
     // then
     assert_eq!(txq.light_status().transaction_count, 2);
@@ -840,23 +840,23 @@ mod listener {
             _tx: &SharedTransaction,
             _reason: &error::Error<H>,
         ) {
-            self.0.borrow_mut().push("rejected".into());
+            self.0.borrow_mut().push("rejected");
         }
 
         fn dropped(&mut self, _tx: &SharedTransaction, _new: Option<&Transaction>) {
-            self.0.borrow_mut().push("dropped".into());
+            self.0.borrow_mut().push("dropped");
         }
 
         fn invalid(&mut self, _tx: &SharedTransaction) {
-            self.0.borrow_mut().push("invalid".into());
+            self.0.borrow_mut().push("invalid");
         }
 
         fn canceled(&mut self, _tx: &SharedTransaction) {
-            self.0.borrow_mut().push("canceled".into());
+            self.0.borrow_mut().push("canceled");
         }
 
         fn culled(&mut self, _tx: &SharedTransaction) {
-            self.0.borrow_mut().push("culled".into());
+            self.0.borrow_mut().push("culled");
         }
     }
 
@@ -917,9 +917,9 @@ mod listener {
         let tx2 = import(&mut txq, b.tx().nonce(2).new()).unwrap();
 
         // then
-        txq.remove(&tx1.hash(), false);
+        txq.remove(tx1.hash(), false);
         assert_eq!(*results.borrow(), &["added", "added", "canceled"]);
-        txq.remove(&tx2.hash(), true);
+        txq.remove(tx2.hash(), true);
         assert_eq!(
             *results.borrow(),
             &["added", "added", "canceled", "invalid"]

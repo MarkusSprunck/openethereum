@@ -28,19 +28,19 @@ fn gas_rules(wasm_costs: &vm::WasmCosts) -> rules::Set {
         let mut vals = ::std::collections::BTreeMap::new();
         vals.insert(
             rules::InstructionType::Load,
-            rules::Metering::Fixed(wasm_costs.mem as u32),
+            rules::Metering::Fixed(wasm_costs.mem),
         );
         vals.insert(
             rules::InstructionType::Store,
-            rules::Metering::Fixed(wasm_costs.mem as u32),
+            rules::Metering::Fixed(wasm_costs.mem),
         );
         vals.insert(
             rules::InstructionType::Div,
-            rules::Metering::Fixed(wasm_costs.div as u32),
+            rules::Metering::Fixed(wasm_costs.div),
         );
         vals.insert(
             rules::InstructionType::Mul,
-            rules::Metering::Fixed(wasm_costs.mul as u32),
+            rules::Metering::Fixed(wasm_costs.mul),
         );
         vals
     })
@@ -64,33 +64,35 @@ pub fn payload<'a>(
 
     let (mut cursor, data_position) = match params.params_type {
         vm::ParamsType::Embedded => {
-            let module_size = peek_size(&*code);
+            let module_size = peek_size(code);
             (::std::io::Cursor::new(&code[..module_size]), module_size)
         }
-        vm::ParamsType::Separate => (::std::io::Cursor::new(&code[..]), 0),
+        vm::ParamsType::Separate => (::std::io::Cursor::new(code), 0),
     };
 
     let deserialized_module = elements::Module::deserialize(&mut cursor)
-        .map_err(|err| vm::Error::Wasm(format!("Error deserializing contract code ({:?})", err)))?;
+        .map_err(|err| vm::Error::Wasm(format!("Error deserializing contract code ({err:?})")))?;
 
     if deserialized_module
         .memory_section()
-        .map_or(false, |ms| ms.entries().len() > 0)
+        .is_some_and(|ms| !ms.entries().is_empty())
     {
         // According to WebAssembly spec, internal memory is hidden from embedder and should not
         // be interacted with. So we disable this kind of modules at decoding level.
-        return Err(vm::Error::Wasm(format!(
-            "Malformed wasm module: internal memory"
-        )));
+        return Err(vm::Error::Wasm(
+            "Malformed wasm module: internal memory".to_string(),
+        ));
     }
 
     let contract_module =
         wasm_utils::inject_gas_counter(deserialized_module, &gas_rules(wasm_costs))
-            .map_err(|_| vm::Error::Wasm(format!("Wasm contract error: bytecode invalid")))?;
+            .map_err(|_| vm::Error::Wasm("Wasm contract error: bytecode invalid".to_string()))?;
 
     let contract_module =
         wasm_utils::stack_height::inject_limiter(contract_module, wasm_costs.max_stack_height)
-            .map_err(|_| vm::Error::Wasm(format!("Wasm contract error: stack limiter failure")))?;
+            .map_err(|_| {
+                vm::Error::Wasm("Wasm contract error: stack limiter failure".to_string())
+            })?;
 
     let data = match params.params_type {
         vm::ParamsType::Embedded => {

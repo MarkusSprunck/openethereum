@@ -51,12 +51,7 @@ impl<'de> Deserialize<'de> for EIP191Version {
             "0x00" => EIP191Version::PresignedTransaction,
             "0x01" => EIP191Version::StructuredData,
             "0x45" => EIP191Version::PersonalMessage,
-            other => {
-                return Err(de::Error::custom(format!(
-                    "Invalid byte version '{}'",
-                    other
-                )))
-            }
+            other => return Err(de::Error::custom(format!("Invalid byte version '{other}'"))),
         };
         Ok(byte_version)
     }

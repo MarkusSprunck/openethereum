@@ -40,8 +40,8 @@ impl From<json::PresaleWallet> for PresaleWallet {
         ciphertext.extend_from_slice(&wallet.encseed[16..]);
 
         PresaleWallet {
-            iv: iv,
-            ciphertext: ciphertext,
+            iv,
+            ciphertext,
             address: Address::from(wallet.address),
         }
     }
@@ -55,7 +55,7 @@ impl PresaleWallet {
     {
         let file = fs::File::open(path)?;
         let presale =
-            json::PresaleWallet::load(file).map_err(|e| Error::InvalidKeyFile(format!("{}", e)))?;
+            json::PresaleWallet::load(file).map_err(|e| Error::InvalidKeyFile(format!("{e}")))?;
         Ok(PresaleWallet::from(presale))
     }
 

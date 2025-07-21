@@ -109,7 +109,7 @@ pub trait JournalDB: KeyedHashDB {
             ops += self.mark_canonical(&mut batch, end_era, &canon_id)?;
         }
 
-        let result = self.backing().write(batch).map(|_| ops).map_err(Into::into);
+        let result = self.backing().write(batch).map(|_| ops);
         self.flush();
         result
     }
@@ -119,6 +119,6 @@ pub trait JournalDB: KeyedHashDB {
     fn inject_batch(&mut self) -> io::Result<u32> {
         let mut batch = self.backing().transaction();
         let res = self.inject(&mut batch)?;
-        self.backing().write(batch).map(|_| res).map_err(Into::into)
+        self.backing().write(batch).map(|_| res)
     }
 }

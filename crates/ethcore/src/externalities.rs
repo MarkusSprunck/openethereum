@@ -49,8 +49,8 @@ impl OriginInfo {
     /// Populates origin info from action params.
     pub fn from(params: &ActionParams) -> Self {
         OriginInfo {
-            address: params.address.clone(),
-            origin: params.origin.clone(),
+            address: params.address,
+            origin: params.origin,
             gas_price: params.gas_price,
             value: match params.value {
                 ActionValue::Transfer(val) | ActionValue::Apparent(val) => val,
@@ -97,18 +97,18 @@ where
         static_flag: bool,
     ) -> Self {
         Externalities {
-            state: state,
-            env_info: env_info,
-            depth: depth,
-            stack_depth: stack_depth,
-            origin_info: origin_info,
-            substate: substate,
-            machine: machine,
-            schedule: schedule,
-            output: output,
-            tracer: tracer,
-            vm_tracer: vm_tracer,
-            static_flag: static_flag,
+            state,
+            env_info,
+            depth,
+            stack_depth,
+            origin_info,
+            substate,
+            machine,
+            schedule,
+            output,
+            tracer,
+            vm_tracer,
+            static_flag,
         }
     }
 }
@@ -151,7 +151,7 @@ where
     }
 
     fn is_static(&self) -> bool {
-        return self.static_flag;
+        self.static_flag
     }
 
     fn exists(&self, address: &Address) -> vm::Result<bool> {
@@ -163,7 +163,7 @@ where
     }
 
     fn origin_balance(&self) -> vm::Result<U256> {
-        self.balance(&self.origin_info.address).map_err(Into::into)
+        self.balance(&self.origin_info.address)
     }
 
     fn balance(&self, address: &Address) -> vm::Result<U256> {
@@ -190,15 +190,15 @@ where
             let data: H256 = BigEndianHash::from_uint(number);
 
             let params = ActionParams {
-                sender: self.origin_info.address.clone(),
-                address: blockhash_contract_address.clone(),
+                sender: self.origin_info.address,
+                address: blockhash_contract_address,
                 value: ActionValue::Apparent(self.origin_info.value),
-                code_address: blockhash_contract_address.clone(),
-                origin: self.origin_info.origin.clone(),
+                code_address: blockhash_contract_address,
+                origin: self.origin_info.origin,
                 gas: self.machine.params().eip210_contract_gas,
                 gas_price: 0.into(),
-                code: code,
-                code_hash: code_hash,
+                code,
+                code_hash,
                 data: Some(data.as_bytes().to_vec()),
                 call_type: CallType::Call,
                 params_type: vm::ParamsType::Separate,
@@ -237,7 +237,7 @@ where
                         "Inconsistent env_info, should contain at least {:?} last hashes",
                         index + 1
                     );
-                    let r = self.env_info.last_hashes[index as usize].clone();
+                    let r = self.env_info.last_hashes[index as usize];
                     trace!(
                         "ext: blockhash({}) -> {} self.env_info.number={}\n",
                         number,
@@ -268,36 +268,36 @@ where
     ) -> ::std::result::Result<ContractCreateResult, TrapKind> {
         // create new contract address
         let (address, code_hash) = match self.state.nonce(&self.origin_info.address) {
-            Ok(nonce) => contract_address(address_scheme, &self.origin_info.address, &nonce, &code),
+            Ok(nonce) => contract_address(address_scheme, &self.origin_info.address, &nonce, code),
             Err(e) => {
-                debug!(target: "ext", "Database corruption encountered: {:?}", e);
+                debug!(target: "ext", "Database corruption encountered: {e:?}");
                 return Ok(ContractCreateResult::Failed);
             }
         };
 
         // prepare the params
         let params = ActionParams {
-            code_address: address.clone(),
-            address: address.clone(),
-            sender: self.origin_info.address.clone(),
-            origin: self.origin_info.origin.clone(),
+            code_address: address,
+            address,
+            sender: self.origin_info.address,
+            origin: self.origin_info.origin,
             gas: *gas,
             gas_price: self.origin_info.gas_price,
             value: ActionValue::Transfer(*value),
             code: Some(Arc::new(code.to_vec())),
-            code_hash: code_hash,
+            code_hash,
             data: None,
             call_type: CallType::None,
             params_type: vm::ParamsType::Embedded,
             access_list: self.substate.access_list.clone(),
         };
 
-        if !self.static_flag {
-            if !self.schedule.keep_unsigned_nonce || params.sender != UNSIGNED_SENDER {
-                if let Err(e) = self.state.inc_nonce(&self.origin_info.address) {
-                    debug!(target: "ext", "Database corruption encountered: {:?}", e);
-                    return Ok(ContractCreateResult::Failed);
-                }
+        if !self.static_flag
+            && (!self.schedule.keep_unsigned_nonce || params.sender != UNSIGNED_SENDER)
+        {
+            if let Err(e) = self.state.inc_nonce(&self.origin_info.address) {
+                debug!(target: "ext", "Database corruption encountered: {e:?}");
+                return Ok(ContractCreateResult::Failed);
             }
         }
 
@@ -327,7 +327,7 @@ where
     fn calc_address(&self, code: &[u8], address_scheme: CreateContractAddress) -> Option<Address> {
         match self.state.nonce(&self.origin_info.address) {
             Ok(nonce) => {
-                Some(contract_address(address_scheme, &self.origin_info.address, &nonce, &code).0)
+                Some(contract_address(address_scheme, &self.origin_info.address, &nonce, code).0)
             }
             Err(_) => None,
         }
@@ -357,17 +357,17 @@ where
         };
 
         let mut params = ActionParams {
-            sender: sender_address.clone(),
-            address: receive_address.clone(),
+            sender: *sender_address,
+            address: *receive_address,
             value: ActionValue::Apparent(self.origin_info.value),
-            code_address: code_address.clone(),
-            origin: self.origin_info.origin.clone(),
+            code_address: *code_address,
+            origin: self.origin_info.origin,
             gas: *gas,
             gas_price: self.origin_info.gas_price,
-            code: code,
-            code_hash: code_hash,
+            code,
+            code_hash,
             data: Some(data.to_vec()),
-            call_type: call_type,
+            call_type,
             params_type: vm::ParamsType::Separate,
             access_list: self.substate.access_list.clone(),
         };
@@ -429,7 +429,7 @@ where
                         false => Ok(*gas),
                     };
                 }
-                if self.schedule.eip3541 && data.get(0) == Some(&0xefu8) {
+                if self.schedule.eip3541 && data.first() == Some(&0xefu8) {
                     return match self.schedule.exceptional_failed_code_deposit {
                         true => Err(vm::Error::InvalidCode),
                         false => Ok(*gas),
@@ -450,10 +450,10 @@ where
             return Err(vm::Error::MutableCallInStaticContext);
         }
 
-        let address = self.origin_info.address.clone();
+        let address = self.origin_info.address;
         self.substate.logs.push(LogEntry {
-            address: address,
-            topics: topics,
+            address,
+            topics,
             data: data.to_vec(),
         });
 
@@ -465,31 +465,30 @@ where
             return Err(vm::Error::MutableCallInStaticContext);
         }
 
-        let address = self.origin_info.address.clone();
+        let address = self.origin_info.address;
         let balance = self.balance(&address)?;
         if &address == refund_address {
             // TODO [todr] To be consistent with CPP client we set balance to 0 in that case.
             self.state
                 .sub_balance(&address, &balance, &mut CleanupMode::NoEmpty)?;
         } else {
-            trace!(target: "ext", "Suiciding {} -> {} (xfer: {})", address, refund_address, balance);
+            trace!(target: "ext", "Suiciding {address} -> {refund_address} (xfer: {balance})");
             self.state.transfer_balance(
                 &address,
                 refund_address,
                 &balance,
-                self.substate.to_cleanup_mode(&self.schedule),
+                self.substate.to_cleanup_mode(self.schedule),
             )?;
         }
 
-        self.tracer
-            .trace_suicide(address, balance, refund_address.clone());
+        self.tracer.trace_suicide(address, balance, *refund_address);
         self.substate.suicides.insert(address);
 
         Ok(())
     }
 
     fn schedule(&self) -> &Schedule {
-        &self.schedule
+        self.schedule
     }
 
     fn env_info(&self) -> &EnvInfo {
@@ -611,10 +610,10 @@ mod tests {
             let schedule = machine.schedule(env_info.number);
             TestSetup {
                 state: get_temp_state(),
-                schedule: schedule,
-                machine: machine,
+                schedule,
+                machine,
                 sub_state: Substate::new(),
-                env_info: env_info,
+                env_info,
             }
         }
     }
@@ -689,7 +688,7 @@ mod tests {
             let env_info = &mut setup.env_info;
             env_info.number = test_env_number;
             let mut last_hashes = (*env_info.last_hashes).clone();
-            last_hashes.push(test_hash.clone());
+            last_hashes.push(test_hash);
             env_info.last_hashes = Arc::new(last_hashes);
         }
         let state = &mut setup.state;
@@ -941,7 +940,7 @@ mod tests {
                 &mut vm_tracer,
                 false,
             );
-            ext.ret(&U256::from(10000), &data, true)
+            ext.ret(&U256::from(10000), data, true)
         };
 
         let data = ReturnData::new(vec![0xefu8], 0, 1);

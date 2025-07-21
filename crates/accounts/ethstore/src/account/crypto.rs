@@ -102,13 +102,13 @@ impl Crypto {
         let mut ciphertext: SmallVec<[u8; 32]> = SmallVec::from_vec(vec![0; plain_len]);
 
         // aes-128-ctr with initial vector of iv
-        crypto::aes::encrypt_128_ctr(&derived_left_bits, &iv, plain, &mut *ciphertext)?;
+        crypto::aes::encrypt_128_ctr(&derived_left_bits, &iv, plain, &mut ciphertext)?;
 
         // KECCAK(DK[16..31] ++ <ciphertext>), where DK[16..31] - derived_right_bits
-        let mac = crypto::derive_mac(&derived_right_bits, &*ciphertext).keccak256();
+        let mac = crypto::derive_mac(&derived_right_bits, &ciphertext).keccak256();
 
         Ok(Crypto {
-            cipher: Cipher::Aes128Ctr(Aes128Ctr { iv: iv }),
+            cipher: Cipher::Aes128Ctr(Aes128Ctr { iv }),
             ciphertext: ciphertext.into_vec(),
             kdf: Kdf::Pbkdf2(Pbkdf2 {
                 dklen: crypto::KEY_LENGTH as u32,
@@ -116,7 +116,7 @@ impl Crypto {
                 c: iterations,
                 prf: Prf::HmacSha256,
             }),
-            mac: mac,
+            mac,
         })
     }
 

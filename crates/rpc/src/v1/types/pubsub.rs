@@ -61,18 +61,13 @@ pub enum Kind {
 }
 
 /// Subscription kind.
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub enum Params {
     /// No parameters passed.
+    #[default]
     None,
     /// Log parameters.
     Logs(Filter),
-}
-
-impl Default for Params {
-    fn default() -> Self {
-        Params::None
-    }
 }
 
 impl<'a> Deserialize<'a> for Params {
@@ -88,7 +83,7 @@ impl<'a> Deserialize<'a> for Params {
 
         from_value(v.clone())
             .map(Params::Logs)
-            .map_err(|e| D::Error::custom(format!("Invalid Pub-Sub parameters: {}", e)))
+            .map_err(|e| D::Error::custom(format!("Invalid Pub-Sub parameters: {e}")))
     }
 }
 
@@ -120,10 +115,10 @@ mod tests {
 
     #[test]
     fn should_deserialize_logs() {
-        let none = serde_json::from_str::<Params>(r#"null"#).unwrap();
+        let none = serde_json::from_str::<Params>(r"null").unwrap();
         assert_eq!(none, Params::None);
 
-        let logs1 = serde_json::from_str::<Params>(r#"{}"#).unwrap();
+        let logs1 = serde_json::from_str::<Params>(r"{}").unwrap();
         let logs2 = serde_json::from_str::<Params>(r#"{"limit":10}"#).unwrap();
         let logs3 = serde_json::from_str::<Params>(
             r#"{"topics":["0x000000000000000000000000a94f5374fce5edbc8e2a8697c15331677e6ebf0b"]}"#,

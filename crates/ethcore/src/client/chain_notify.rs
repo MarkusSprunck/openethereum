@@ -83,11 +83,11 @@ impl ChainRoute {
         // the block is enacted or retracted we iterate over all routes and at the end final state
         // will be in the hashmap
         let map = route.iter().fold(HashMap::new(), |mut map, route| {
-            match &route.1 {
-                &ChainRouteType::Enacted => {
+            match route.1 {
+                ChainRouteType::Enacted => {
                     map.insert(route.0, true);
                 }
-                &ChainRouteType::Retracted => {
+                ChainRouteType::Retracted => {
                     map.insert(route.0, false);
                 }
             }

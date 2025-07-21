@@ -31,7 +31,7 @@ impl IoHandler<NetworkIoMessage> for HostHandler {
     fn message(&self, _io: &IoContext<NetworkIoMessage>, message: &NetworkIoMessage) {
         if let NetworkIoMessage::NetworkStarted(ref public_url) = *message {
             let mut url = self.public_url.write();
-            if url.as_ref().map_or(true, |uref| uref != public_url) {
+            if url.as_ref() != Some(public_url) {
                 info!(target: "network", "Public node URL: {}", AsRef::<str>::as_ref(public_url));
             }
             *url = Some(public_url.to_owned());
@@ -156,7 +156,7 @@ impl NetworkService {
             .read()
             .as_ref()
             .map(|h| h.connected_peers())
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
     }
 
     /// Try to add a reserved peer.
@@ -195,7 +195,7 @@ impl NetworkService {
     {
         let io = IoContext::new(self.io_service.channel(), 0);
         let host = self.host.read();
-        if let Some(ref host) = host.as_ref() {
+        if let Some(host) = host.as_ref() {
             host.with_context(protocol, &io, action);
         };
     }
@@ -208,6 +208,6 @@ impl NetworkService {
         let io = IoContext::new(self.io_service.channel(), 0);
         let host = self.host.read();
         host.as_ref()
-            .map(|ref host| host.with_context_eval(protocol, &io, action))
+            .map(|host| host.with_context_eval(protocol, &io, action))
     }
 }

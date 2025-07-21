@@ -72,7 +72,7 @@ mod command {
         let spec = spec.spec(&::std::env::temp_dir())?;
         let mut path = PathBuf::from(&path);
         path.push(spec.data_dir);
-        RootDiskDirectory::create(path).map_err(|e| format!("Could not open keys directory: {}", e))
+        RootDiskDirectory::create(path).map_err(|e| format!("Could not open keys directory: {e}"))
     }
 
     fn secret_store(
@@ -83,7 +83,7 @@ mod command {
             Some(i) => EthStore::open_with_iterations(dir, i),
             _ => EthStore::open(dir),
         }
-        .map_err(|e| format!("Could not open keys store: {}", e))
+        .map_err(|e| format!("Could not open keys store: {e}"))
     }
 
     fn new(n: NewAccount) -> Result<String, String> {
@@ -97,18 +97,18 @@ mod command {
         let acc_provider = AccountProvider::new(secret_store, AccountProviderSettings::default());
         let new_account = acc_provider
             .new_account(&password)
-            .map_err(|e| format!("Could not create new account: {}", e))?;
-        Ok(format!("0x{:x}", new_account))
+            .map_err(|e| format!("Could not create new account: {e}"))?;
+        Ok(format!("0x{new_account:x}"))
     }
 
     fn list(list_cmd: ListAccounts) -> Result<String, String> {
         let dir = Box::new(keys_dir(list_cmd.path, list_cmd.spec)?);
         let secret_store = Box::new(secret_store(dir, None)?);
         let acc_provider = AccountProvider::new(secret_store, AccountProviderSettings::default());
-        let accounts = acc_provider.accounts().map_err(|e| format!("{}", e))?;
+        let accounts = acc_provider.accounts().map_err(|e| format!("{e}"))?;
         let result = accounts
             .into_iter()
-            .map(|a| format!("0x{:x}", a))
+            .map(|a| format!("0x{a:x}"))
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -124,16 +124,16 @@ mod command {
             if path.is_dir() {
                 let from = RootDiskDirectory::at(&path);
                 imported += import_accounts(&from, &to)
-                    .map_err(|e| format!("Importing accounts from {:?} failed: {}", path, e))?
+                    .map_err(|e| format!("Importing accounts from {path:?} failed: {e}"))?
                     .len();
             } else if path.is_file() {
                 import_account(&path, &to)
-                    .map_err(|e| format!("Importing account from {:?} failed: {}", path, e))?;
+                    .map_err(|e| format!("Importing account from {path:?} failed: {e}"))?;
                 imported += 1;
             }
         }
 
-        Ok(format!("{} account(s) imported", imported))
+        Ok(format!("{imported} account(s) imported"))
     }
 }
 

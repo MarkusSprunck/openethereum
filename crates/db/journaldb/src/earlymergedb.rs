@@ -120,9 +120,9 @@ impl EarlyMergeDB {
         let refs = Some(Arc::new(RwLock::new(refs)));
         EarlyMergeDB {
             overlay: ::new_memory_db(),
-            backing: backing,
-            refs: refs,
-            latest_era: latest_era,
+            backing,
+            refs,
+            latest_era,
             column: col,
         }
     }
@@ -154,7 +154,7 @@ impl EarlyMergeDB {
         refs: &mut HashMap<H256, RefInfo>,
         batch: &mut DBTransaction,
     ) {
-        for &(ref h, ref d) in inserts {
+        for (h, d) in inserts {
             match refs.entry(*h) {
                 Entry::Occupied(mut entry) => {
                     let info = entry.get_mut();
@@ -171,17 +171,17 @@ impl EarlyMergeDB {
                     if in_archive {
                         // already in the backing DB. start counting, and remember it was already in.
                         Self::set_already_in(batch, col, h);
-                        trace!(target: "jdb.fine", "    insert({}): New to queue, in DB: Recording and inserting into queue", h);
+                        trace!(target: "jdb.fine", "    insert({h}): New to queue, in DB: Recording and inserting into queue");
                     } else {
                         // Gets removed when a key leaves the journal, so should never be set when we're placing a new key.
                         //Self::reset_already_in(&h);
                         assert!(!Self::is_already_in(backing, col, h));
-                        trace!(target: "jdb.fine", "    insert({}): New to queue, not in DB: Inserting into queue and DB", h);
+                        trace!(target: "jdb.fine", "    insert({h}): New to queue, not in DB: Inserting into queue and DB");
                         batch.put(col, h.as_bytes(), d);
                     }
                     entry.insert(RefInfo {
                         queue_refs: 1,
-                        in_archive: in_archive,
+                        in_archive,
                     });
                 }
             }
@@ -194,7 +194,7 @@ impl EarlyMergeDB {
         col: Option<u32>,
         refs: &mut HashMap<H256, RefInfo>,
     ) {
-        trace!(target: "jdb.fine", "replay_keys: inserts={:?}, refs={:?}", inserts, refs);
+        trace!(target: "jdb.fine", "replay_keys: inserts={inserts:?}, refs={refs:?}");
         for h in inserts {
             match refs.entry(*h) {
                 // already counting. increment.
@@ -211,7 +211,7 @@ impl EarlyMergeDB {
                 }
             }
         }
-        trace!(target: "jdb.fine", "replay_keys: (end) refs={:?}", refs);
+        trace!(target: "jdb.fine", "replay_keys: (end) refs={refs:?}");
     }
 
     fn remove_keys(
@@ -233,7 +233,7 @@ impl EarlyMergeDB {
                     if entry.get().in_archive && from == RemoveFrom::Archive {
                         entry.get_mut().in_archive = false;
                         Self::reset_already_in(batch, col, h);
-                        trace!(target: "jdb.fine", "    remove({}): In archive, 1 in queue: Reducing to queue only and recording", h);
+                        trace!(target: "jdb.fine", "    remove({h}): In archive, 1 in queue: Reducing to queue only and recording");
                         continue;
                     }
                     if entry.get().queue_refs > 1 {
@@ -249,12 +249,12 @@ impl EarlyMergeDB {
                         (1, true) => {
                             entry.remove();
                             Self::reset_already_in(batch, col, h);
-                            trace!(target: "jdb.fine", "    remove({}): In archive, 1 in queue: Removing from queue and leaving in archive", h);
+                            trace!(target: "jdb.fine", "    remove({h}): In archive, 1 in queue: Removing from queue and leaving in archive");
                         }
                         (1, false) => {
                             entry.remove();
                             batch.delete(col, h.as_bytes());
-                            trace!(target: "jdb.fine", "    remove({}): Not in archive, only 1 ref in queue: Removing from queue and DB", h);
+                            trace!(target: "jdb.fine", "    remove({h}): Not in archive, only 1 ref in queue: Removing from queue and DB");
                         }
                         _ => panic!("Invalid value in refs: {:?}", entry.get()),
                     }
@@ -263,7 +263,7 @@ impl EarlyMergeDB {
                     // Gets removed when moving from 1 to 0 additional refs. Should never be here at 0 additional refs.
                     //assert!(!Self::is_already_in(db, &h));
                     batch.delete(col, h.as_bytes());
-                    trace!(target: "jdb.fine", "    remove({}): Not in queue - MUST BE IN ARCHIVE: Removing from DB", h);
+                    trace!(target: "jdb.fine", "    remove({h}): Not in queue - MUST BE IN ARCHIVE: Removing from DB");
                 }
             }
         }
@@ -280,7 +280,7 @@ impl EarlyMergeDB {
                     if reconstructed.get(k) == Some(v) {
                         None
                     } else {
-                        Some((k.clone(), v.clone()))
+                        Some((*k, v.clone()))
                     }
                 })
                 .collect::<HashMap<_, _>>();
@@ -290,11 +290,11 @@ impl EarlyMergeDB {
                     if refs.get(&k) == Some(&v) {
                         None
                     } else {
-                        Some((k.clone(), v.clone()))
+                        Some((k, v.clone()))
                     }
                 })
                 .collect::<HashMap<_, _>>();
-            warn!(target: "jdb", "mem: {:?}  !=  log: {:?}", clean_refs, clean_recon);
+            warn!(target: "jdb", "mem: {clean_refs:?}  !=  log: {clean_recon:?}");
             false
         } else {
             true
@@ -368,7 +368,7 @@ impl ::traits::KeyedHashDB for EarlyMergeDB {
         let mut ret: HashMap<H256, i32> = self
             .backing
             .iter(self.column)
-            .map(|(key, _)| (H256::from_slice(&*key), 1))
+            .map(|(key, _)| (H256::from_slice(&key), 1))
             .collect();
 
         for (key, refs) in self.overlay.keys() {
@@ -391,8 +391,8 @@ impl JournalDB for EarlyMergeDB {
             overlay: self.overlay.clone(),
             backing: self.backing.clone(),
             refs: self.refs.clone(),
-            latest_era: self.latest_era.clone(),
-            column: self.column.clone(),
+            latest_era: self.latest_era,
+            column: self.column,
         })
     }
 
@@ -448,11 +448,11 @@ impl JournalDB for EarlyMergeDB {
 
             let drained = self.overlay.drain();
 
-            trace!(target: "jdb", "commit: #{} ({})", now, id);
+            trace!(target: "jdb", "commit: #{now} ({id})");
 
             let removes: Vec<H256> = drained
                 .iter()
-                .filter_map(|(k, &(_, c))| if c < 0 { Some(k.clone()) } else { None })
+                .filter_map(|(k, &(_, c))| if c < 0 { Some(*k) } else { None })
                 .collect();
             let inserts: Vec<(H256, _)> = drained
                 .into_iter()
@@ -484,11 +484,11 @@ impl JournalDB for EarlyMergeDB {
                 deletes: &removes,
             };
 
-            trace!(target: "jdb.ops", "  Deletes: {:?}", removes);
-            trace!(target: "jdb.ops", "  Inserts: {:?}", ins);
+            trace!(target: "jdb.ops", "  Deletes: {removes:?}");
+            trace!(target: "jdb.ops", "  Inserts: {ins:?}");
 
             batch.put(self.column, &last, &encode(&value_ref));
-            if self.latest_era.map_or(true, |e| now > e) {
+            if self.latest_era.is_none_or(|e| now > e) {
                 batch.put(self.column, &LATEST_ERA_KEY, &encode(&now));
                 self.latest_era = Some(now);
             }
@@ -522,10 +522,10 @@ impl JournalDB for EarlyMergeDB {
             if canon_id == &view.id().expect("rlp read from db; qed") {
                 // Collect keys to be removed. Canon block - remove the (enacted) deletes.
                 let deletes = view.deletes().expect("rlp read from db; qed");
-                trace!(target: "jdb.ops", "  Expunging: {:?}", deletes);
+                trace!(target: "jdb.ops", "  Expunging: {deletes:?}");
                 Self::remove_keys(&deletes, &mut refs, batch, self.column, RemoveFrom::Archive);
 
-                trace!(target: "jdb.ops", "  Finalising: {:?}", inserts);
+                trace!(target: "jdb.ops", "  Finalising: {inserts:?}");
                 for k in &inserts {
                     match refs.get(k).cloned() {
                         None => {
@@ -547,7 +547,7 @@ impl JournalDB for EarlyMergeDB {
                             // must set already in; ,
                             Self::set_already_in(batch, self.column, k);
                             refs.insert(
-                                k.clone(),
+                                *k,
                                 RefInfo {
                                     queue_refs: x - 1,
                                     in_archive: true,
@@ -558,13 +558,13 @@ impl JournalDB for EarlyMergeDB {
                             in_archive: true, ..
                         }) => {
                             // Invalid! Reinserted the same key twice.
-                            warn!("Key {} inserted twice into same fork.", k);
+                            warn!("Key {k} inserted twice into same fork.");
                         }
                     }
                 }
             } else {
                 // Collect keys to be removed. Non-canon block - remove the (reverted) inserts.
-                trace!(target: "jdb.ops", "  Reverting: {:?}", inserts);
+                trace!(target: "jdb.ops", "  Reverting: {inserts:?}");
                 Self::remove_keys(&inserts, &mut refs, batch, self.column, RemoveFrom::Queue);
             }
 
@@ -926,7 +926,7 @@ mod tests {
             let mut jdb = EarlyMergeDB::new(shared_db.clone(), None);
             // history is 1
             let foo = jdb.insert(b"foo");
-            jdb.emplace(bar.clone(), DBValue::from_slice(b"bar"));
+            jdb.emplace(bar, DBValue::from_slice(b"bar"));
             jdb.commit_batch(0, &keccak(b"0"), None).unwrap();
             assert!(jdb.can_reconstruct_refs());
             foo

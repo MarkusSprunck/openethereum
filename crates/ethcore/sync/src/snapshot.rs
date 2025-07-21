@@ -89,26 +89,26 @@ impl Snapshot {
         self.clear();
         self.pending_state_chunks = manifest.state_hashes.clone();
         self.pending_block_chunks = manifest.block_hashes.clone();
-        self.snapshot_hash = Some(hash.clone());
+        self.snapshot_hash = Some(*hash);
     }
 
     /// Validate chunk and mark it as downloaded
     pub fn validate_chunk(&mut self, chunk: &[u8]) -> Result<ChunkType, ()> {
         let hash = keccak(chunk);
         if self.completed_chunks.contains(&hash) {
-            trace!(target: "sync", "Ignored proccessed chunk: {:x}", hash);
+            trace!(target: "sync", "Ignored proccessed chunk: {hash:x}");
             return Err(());
         }
         self.downloading_chunks.remove(&hash);
         if self.pending_block_chunks.iter().any(|h| h == &hash) {
-            self.completed_chunks.insert(hash.clone());
+            self.completed_chunks.insert(hash);
             return Ok(ChunkType::Block(hash));
         }
         if self.pending_state_chunks.iter().any(|h| h == &hash) {
-            self.completed_chunks.insert(hash.clone());
+            self.completed_chunks.insert(hash);
             return Ok(ChunkType::State(hash));
         }
-        trace!(target: "sync", "Ignored unknown chunk: {:x}", hash);
+        trace!(target: "sync", "Ignored unknown chunk: {hash:x}");
         Err(())
     }
 
@@ -123,7 +123,7 @@ impl Snapshot {
                 .pending_block_chunks
                 .iter()
                 .filter(|&h| chunk_filter(h))
-                .map(|h| *h)
+                .copied()
                 .next();
 
             // If no block chunks to download, get the state chunks
@@ -131,7 +131,7 @@ impl Snapshot {
                 self.pending_state_chunks
                     .iter()
                     .filter(|&h| chunk_filter(h))
-                    .map(|h| *h)
+                    .copied()
                     .next()
             } else {
                 needed_block_chunk
@@ -139,7 +139,7 @@ impl Snapshot {
         };
 
         if let Some(hash) = chunk {
-            self.downloading_chunks.insert(hash.clone());
+            self.downloading_chunks.insert(hash);
         }
         chunk
     }
@@ -199,8 +199,8 @@ mod test {
             .collect();
         let manifest = ManifestData {
             version: 2,
-            state_hashes: state_chunks.iter().map(|data| keccak(data)).collect(),
-            block_hashes: block_chunks.iter().map(|data| keccak(data)).collect(),
+            state_hashes: state_chunks.iter().map(keccak).collect(),
+            block_hashes: block_chunks.iter().map(keccak).collect(),
             state_root: H256::default(),
             block_number: 42,
             block_hash: H256::default(),
@@ -226,9 +226,7 @@ mod test {
         let (manifest, mhash, state_chunks, block_chunks) = test_manifest();
         snapshot.reset_to(&manifest, &mhash);
         assert_eq!(snapshot.done_chunks(), 0);
-        assert!(snapshot
-            .validate_chunk(&H256::random().as_bytes().to_vec())
-            .is_err());
+        assert!(snapshot.validate_chunk(H256::random().as_bytes()).is_err());
 
         let requested: Vec<H256> = (0..40).map(|_| snapshot.needed_chunk().unwrap()).collect();
         assert!(snapshot.needed_chunk().is_none());
@@ -249,14 +247,14 @@ mod test {
 
         assert_eq!(
             snapshot.validate_chunk(&state_chunks[4]),
-            Ok(ChunkType::State(manifest.state_hashes[4].clone()))
+            Ok(ChunkType::State(manifest.state_hashes[4]))
         );
         assert_eq!(snapshot.completed_chunks.len(), 1);
         assert_eq!(snapshot.downloading_chunks.len(), 39);
 
         assert_eq!(
             snapshot.validate_chunk(&block_chunks[10]),
-            Ok(ChunkType::Block(manifest.block_hashes[10].clone()))
+            Ok(ChunkType::Block(manifest.block_hashes[10]))
         );
         assert_eq!(snapshot.completed_chunks.len(), 2);
         assert_eq!(snapshot.downloading_chunks.len(), 38);
@@ -284,8 +282,8 @@ mod test {
         let mut snapshot = Snapshot::new();
         let hash = H256::random();
 
-        assert_eq!(snapshot.is_known_bad(&hash), false);
+        assert!(!snapshot.is_known_bad(&hash));
         snapshot.note_bad(hash);
-        assert_eq!(snapshot.is_known_bad(&hash), true);
+        assert!(snapshot.is_known_bad(&hash));
     }
 }

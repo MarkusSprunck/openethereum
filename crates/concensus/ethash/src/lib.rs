@@ -94,7 +94,7 @@ impl EthashManager {
                 optimize_for.into().unwrap_or_default(),
                 progpow_transition,
             ),
-            progpow_transition: progpow_transition,
+            progpow_transition,
             cache: Mutex::new(LightCache {
                 recent_epoch: None,
                 recent: None,
@@ -117,9 +117,9 @@ impl EthashManager {
                 // we need to regenerate the cache to trigger algorithm change to progpow inside `Light`
                 None
             } else {
-                match lights.recent_epoch.clone() {
+                match lights.recent_epoch {
                     Some(ref e) if *e == epoch => lights.recent.clone(),
-                    _ => match lights.prev_epoch.clone() {
+                    _ => match lights.prev_epoch {
                         Some(e) if e == epoch => {
                             // don't swap if recent is newer.
                             if lights.recent_epoch > lights.prev_epoch {
@@ -148,17 +148,17 @@ impl EthashManager {
                     {
                         Ok(light) => Arc::new(light),
                         Err(e) => {
-                            debug!("Light cache file not found for {}:{}", block_number, e);
+                            debug!("Light cache file not found for {block_number}:{e}");
                             let mut light =
                                 self.nodecache_builder.light(&self.cache_dir, block_number);
                             if let Err(e) = light.to_file() {
-                                warn!("Light cache file write error: {}", e);
+                                warn!("Light cache file write error: {e}");
                             }
                             Arc::new(light)
                         }
                     };
-                    lights.prev_epoch = mem::replace(&mut lights.recent_epoch, Some(epoch));
-                    lights.prev = mem::replace(&mut lights.recent, Some(light.clone()));
+                    lights.prev_epoch = lights.recent_epoch.replace(epoch);
+                    lights.prev = lights.recent.replace(light.clone());
                     light
                 }
                 Some(light) => light,
@@ -170,7 +170,7 @@ impl EthashManager {
 
 /// Convert an Ethash boundary to its original difficulty. Basically just `f(x) = 2^256 / x`.
 pub fn boundary_to_difficulty(boundary: &ethereum_types::H256) -> U256 {
-    difficulty_to_boundary_aux(&boundary.into_uint())
+    difficulty_to_boundary_aux(boundary.into_uint())
 }
 
 /// Convert an Ethash difficulty to the target boundary. Basically just `f(x) = 2^256 / x`.

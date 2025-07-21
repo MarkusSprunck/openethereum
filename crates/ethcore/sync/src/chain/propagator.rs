@@ -23,7 +23,7 @@ use network::{client_version::ClientCapabilities, PeerId};
 use rand::RngCore;
 use rlp::RlpStream;
 use sync_io::SyncIo;
-use types::{blockchain_info::BlockChainInfo, transaction::SignedTransaction, BlockNumber};
+use types::{blockchain_info::BlockChainInfo, transaction::SignedTransaction};
 
 use super::sync_packet::SyncPacket::{self, *};
 
@@ -48,14 +48,14 @@ impl SyncPropagator {
         blocks: &[H256],
         peers: &[PeerId],
     ) -> usize {
-        trace!(target: "sync", "Sending NewBlocks to {:?}", peers);
+        trace!(target: "sync", "Sending NewBlocks to {peers:?}");
         let sent = peers.len();
         let mut send_packet = |io: &mut dyn SyncIo, rlp: Bytes| {
             for peer_id in peers {
                 SyncPropagator::send_packet(io, *peer_id, NewBlockPacket, rlp.clone());
 
                 if let Some(ref mut peer) = sync.peers.get_mut(peer_id) {
-                    peer.latest_hash = chain_info.best_block_hash.clone();
+                    peer.latest_hash = chain_info.best_block_hash;
                 }
             }
         };
@@ -80,7 +80,7 @@ impl SyncPropagator {
         io: &mut dyn SyncIo,
         peers: &[PeerId],
     ) -> usize {
-        trace!(target: "sync", "Sending NewHashes to {:?}", peers);
+        trace!(target: "sync", "Sending NewHashes to {peers:?}");
         let last_parent = *io.chain().best_block_header().parent_hash();
         let best_block_hash = chain_info.best_block_hash;
         let rlp = match ChainSync::create_new_hashes_rlp(io.chain(), &last_parent, &best_block_hash)
@@ -276,8 +276,8 @@ impl SyncPropagator {
     // t_nb 11.4.1 propagate latest blocks to peers
     pub fn propagate_latest_blocks(sync: &mut ChainSync, io: &mut dyn SyncIo, sealed: &[H256]) {
         let chain_info = io.chain().chain_info();
-        if (((chain_info.best_block_number as i64) - (sync.last_sent_block_number as i64)).abs()
-            as BlockNumber)
+        if ((chain_info.best_block_number as i64) - (sync.last_sent_block_number as i64))
+            .unsigned_abs()
             < MAX_PEER_LAG_PROPAGATION
         {
             let peers = sync.get_lagging_peers(&chain_info);
@@ -289,7 +289,7 @@ impl SyncPropagator {
                 let blocks =
                     SyncPropagator::propagate_blocks(sync, &chain_info, io, sealed, &peers);
                 if blocks != 0 || hashes != 0 {
-                    trace!(target: "sync", "Sent latest {} blocks and {} hashes to peers.", blocks, hashes);
+                    trace!(target: "sync", "Sent latest {blocks} blocks and {hashes} hashes to peers.");
                 }
             } else {
                 // t_nb 11.4.3
@@ -309,7 +309,7 @@ impl SyncPropagator {
         proposed: &[Bytes],
     ) {
         let peers = sync.get_consensus_peers();
-        trace!(target: "sync", "Sending proposed blocks to {:?}", peers);
+        trace!(target: "sync", "Sending proposed blocks to {peers:?}");
         for block in proposed {
             let rlp = ChainSync::create_block_rlp(block, io.chain().chain_info().total_difficulty);
             for peer_id in &peers {
@@ -321,7 +321,7 @@ impl SyncPropagator {
     /// Broadcast consensus message to peers.
     pub fn propagate_consensus_packet(sync: &mut ChainSync, io: &mut dyn SyncIo, packet: Bytes) {
         let lucky_peers = ChainSync::select_random_peers(&sync.get_consensus_peers());
-        trace!(target: "sync", "Sending consensus packet to {:?}", lucky_peers);
+        trace!(target: "sync", "Sending consensus packet to {lucky_peers:?}");
         for peer_id in lucky_peers {
             SyncPropagator::send_packet(io, peer_id, ConsensusDataPacket, packet.clone());
         }
@@ -361,7 +361,7 @@ impl SyncPropagator {
         packet: Bytes,
     ) {
         if let Err(e) = sync.send(peer_id, packet_id, packet) {
-            debug!(target:"sync", "Error sending packet: {:?}", e);
+            debug!(target:"sync", "Error sending packet: {e:?}");
             sync.disconnect_peer(peer_id);
         }
     }
@@ -504,13 +504,8 @@ mod tests {
         let ss = TestSnapshotService::new();
         let mut io = TestIo::new(&mut client, &ss, &queue, None);
         let peers = sync.get_lagging_peers(&chain_info);
-        let peer_count = SyncPropagator::propagate_blocks(
-            &mut sync,
-            &chain_info,
-            &mut io,
-            &[hash.clone()],
-            &peers,
-        );
+        let peer_count =
+            SyncPropagator::propagate_blocks(&mut sync, &chain_info, &mut io, &[hash], &peers);
 
         // 1 message should be send
         assert_eq!(1, io.packets.len());
@@ -905,7 +900,7 @@ mod tests {
                     return None;
                 }
 
-                let rlp = Rlp::new(&*p.data);
+                let rlp = Rlp::new(&p.data);
                 let item_count = rlp.item_count().unwrap_or(0);
                 if item_count != 1 {
                     return None;

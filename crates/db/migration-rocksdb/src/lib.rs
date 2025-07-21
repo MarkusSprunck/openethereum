@@ -38,7 +38,7 @@ fn other_io_err<E>(e: E) -> io::Error
 where
     E: Into<Box<dyn error::Error + Send + Sync>>,
 {
-    io::Error::new(io::ErrorKind::Other, e)
+    io::Error::other(e)
 }
 
 /// Migration config.
@@ -94,7 +94,7 @@ impl Batch {
         let mut transaction = DBTransaction::new();
 
         for keypair in &self.inner {
-            transaction.put(self.column, &keypair.0, &keypair.1);
+            transaction.put(self.column, keypair.0, keypair.1);
         }
 
         self.inner.clear();
@@ -259,7 +259,7 @@ impl Manager {
     /// Creates new migration manager with given configuration.
     pub fn new(config: Config) -> Self {
         Manager {
-            config: config,
+            config,
             migrations: vec![],
         }
     }
@@ -275,7 +275,10 @@ impl Manager {
         };
 
         match is_new {
-            true => Ok(self.migrations.push(Box::new(migration))),
+            true => {
+                self.migrations.push(Box::new(migration));
+                Ok(())
+            }
             false => Err(other_io_err("Cannot add migration.")),
         }
     }
@@ -290,14 +293,14 @@ impl Manager {
             return Err(other_io_err("Migration impossible"));
         };
 
-        let columns = migrations.get(0).and_then(|m| m.pre_columns());
+        let columns = migrations.first().and_then(|m| m.pre_columns());
 
-        trace!(target: "migration", "Expecting database to contain {:?} columns", columns);
+        trace!(target: "migration", "Expecting database to contain {columns:?} columns");
         let mut db_config = DatabaseConfig {
             max_open_files: 64,
             memory_budget: None,
             compaction: config.compaction_profile,
-            columns: columns,
+            columns,
         };
 
         let db_root = database_path(old_path);

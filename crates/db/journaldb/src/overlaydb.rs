@@ -80,7 +80,7 @@ impl OverlayDB {
     pub fn new(backing: Arc<dyn KeyValueDB>, col: Option<u32>) -> OverlayDB {
         OverlayDB {
             overlay: ::new_memory_db(),
-            backing: backing,
+            backing,
             column: col,
         }
     }
@@ -97,7 +97,7 @@ impl OverlayDB {
     pub fn commit(&mut self) -> io::Result<u32> {
         let mut batch = self.backing.transaction();
         let res = self.commit_to_batch(&mut batch)?;
-        self.backing.write(batch).map(|_| res).map_err(|e| e.into())
+        self.backing.write(batch).map(|_| res).map_err(|e| e)
     }
 
     /// Commit all operations to given batch.
@@ -131,7 +131,7 @@ impl OverlayDB {
                 ret += 1;
             }
         }
-        trace!("OverlayDB::commit() deleted {} nodes", deletes);
+        trace!("OverlayDB::commit() deleted {deletes} nodes");
         Ok(ret)
     }
 
@@ -177,7 +177,7 @@ impl crate::KeyedHashDB for OverlayDB {
             .backing
             .iter(self.column)
             .map(|(key, _)| {
-                let h = H256::from_slice(&*key);
+                let h = H256::from_slice(&key);
                 let r = self.payload(&h).unwrap().count;
                 (h, r as i32)
             })

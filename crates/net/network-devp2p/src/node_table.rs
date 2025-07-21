@@ -381,7 +381,7 @@ impl NodeTable {
     pub fn nodes(&self, filter: &IpFilter) -> Vec<NodeId> {
         self.ordered_entries()
             .iter()
-            .filter(|n| n.endpoint.is_allowed(&filter))
+            .filter(|n| n.endpoint.is_allowed(filter))
             .map(|n| n.id)
             .collect()
     }
@@ -440,7 +440,7 @@ impl NodeTable {
 
     /// Mark as useless, no further attempts to connect until next call to `clear_useless`.
     pub fn mark_as_useless(&mut self, id: &NodeId) {
-        self.useless_nodes.insert(id.clone());
+        self.useless_nodes.insert(*id);
     }
 
     /// Attempt to connect to useless nodes again.
@@ -455,7 +455,7 @@ impl NodeTable {
             None => return,
         };
         if let Err(e) = fs::create_dir_all(&path) {
-            warn!(target: "network", "Error creating node table directory: {:?}", e);
+            warn!(target: "network", "Error creating node table directory: {e:?}");
             return;
         }
         path.push(NODES_FILE);
@@ -475,11 +475,11 @@ impl NodeTable {
         match fs::File::create(&path) {
             Ok(file) => {
                 if let Err(e) = serde_json::to_writer_pretty(file, &table) {
-                    warn!(target: "network", "Error writing node table file: {:?}", e);
+                    warn!(target: "network", "Error writing node table file: {e:?}");
                 }
             }
             Err(e) => {
-                warn!(target: "network", "Error creating node table file: {:?}", e);
+                warn!(target: "network", "Error creating node table file: {e:?}");
             }
         }
     }
@@ -493,7 +493,7 @@ impl NodeTable {
         let file = match fs::File::open(&path) {
             Ok(file) => file,
             Err(e) => {
-                debug!(target: "network", "Error opening node table file: {:?}", e);
+                debug!(target: "network", "Error opening node table file: {e:?}");
                 return Default::default();
             }
         };
@@ -506,7 +506,7 @@ impl NodeTable {
                 .map(|n| (n.id, n))
                 .collect(),
             Err(e) => {
-                warn!(target: "network", "Error reading node table file: {:?}", e);
+                warn!(target: "network", "Error reading node table file: {e:?}");
                 Default::default()
             }
         }
@@ -585,7 +585,7 @@ mod json {
             });
 
             Node {
-                url: format!("{}", node),
+                url: format!("{node}"),
                 last_contact,
             }
         }
@@ -750,8 +750,8 @@ mod tests {
         let filter = IpFilter {
             predefined: AllowIP::None,
             custom_allow: vec![
-                IpNetwork::from_str(&"10.0.0.0/8").unwrap(),
-                IpNetwork::from_str(&"1.0.0.0/8").unwrap(),
+                IpNetwork::from_str("10.0.0.0/8").unwrap(),
+                IpNetwork::from_str("1.0.0.0/8").unwrap(),
             ],
             custom_block: vec![],
         };
@@ -772,8 +772,8 @@ mod tests {
             predefined: AllowIP::All,
             custom_allow: vec![],
             custom_block: vec![
-                IpNetwork::from_str(&"10.0.0.0/8").unwrap(),
-                IpNetwork::from_str(&"1.0.0.0/8").unwrap(),
+                IpNetwork::from_str("10.0.0.0/8").unwrap(),
+                IpNetwork::from_str("1.0.0.0/8").unwrap(),
             ],
         };
         assert!(NodeEndpoint::from_str("123.99.55.44:7770")
@@ -791,7 +791,7 @@ mod tests {
     fn custom_allow_ipv6() {
         let filter = IpFilter {
             predefined: AllowIP::None,
-            custom_allow: vec![IpNetwork::from_str(&"fc00::/8").unwrap()],
+            custom_allow: vec![IpNetwork::from_str("fc00::/8").unwrap()],
             custom_block: vec![],
         };
         assert!(NodeEndpoint::from_str("[fc00::]:5550")
@@ -807,7 +807,7 @@ mod tests {
         let filter = IpFilter {
             predefined: AllowIP::All,
             custom_allow: vec![],
-            custom_block: vec![IpNetwork::from_str(&"fc00::/8").unwrap()],
+            custom_block: vec![IpNetwork::from_str("fc00::/8").unwrap()],
         };
         assert!(!NodeEndpoint::from_str("[fc00::]:5550")
             .unwrap()

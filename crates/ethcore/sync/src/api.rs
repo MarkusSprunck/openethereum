@@ -210,11 +210,8 @@ pub enum PriorityTask {
 impl PriorityTask {
     /// Mark the task as being processed, right after it's retrieved from the queue.
     pub fn starting(&self) {
-        match *self {
-            PriorityTask::PropagateTransactions(_, ref is_ready) => {
-                is_ready.store(true, atomic::Ordering::SeqCst)
-            }
-            _ => {}
+        if let PriorityTask::PropagateTransactions(_, ref is_ready) = *self {
+            is_ready.store(true, atomic::Ordering::SeqCst)
         }
     }
 }
@@ -316,7 +313,7 @@ impl SyncProvider for EthSync {
                         let session_info = ctx.session_info(peer_id)?;
 
                         Some(PeerInfo {
-                            id: session_info.id.map(|id| format!("{:x}", id)),
+                            id: session_info.id.map(|id| format!("{id:x}")),
                             client_version: session_info.client_version,
                             capabilities: session_info
                                 .peer_capabilities
@@ -330,7 +327,7 @@ impl SyncProvider for EthSync {
                     })
                     .collect()
             })
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
     }
 
     fn enode(&self) -> Option<String> {
@@ -367,8 +364,8 @@ impl PrometheusMetrics for EthSync {
 
         for (key, value) in sync_status.item_sizes.iter() {
             r.register_gauge(
-                &key,
-                format!("Total item number of {}", key).as_str(),
+                key,
+                format!("Total item number of {key}").as_str(),
                 *value as i64,
             );
         }
@@ -530,7 +527,7 @@ impl NetworkProtocolHandler for SyncProtocolHandler {
             TX_TIMER => self.sync.write().propagate_new_transactions(&mut io),
             PRIORITY_TIMER => self.sync.process_priority_queue(&mut io),
             DELAYED_PROCESSING_TIMER => self.sync.process_delayed_requests(&mut io),
-            _ => warn!("Unknown timer {} triggered.", timer),
+            _ => warn!("Unknown timer {timer} triggered."),
         }
     }
 }
@@ -544,7 +541,7 @@ impl ChainNotify for EthSync {
             difficulty: *difficulty,
         };
         if let Err(e) = self.priority_tasks.lock().send(task) {
-            warn!(target: "sync", "Unexpected error during priority block propagation: {:?}", e);
+            warn!(target: "sync", "Unexpected error during priority block propagation: {e:?}");
         }
     }
 
@@ -573,14 +570,13 @@ impl ChainNotify for EthSync {
     }
 
     fn start(&self) {
-        match self.network.start() {
-            Err((err, listen_address)) => match err.into() {
+        if let Err((err, listen_address)) = self.network.start() {
+            match err.into() {
                 ErrorKind::Io(ref e) if e.kind() == io::ErrorKind::AddrInUse => {
                     warn!("Network port {:?} is already in use, make sure that another instance of an Ethereum client is not running or change the port using the --port option.", listen_address.expect("Listen address is not set."))
                 }
-                err => warn!("Error starting network: {}", err),
-            },
-            _ => {}
+                err => warn!("Error starting network: {err}"),
+            }
         }
 
         self.network
@@ -594,7 +590,7 @@ impl ChainNotify for EthSync {
                     ETH_PROTOCOL_VERSION_66,
                 ],
             )
-            .unwrap_or_else(|e| warn!("Error registering ethereum protocol: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error registering ethereum protocol: {e:?}"));
         // register the warp sync subprotocol
         self.network
             .register_protocol(
@@ -602,7 +598,7 @@ impl ChainNotify for EthSync {
                 PAR_PROTOCOL,
                 &[PAR_PROTOCOL_VERSION_1, PAR_PROTOCOL_VERSION_2],
             )
-            .unwrap_or_else(|e| warn!("Error registering snapshot sync protocol: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error registering snapshot sync protocol: {e:?}"));
     }
 
     fn stop(&self) {
@@ -668,13 +664,13 @@ impl ManageNetwork for EthSync {
     fn remove_reserved_peer(&self, peer: String) -> Result<(), String> {
         self.network
             .remove_reserved_peer(&peer)
-            .map_err(|e| format!("{:?}", e))
+            .map_err(|e| format!("{e:?}"))
     }
 
     fn add_reserved_peer(&self, peer: String) -> Result<(), String> {
         self.network
             .add_reserved_peer(&peer)
-            .map_err(|e| format!("{:?}", e))
+            .map_err(|e| format!("{e:?}"))
     }
 
     fn start_network(&self) {
@@ -743,6 +739,12 @@ pub struct NetworkConfiguration {
     pub client_version: String,
 }
 
+impl Default for NetworkConfiguration {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NetworkConfiguration {
     /// Create a new default config.
     pub fn new() -> Self {
@@ -793,12 +795,8 @@ impl From<BasicNetworkConfiguration> for NetworkConfiguration {
         NetworkConfiguration {
             config_path: other.config_path,
             net_config_path: other.net_config_path,
-            listen_address: other
-                .listen_address
-                .and_then(|addr| Some(format!("{}", addr))),
-            public_address: other
-                .public_address
-                .and_then(|addr| Some(format!("{}", addr))),
+            listen_address: other.listen_address.map(|addr| format!("{addr}")),
+            public_address: other.public_address.map(|addr| format!("{addr}")),
             udp_port: other.udp_port,
             nat_enabled: other.nat_enabled,
             discovery_enabled: other.discovery_enabled,

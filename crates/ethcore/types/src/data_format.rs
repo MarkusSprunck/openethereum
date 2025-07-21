@@ -18,16 +18,11 @@
 use std::str::FromStr;
 
 /// Format for importing/exporting blocks
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub enum DataFormat {
     Hex,
+    #[default]
     Binary,
-}
-
-impl Default for DataFormat {
-    fn default() -> Self {
-        DataFormat::Binary
-    }
 }
 
 impl FromStr for DataFormat {
@@ -37,7 +32,7 @@ impl FromStr for DataFormat {
         match s {
             "binary" | "bin" => Ok(DataFormat::Binary),
             "hex" => Ok(DataFormat::Hex),
-            x => Err(format!("Invalid format: {}", x)),
+            x => Err(format!("Invalid format: {x}")),
         }
     }
 }

@@ -44,10 +44,10 @@ pub fn decode(raw: &[u8]) -> PanicPayload {
     let line = rdr.read_u32::<LittleEndian>().ok();
     let col = rdr.read_u32::<LittleEndian>().ok();
     PanicPayload {
-        msg: msg,
-        file: file,
-        line: line,
-        col: col,
+        msg,
+        file,
+        line,
+        col,
     }
 }
 

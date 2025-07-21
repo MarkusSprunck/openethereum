@@ -56,8 +56,8 @@ impl PowSnapshot {
     /// Create a new instance.
     pub fn new(blocks: u64, max_restore_blocks: u64) -> PowSnapshot {
         PowSnapshot {
-            blocks: blocks,
-            max_restore_blocks: max_restore_blocks,
+            blocks,
+            max_restore_blocks,
         }
     }
 }
@@ -73,12 +73,12 @@ impl SnapshotComponents for PowSnapshot {
         eip1559_transition: BlockNumber,
     ) -> Result<(), Error> {
         PowWorker {
-            chain: chain,
+            chain,
             rlps: VecDeque::new(),
             current_hash: block_at,
             writer: chunk_sink,
-            progress: progress,
-            preferred_size: preferred_size,
+            progress,
+            preferred_size,
         }
         .chunk_all(self.blocks, eip1559_transition)
     }
@@ -143,7 +143,7 @@ impl<'a> PowWorker<'a> {
                         .block_receipts(&self.current_hash)
                         .map(|r| (b, r))
                 })
-                .ok_or_else(|| Error::BlockNotFound(self.current_hash))?;
+                .ok_or(Error::BlockNotFound(self.current_hash))?;
 
             let abridged_rlp =
                 AbridgedBlock::from_block_view(&block.view(), eip1559_transition).into_inner();
@@ -190,13 +190,13 @@ impl<'a> PowWorker<'a> {
             .chain
             .block_header_data(&last)
             .and_then(|n| self.chain.block_details(&last).map(|d| (n, d)))
-            .ok_or_else(|| Error::BlockNotFound(last))?;
+            .ok_or(Error::BlockNotFound(last))?;
 
         let parent_number = last_header.number() - 1;
         let parent_hash = last_header.parent_hash();
         let parent_total_difficulty = last_details.total_difficulty - last_header.difficulty();
 
-        trace!(target: "snapshot", "parent last written block: {}", parent_hash);
+        trace!(target: "snapshot", "parent last written block: {parent_hash}");
 
         let num_entries = self.rlps.len();
         let mut rlp_stream = RlpStream::new_list(3 + num_entries);
@@ -246,15 +246,15 @@ impl PowRebuilder {
         snapshot_blocks: u64,
     ) -> Result<Self, ::error::Error> {
         Ok(PowRebuilder {
-            chain: chain,
-            db: db,
+            chain,
+            db,
             rng: OsRng,
             disconnected: Vec::new(),
             best_number: manifest.block_number,
             best_hash: manifest.block_hash,
             best_root: manifest.state_root,
             fed_blocks: 0,
-            snapshot_blocks: snapshot_blocks,
+            snapshot_blocks,
         })
     }
 }
@@ -276,7 +276,7 @@ impl Rebuilder for PowRebuilder {
         let item_count = rlp.item_count()?;
         let num_blocks = (item_count - 3) as u64;
 
-        trace!(target: "snapshot", "restoring block chunk with {} blocks.", num_blocks);
+        trace!(target: "snapshot", "restoring block chunk with {num_blocks} blocks.");
 
         if self.fed_blocks + num_blocks > self.snapshot_blocks {
             return Err(

@@ -199,7 +199,7 @@ fn execute_import(cmd: ImportBlockchain) -> Result<(), String> {
     let restoration_db_handler = db::restoration_db_handler(&client_path, &client_config);
     let client_db = restoration_db_handler
         .open(&client_path)
-        .map_err(|e| format!("Failed to open database {:?}", e))?;
+        .map_err(|e| format!("Failed to open database {e:?}"))?;
 
     // build client
     let service = ClientService::start(
@@ -213,7 +213,7 @@ fn execute_import(cmd: ImportBlockchain) -> Result<(), String> {
         // (actually don't require miner at all)
         Arc::new(Miner::new_for_tests(&spec, None)),
     )
-    .map_err(|e| format!("Client service error: {:?}", e))?;
+    .map_err(|e| format!("Client service error: {e:?}"))?;
 
     // free up the spec in memory.
     drop(spec);
@@ -222,7 +222,7 @@ fn execute_import(cmd: ImportBlockchain) -> Result<(), String> {
 
     let instream: Box<dyn io::Read> = match cmd.file_path {
         Some(f) => {
-            Box::new(fs::File::open(&f).map_err(|_| format!("Cannot open given file: {}", f))?)
+            Box::new(fs::File::open(&f).map_err(|_| format!("Cannot open given file: {f}"))?)
         }
         None => Box::new(io::stdin()),
     };
@@ -335,7 +335,7 @@ fn start_client(
     let restoration_db_handler = db::restoration_db_handler(&client_path, &client_config);
     let client_db = restoration_db_handler
         .open(&client_path)
-        .map_err(|e| format!("Failed to open database {:?}", e))?;
+        .map_err(|e| format!("Failed to open database {e:?}"))?;
 
     let service = ClientService::start(
         client_config,
@@ -348,7 +348,7 @@ fn start_client(
         // since we don't care about miner parameters at all
         Arc::new(Miner::new_for_tests(&spec, None)),
     )
-    .map_err(|e| format!("Client service error: {:?}", e))?;
+    .map_err(|e| format!("Client service error: {e:?}"))?;
 
     drop(spec);
     Ok(service)
@@ -371,9 +371,9 @@ fn execute_export(cmd: ExportBlockchain) -> Result<(), String> {
     let client = service.client();
 
     let out: Box<dyn io::Write> = match cmd.file_path {
-        Some(f) => Box::new(
-            fs::File::create(&f).map_err(|_| format!("Cannot write to file given: {}", f))?,
-        ),
+        Some(f) => {
+            Box::new(fs::File::create(&f).map_err(|_| format!("Cannot write to file given: {f}"))?)
+        }
         None => Box::new(io::stdout()),
     };
 
@@ -401,9 +401,9 @@ fn execute_export_state(cmd: ExportState) -> Result<(), String> {
     let client = service.client();
 
     let mut out: Box<dyn io::Write> = match cmd.file_path {
-        Some(f) => Box::new(
-            fs::File::create(&f).map_err(|_| format!("Cannot write to file given: {}", f))?,
-        ),
+        Some(f) => {
+            Box::new(fs::File::create(&f).map_err(|_| format!("Cannot write to file given: {f}"))?)
+        }
         None => Box::new(io::stdout()),
     };
 
@@ -425,8 +425,8 @@ fn execute_export_state(cmd: ExportState) -> Result<(), String> {
             let balance = client
                 .balance(&account, at.into())
                 .unwrap_or_else(U256::zero);
-            if cmd.min_balance.map_or(false, |m| balance < m)
-                || cmd.max_balance.map_or(false, |m| balance > m)
+            if cmd.min_balance.is_some_and(|m| balance < m)
+                || cmd.max_balance.is_some_and(|m| balance > m)
             {
                 last = Some(account);
                 continue; //filtered out
@@ -456,7 +456,7 @@ fn execute_export_state(cmd: ExportState) -> Result<(), String> {
             }
             let storage_root = client.storage_root(&account, at).unwrap_or(KECCAK_NULL_RLP);
             if storage_root != KECCAK_NULL_RLP {
-                out.write_fmt(format_args!(", \"storage_root\": \"0x{:x}\"", storage_root))
+                out.write_fmt(format_args!(", \"storage_root\": \"0x{storage_root:x}\""))
                     .expect("Write error");
                 if cmd.storage {
                     out.write_fmt(format_args!(", \"storage\": {{"))
@@ -491,7 +491,7 @@ fn execute_export_state(cmd: ExportState) -> Result<(), String> {
             out.write(b"}").expect("Write error");
             i += 1;
             if i % 10000 == 0 {
-                info!("Account #{}", i);
+                info!("Account #{i}");
             }
             last = Some(account);
         }
@@ -531,7 +531,7 @@ pub fn kill_db(cmd: KillBlockchain) -> Result<(), String> {
     let mut user_defaults = UserDefaults::load(&user_defaults_path)?;
     let algorithm = cmd.pruning.to_algorithm(&user_defaults);
     let dir = db_dirs.db_path(algorithm);
-    fs::remove_dir_all(&dir).map_err(|e| format!("Error removing database: {:?}", e))?;
+    fs::remove_dir_all(&dir).map_err(|e| format!("Error removing database: {e:?}"))?;
     user_defaults.is_first_launch = true;
     user_defaults.save(&user_defaults_path)?;
     info!("Database deleted.");

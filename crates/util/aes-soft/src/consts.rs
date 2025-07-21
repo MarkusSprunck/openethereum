@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "cargo-clippy", allow(unreadable_literal))]
+#![allow(clippy::unreadable_literal)]
 
 use simd::u32x4;
 

@@ -18,10 +18,7 @@ pub fn strip_request_id<'a>(
     let protocol_version = if let Some(peer_info) = sync.peers.get(peer) {
         peer_info.protocol_version
     } else {
-        trace!(
-            "Peer info missing for peer {}, assuming protocol version 66",
-            peer
-        );
+        trace!("Peer info missing for peer {peer}, assuming protocol version 66");
         66
     };
 

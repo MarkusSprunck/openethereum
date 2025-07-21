@@ -72,10 +72,7 @@ impl PhrasesIterator {
             .split(' ')
             .map(|word| match known_words.get(word) {
                 None => {
-                    info!(
-                        "Invalid word '{}', looking for potential substitutions.",
-                        word
-                    );
+                    info!("Invalid word '{word}', looking for potential substitutions.");
                     let substitutions = generate_substitutions(word);
                     info!("Closest words: {:?}", &substitutions[..10]);
                     substitutions
@@ -87,9 +84,9 @@ impl PhrasesIterator {
         // add missing words
         if words.len() < expected_words {
             let to_add = expected_words - words.len();
-            info!("Number of words is insuficcient adding {} more.", to_add);
+            info!("Number of words is insuficcient adding {to_add} more.");
             for _ in 0..to_add {
-                words.push(parity_wordlist::WORDS.iter().cloned().collect());
+                words.push(parity_wordlist::WORDS.to_vec());
             }
         }
 
@@ -100,7 +97,7 @@ impl PhrasesIterator {
     pub fn new(words: Vec<Vec<&'static str>>) -> Self {
         let combinations = words.iter().fold(1u64, |acc, x| acc * x.len() as u64);
         let indexes = words.iter().map(|_| 0).collect();
-        info!("Starting to test {} possible combinations.", combinations);
+        info!("Starting to test {combinations} possible combinations.");
 
         PhrasesIterator {
             words,

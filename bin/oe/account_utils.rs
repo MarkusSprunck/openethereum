@@ -94,7 +94,7 @@ mod accounts {
         upgrade_key_location(&dirs.legacy_keys_path(cfg.testnet), &path);
         let dir = Box::new(
             RootDiskDirectory::create(&path)
-                .map_err(|e| format!("Could not open keys directory: {}", e))?,
+                .map_err(|e| format!("Could not open keys directory: {e}"))?,
         );
         let account_settings = AccountProviderSettings {
             unlock_keep_secret: cfg.enable_fast_unlock,
@@ -111,7 +111,7 @@ mod accounts {
         };
 
         let ethstore = EthStore::open_with_iterations(dir, cfg.iterations)
-            .map_err(|e| format!("Could not open keys directory: {}", e))?;
+            .map_err(|e| format!("Could not open keys directory: {e}"))?;
         if cfg.refresh_time > 0 {
             ethstore.set_refresh_time(::std::time::Duration::from_secs(cfg.refresh_time));
         }
@@ -135,8 +135,7 @@ mod accounts {
             // Check if any passwords have been read from the password file(s)
             if passwords.is_empty() {
                 return Err(format!(
-                    "No password found to unlock account {}. {}",
-                    a, VERIFY_PASSWORD_HINT
+                    "No password found to unlock account {a}. {VERIFY_PASSWORD_HINT}"
                 ));
             }
 
@@ -146,8 +145,7 @@ mod accounts {
                     .is_ok()
             }) {
                 return Err(format!(
-                    "No valid password to unlock account {}. {}",
-                    a, VERIFY_PASSWORD_HINT
+                    "No valid password to unlock account {a}. {VERIFY_PASSWORD_HINT}"
                 ));
             }
         }
@@ -186,8 +184,7 @@ mod accounts {
         // Check if any passwords have been read from the password file(s)
         if passwords.is_empty() {
             return Err(format!(
-                "No password found for the consensus signer {}. {}",
-                engine_signer, VERIFY_PASSWORD_HINT
+                "No password found for the consensus signer {engine_signer}. {VERIFY_PASSWORD_HINT}"
             ));
         }
 
@@ -205,8 +202,7 @@ mod accounts {
         }
         if author.is_none() {
             return Err(format!(
-                "No valid password for the consensus signer {}. {}",
-                engine_signer, VERIFY_PASSWORD_HINT
+                "No valid password for the consensus signer {engine_signer}. {VERIFY_PASSWORD_HINT}"
             ));
         }
 
@@ -228,10 +224,10 @@ mod accounts {
             .expect("Valid secret produces valid key;qed");
         if !account_provider.has_account(dev_account.address()) {
             match account_provider.insert_account(secret, &Password::from(String::new())) {
-                Err(e) => warn!("Unable to add development account: {}", e),
+                Err(e) => warn!("Unable to add development account: {e}"),
                 Ok(address) => {
-                    let _ = account_provider
-                        .set_account_name(address.clone(), "Development Account".into());
+                    let _ =
+                        account_provider.set_account_name(address, "Development Account".into());
                     let _ = account_provider.set_account_meta(
                         address,
                         ::serde_json::to_string(
@@ -254,7 +250,7 @@ mod accounts {
 
     // Construct an error `String` with an adaptive hint on how to create an account.
     fn build_create_account_hint(spec: &SpecType, keys: &str) -> String {
-        format!("You can create an account via RPC, UI or `openethereum account new --chain {} --keys-path {}`.", spec, keys)
+        format!("You can create an account via RPC, UI or `openethereum account new --chain {spec} --keys-path {keys}`.")
     }
 }
 

@@ -32,7 +32,7 @@ pub struct Histogram {
 impl From<::stats::Histogram<::ethereum_types::U256>> for Histogram {
     fn from(h: ::stats::Histogram<::ethereum_types::U256>) -> Self {
         Histogram {
-            bucket_bounds: h.bucket_bounds.into_iter().map(Into::into).collect(),
+            bucket_bounds: h.bucket_bounds.into_iter().collect(),
             counts: h.counts,
         }
     }

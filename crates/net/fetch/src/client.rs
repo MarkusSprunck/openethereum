@@ -181,7 +181,7 @@ impl Client {
                 return Err(Error::BackgroundThreadDead);
             }
             Ok(Err(e)) => {
-                error!(target: "fetch", "error starting background thread: {}", e);
+                error!(target: "fetch", "error starting background thread: {e}");
                 return Err(e.into());
             }
             Ok(Ok(())) => {}
@@ -236,7 +236,7 @@ impl Client {
                         redirects += 1;
                         continue;
                     } else {
-                        if let Some(ref h_val) = resp.headers.get(header::CONTENT_LENGTH) {
+                        if let Some(h_val) = resp.headers.get(header::CONTENT_LENGTH) {
                             let content_len = h_val
                                 .to_str()
                                 .map_err(Error::HyperHeaderToStrError)?
@@ -509,7 +509,7 @@ impl Response {
         self.headers
             .get(header::CONTENT_TYPE)
             .and_then(|h| h.to_str().ok())
-            .map_or(false, |s| s.contains("text/html"))
+            .is_some_and(|s| s.contains("text/html"))
     }
 }
 
@@ -578,7 +578,7 @@ impl io::Read for BodyReader {
                     ));
                 }
                 let c = &self.chunk[self.offset..self.offset + k];
-                (&mut buf[n..n + k]).copy_from_slice(c);
+                buf[n..n + k].copy_from_slice(c);
                 self.offset += k;
                 self.count += k;
                 n += k;
@@ -597,10 +597,7 @@ impl io::Read for BodyReader {
                     use hyper::body::HttpBody;
                     match body.data().await {
                         Some(Ok(chunk)) => Ok(Some(chunk)),
-                        Some(Err(e)) => Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!("body read error: {}", e),
-                        )),
+                        Some(Err(e)) => Err(io::Error::other(format!("body read error: {e}"))),
                         None => Ok(None),
                     }
                 });
@@ -613,7 +610,7 @@ impl io::Read for BodyReader {
                     }
                     Ok(None) => break, // body is exhausted
                     Err(e) => {
-                        error!(target: "fetch", "failed to read chunk: {}", e);
+                        error!(target: "fetch", "failed to read chunk: {e}");
                         return Err(e);
                     }
                 }
@@ -658,17 +655,17 @@ impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::Aborted => write!(fmt, "The request has been aborted."),
-            Error::Hyper(ref e) => write!(fmt, "{}", e),
-            Error::HyperHeaderToStrError(ref e) => write!(fmt, "{}", e),
-            Error::ParseInt(ref e) => write!(fmt, "{}", e),
-            Error::Url(ref e) => write!(fmt, "{}", e),
-            Error::Io(ref e) => write!(fmt, "{}", e),
+            Error::Hyper(ref e) => write!(fmt, "{e}"),
+            Error::HyperHeaderToStrError(ref e) => write!(fmt, "{e}"),
+            Error::ParseInt(ref e) => write!(fmt, "{e}"),
+            Error::Url(ref e) => write!(fmt, "{e}"),
+            Error::Io(ref e) => write!(fmt, "{e}"),
             Error::BackgroundThreadDead => write!(fmt, "background thread disconnected"),
             Error::TooManyRedirects => write!(fmt, "too many redirects"),
             Error::TokioTimeoutInnerVal(ref s) => {
-                write!(fmt, "tokio timer inner value error: {:?}", s)
+                write!(fmt, "tokio timer inner value error: {s:?}")
             }
-            Error::TokioTime(ref e) => write!(fmt, "tokio timer error: {:?}", e),
+            Error::TokioTime(ref e) => write!(fmt, "tokio timer error: {e:?}"),
             Error::Timeout => write!(fmt, "request timed out"),
             Error::SizeLimit => write!(fmt, "size limit reached"),
             Error::RequestQueueFull => write!(fmt, "request queue full"),
@@ -773,7 +770,7 @@ mod test {
                 .await
             {
                 Err(Error::Timeout) => {}
-                other => panic!("expected timeout, got {:?}", other),
+                other => panic!("expected timeout, got {other:?}"),
             }
         });
     }
@@ -835,7 +832,7 @@ mod test {
                 .await
             {
                 Err(Error::TooManyRedirects) => {}
-                other => panic!("expected too many redirects error, got {:?}", other),
+                other => panic!("expected too many redirects error, got {other:?}"),
             }
         });
     }
@@ -897,7 +894,7 @@ mod test {
                                 result = Err(Error::SizeLimit);
                                 break;
                             }
-                            Err(e) => panic!("unexpected error: {:?}", e),
+                            Err(e) => panic!("unexpected error: {e:?}"),
                         }
                     }
 
@@ -906,7 +903,7 @@ mod test {
                         _ => panic!("expected size limit error"),
                     }
                 }
-                other => panic!("Expected `Error::SizeLimit`, got: {:?}", other),
+                other => panic!("Expected `Error::SizeLimit`, got: {other:?}"),
             }
         });
     }
@@ -956,7 +953,7 @@ mod test {
                                 result = Err(Error::SizeLimit);
                                 break;
                             }
-                            Err(e) => panic!("unexpected error: {:?}", e),
+                            Err(e) => panic!("unexpected error: {e:?}"),
                         }
                     }
 
@@ -965,7 +962,7 @@ mod test {
                         _ => panic!("expected size limit error"),
                     }
                 }
-                other => panic!("Expected `Error::SizeLimit`, got: {:?}", other),
+                other => panic!("Expected `Error::SizeLimit`, got: {other:?}"),
             }
         });
     }
@@ -1055,7 +1052,7 @@ mod test {
                     });
 
                     if let Err(e) = graceful.await {
-                        eprintln!("server error: {}", e);
+                        eprintln!("server error: {e}");
                     }
                 });
             });

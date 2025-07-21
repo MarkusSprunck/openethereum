@@ -55,9 +55,8 @@ pub struct CliqueTester {
 impl CliqueTester {
     /// Create a `Clique` tester with settings
     pub fn with(epoch: u64, period: u64, initial_signers: Vec<char>) -> Self {
-        assert_eq!(
+        assert!(
             initial_signers.iter().all(|s| SIGNER_TAGS.contains(s)),
-            true,
             "Not all the initial signers is in SIGNER_TAGS, possible keys are 'A' ..= 'F'"
         );
 
@@ -81,7 +80,7 @@ impl CliqueTester {
         }
 
         // append dummy signature
-        extra_data.extend(std::iter::repeat(0).take(SIGNATURE_LENGTH));
+        extra_data.extend(std::iter::repeat_n(0, SIGNATURE_LENGTH));
 
         genesis.set_extra_data(extra_data);
         genesis.set_gas_limit(U256::from(0xa00000));
@@ -165,7 +164,7 @@ impl CliqueTester {
 
         match block_type {
             CliqueBlockType::Checkpoint => {
-                let signers = self.clique.state(&last_header).unwrap().signers().clone();
+                let signers = self.clique.state(last_header).unwrap().signers().clone();
                 for signer in signers {
                     extra_data.extend(signer.as_bytes());
                 }
@@ -213,7 +212,7 @@ impl CliqueTester {
         let current_header = &block.header;
         self.clique.verify_block_basic(current_header)?;
         self.clique
-            .verify_block_family(current_header, &last_header)?;
+            .verify_block_family(current_header, last_header)?;
 
         Ok(current_header.clone())
     }

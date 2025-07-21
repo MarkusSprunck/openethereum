@@ -83,9 +83,9 @@ where
     }
 }
 
-impl<T> Into<Option<T>> for MaybeEmpty<T> {
-    fn into(self) -> Option<T> {
-        match self {
+impl<T> From<MaybeEmpty<T>> for Option<T> {
+    fn from(val: MaybeEmpty<T>) -> Self {
+        match val {
             MaybeEmpty::Some(s) => Some(s),
             MaybeEmpty::None => None,
         }

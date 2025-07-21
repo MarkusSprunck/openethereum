@@ -48,12 +48,12 @@ fn test_blockhash_eip210(factory: Factory) {
         .init_code(&contract_address, (*blockhash_contract_code).clone())
         .unwrap();
     for i in 1..257 {
-        env_info.number = i.into();
+        env_info.number = i;
         let params = ActionParams {
-            code_address: contract_address.clone(),
+            code_address: contract_address,
             address: contract_address,
-            sender: SYSTEM_ADDRESS.clone(),
-            origin: SYSTEM_ADDRESS.clone(),
+            sender: SYSTEM_ADDRESS,
+            origin: SYSTEM_ADDRESS,
             gas: 100000.into(),
             gas_price: 0.into(),
             value: ActionValue::Transfer(0.into()),

@@ -23,7 +23,7 @@ use v1::{
     types::{Bytes, RecoveredAccount},
 };
 
-/// helper method for parity_verifySignature
+/// helper method for `parity_verifySignature`
 pub fn verify_signature(
     is_prefixed: bool,
     message: Bytes,
@@ -92,14 +92,14 @@ mod tests {
         let address = account.address();
         let sig = publickey::sign(account.secret(), &hash).unwrap();
         let (r, s, v) = (sig.r(), sig.s(), sig.v());
-        let v = add_chain_replay_protection(v as u64, signing_chain_id);
+        let v = add_chain_replay_protection(u64::from(v), signing_chain_id);
         let (r_buf, s_buf) = {
             let (mut r_buf, mut s_buf) = ([0u8; 32], [0u8; 32]);
             r_buf.copy_from_slice(r);
             s_buf.copy_from_slice(s);
             (r_buf, s_buf)
         };
-        (address.into(), r_buf, s_buf, v.into())
+        (address, r_buf, s_buf, v.into())
     }
 
     fn run_test(test_case: TestCase) {
@@ -122,11 +122,11 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(account.address, address.into());
+        assert_eq!(account.address, address);
         assert_eq!(
             account.is_valid_for_current_chain,
             is_valid_for_current_chain
-        )
+        );
     }
 
     #[test]
@@ -136,7 +136,7 @@ mod tests {
             signing_chain_id: Some(1),
             rpc_chain_id: Some(1),
             is_valid_for_current_chain: true,
-        })
+        });
     }
 
     #[test]
@@ -146,7 +146,7 @@ mod tests {
             signing_chain_id: Some(1),
             rpc_chain_id: Some(1),
             is_valid_for_current_chain: true,
-        })
+        });
     }
 
     #[test]

@@ -81,7 +81,7 @@ impl From<et::VMExecutedOperation> for VMExecutedOperation {
     fn from(c: et::VMExecutedOperation) -> Self {
         VMExecutedOperation {
             used: c.gas_used.low_u64(),
-            push: c.stack_push.into_iter().map(Into::into).collect(),
+            push: c.stack_push.into_iter().collect(),
             mem: c.mem_diff.map(Into::into),
             store: c.store_diff.map(Into::into),
         }
@@ -152,7 +152,7 @@ impl From<et::VMTrace> for VMTrace {
 }
 
 #[derive(Debug, Serialize)]
-/// Aux type for Diff::Changed.
+/// Aux type for `Diff::Changed`.
 pub struct ChangedType<T>
 where
     T: Serialize,
@@ -325,7 +325,7 @@ pub enum RewardType {
     Block,
     /// Uncle
     Uncle,
-    /// EmptyStep (AuthorityRound)
+    /// `EmptyStep` (`AuthorityRound`)
     EmptyStep,
     /// External (attributed as part of an external protocol)
     External,
@@ -548,10 +548,10 @@ impl From<EthLocalizedTrace> for LocalizedTrace {
         LocalizedTrace {
             action: t.action.into(),
             result: t.result.into(),
-            trace_address: t.trace_address.into_iter().map(Into::into).collect(),
+            trace_address: t.trace_address.into_iter().collect(),
             subtraces: t.subtraces,
-            transaction_position: t.transaction_number.map(Into::into),
-            transaction_hash: t.transaction_hash.map(Into::into),
+            transaction_position: t.transaction_number,
+            transaction_hash: t.transaction_hash,
             block_number: t.block_number,
             block_hash: t.block_hash,
         }
@@ -614,7 +614,7 @@ impl Serialize for Trace {
 impl From<FlatTrace> for Trace {
     fn from(t: FlatTrace) -> Self {
         Trace {
-            trace_address: t.trace_address.into_iter().map(Into::into).collect(),
+            trace_address: t.trace_address.into_iter().collect(),
             subtraces: t.subtraces,
             action: t.action.into(),
             result: t.result.into(),
@@ -879,7 +879,7 @@ mod tests {
                             cost: 0,
                             ex: Some(VMExecutedOperation {
                                 used: 10,
-                                push: vec![42.into()].into(),
+                                push: vec![42.into()],
                                 mem: Some(MemoryDiff {
                                     off: 42,
                                     data: vec![1, 2, 3].into(),

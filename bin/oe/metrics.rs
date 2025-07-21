@@ -97,7 +97,7 @@ pub fn start_prometheus_metrics(
         let rt = match tokio::runtime::Runtime::new() {
             Ok(rt) => rt,
             Err(e) => {
-                eprintln!("Failed to create tokio runtime for metrics server: {}", e);
+                eprintln!("Failed to create tokio runtime for metrics server: {e}");
                 return;
             }
         };
@@ -107,7 +107,7 @@ pub fn start_prometheus_metrics(
             let addr = match addr.parse() {
                 Ok(addr) => addr,
                 Err(e) => {
-                    eprintln!("Failed to parse address '{}': {}", addr, e);
+                    eprintln!("Failed to parse address '{addr}': {e}");
                     return;
                 }
             };
@@ -129,10 +129,10 @@ pub fn start_prometheus_metrics(
 
             let server = Server::bind(&addr).serve(make_svc);
 
-            info!("Started prometheus metrics at http://{}/metrics", addr);
+            info!("Started prometheus metrics at http://{addr}/metrics");
 
             if let Err(e) = server.await {
-                eprintln!("Metrics server error: {}", e);
+                eprintln!("Metrics server error: {e}");
             }
         });
     });

@@ -31,13 +31,13 @@ pub struct Response {
 
 impl Response {
     pub fn assert_header(&self, header: &str, value: &str) {
-        let header = format!("{}: {}", header, value);
+        let header = format!("{header}: {value}");
         assert!(
             self.headers.iter().any(|h| h == &header),
             "Couldn't find header {} in {:?}",
             header,
             &self.headers
-        )
+        );
     }
 
     pub fn assert_status(&self, status: &str) {
@@ -50,7 +50,7 @@ impl Response {
     }
 
     pub fn assert_security_headers_present(&self, port: Option<u16>) {
-        assert_security_headers_present(&self.headers, port)
+        assert_security_headers_present(&self.headers, port);
     }
 }
 
@@ -63,7 +63,7 @@ pub fn read_block(lines: &mut Lines, all: bool) -> String {
             Some("") if !all => break,
             Some(v) => {
                 block.push_str(v);
-                block.push_str("\n");
+                block.push('\n');
             }
         }
     }
@@ -155,5 +155,5 @@ pub fn assert_security_headers_present(headers: &[String], port: Option<u16>) {
             .any(|header| header.starts_with("Content-Security-Policy: ")),
         "Content-Security-Policy missing: {:?}",
         headers
-    )
+    );
 }

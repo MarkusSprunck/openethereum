@@ -111,7 +111,7 @@ fn rpc_secretstore_shadow_decrypt() {
 		["0x049ce50bbadb6352574f2c59742f78df83333975cbd5cbb151c6e8628749a33dc1fa93bb6dffae5994e3eb98ae859ed55ee82937538e6adb054d780d1e89ff140f121529eeadb1161562af9d3342db0008919ca280a064305e5a4e518e93279de7a9396fe5136a9658e337e8e276221248c381c5384cd1ad28e5921f46ff058d5fbcf8a388fc881d0dd29421c218d51761"],
 		"0x2ddec1f96229efa2916988d8b2a82a47ef36f71c"
 	], "id": 1}"#;
-    let decryption_response = io.handle_request_sync(&decryption_request).unwrap();
+    let decryption_response = io.handle_request_sync(decryption_request).unwrap();
     assert_eq!(
         decryption_response,
         r#"{"jsonrpc":"2.0","result":"0xdeadbeef","id":1}"#
@@ -128,7 +128,7 @@ fn rpc_secretstore_servers_set_hash() {
 		["0x843645726384530ffb0c52f175278143b5a93959af7864460f5a4fec9afd1450cfb8aef63dec90657f43f55b13e0a73c7524d4e9a13c051b4e5f1e53f39ecd91",
 		 "0x07230e34ebfe41337d3ed53b186b3861751f2401ee74b988bba55694e2a6f60c757677e194be2e53c3523cc8548694e636e6acb35c4e8fdc5e29d28679b9b2f3"]
 	], "id": 1}"#;
-    let hashing_response = io.handle_request_sync(&hashing_request).unwrap();
+    let hashing_response = io.handle_request_sync(hashing_request).unwrap();
     let hashing_response = hashing_response.replace(r#"{"jsonrpc":"2.0","result":"0x"#, "");
     let hashing_response = hashing_response.replace(r#"","id":1}"#, "");
     let hash: H256 = hashing_response.parse().unwrap();
@@ -158,7 +158,7 @@ fn rpc_secretstore_sign_raw_hash() {
     let signing_request = r#"{"jsonrpc": "2.0", "method": "secretstore_signRawHash", "params":[
 		"0x00dfE63B22312ab4329aD0d28CaD8Af987A01932", "password", "0x0000000000000000000000000000000000000000000000000000000000000001"
 	], "id": 1}"#;
-    let signing_response = io.handle_request_sync(&signing_request).unwrap();
+    let signing_response = io.handle_request_sync(signing_request).unwrap();
     let signing_response = signing_response.replace(r#"{"jsonrpc":"2.0","result":"0x"#, "");
     let signing_response = signing_response.replace(r#"","id":1}"#, "");
     let signature: Signature = signing_response.parse().unwrap();
@@ -188,7 +188,7 @@ fn rpc_secretstore_generate_document_key() {
 		"0x00dfE63B22312ab4329aD0d28CaD8Af987A01932", "password",
 		"0x843645726384530ffb0c52f175278143b5a93959af7864460f5a4fec9afd1450cfb8aef63dec90657f43f55b13e0a73c7524d4e9a13c051b4e5f1e53f39ecd91"
 	], "id": 1}"#;
-    let generation_response = io.handle_request_sync(&generation_request).unwrap();
+    let generation_response = io.handle_request_sync(generation_request).unwrap();
     let generation_response = generation_response.replace(r#"{"jsonrpc":"2.0","result":"#, "");
     let generation_response = generation_response.replace(r#","id":1}"#, "");
     let generation_response: EncryptedDocumentKey =

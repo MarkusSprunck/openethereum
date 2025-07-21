@@ -119,13 +119,13 @@ pub enum PhaseError {
     #[display(fmt = "Revealed during commit phase")]
     RevealedInCommit,
     /// Failed to load contract information.
-    #[display(fmt = "Error loading randomness contract information: {:?}", _0)]
+    #[display(fmt = "Error loading randomness contract information: {_0:?}")]
     LoadFailed(CallError),
     /// Failed to load the stored encrypted random number.
     #[display(fmt = "Failed to load random number from the randomness contract")]
     BadRandNumber,
     /// Failed to encrypt random number.
-    #[display(fmt = "Failed to encrypt random number: {}", _0)]
+    #[display(fmt = "Failed to encrypt random number: {_0}")]
     Crypto(CryptoError),
     /// Failed to get the engine signer's public key.
     #[display(fmt = "Failed to get the engine signer's public key")]
@@ -218,7 +218,7 @@ impl RandomnessPhase {
                 let public = signer.public().ok_or(PhaseError::MissingPublicKey)?;
                 let cipher = ecies::encrypt(&public, number_hash.as_bytes(), number.as_bytes())?;
 
-                debug!(target: "engine", "Randomness contract: committing {}.", number_hash);
+                debug!(target: "engine", "Randomness contract: committing {number_hash}.");
                 // Return the call data for the transaction that commits the hash and the encrypted number.
                 let (data, _decoder) =
                     aura_random::functions::commit_hash::call(number_hash, cipher);
@@ -246,7 +246,7 @@ impl RandomnessPhase {
                     return Err(PhaseError::BadRandNumber);
                 }
 
-                debug!(target: "engine", "Randomness contract: scheduling tx to reveal our random number {} (round={}, our_address={}).", number_hash, round, our_address);
+                debug!(target: "engine", "Randomness contract: scheduling tx to reveal our random number {number_hash} (round={round}, our_address={our_address}).");
                 // We are now sure that we have the correct secret and can reveal it. So we return the call data for the
                 // transaction that stores the revealed random bytes on the contract.
                 let (data, _decoder) = aura_random::functions::reveal_number::call(number.0);

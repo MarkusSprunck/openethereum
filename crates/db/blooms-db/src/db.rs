@@ -27,7 +27,7 @@ fn other_io_err<E>(e: E) -> io::Error
 where
     E: Into<Box<dyn error::Error + Send + Sync>>,
 {
-    io::Error::new(io::ErrorKind::Other, e)
+    io::Error::other(e)
 }
 
 /// Bloom positions in database files.
@@ -130,7 +130,7 @@ impl Database {
         let path: PathBuf = path.as_ref().to_path_buf();
         let database = Database {
             db_files: Some(DatabaseFiles::open(&path)?),
-            path: path,
+            path,
         };
 
         Ok(database)
@@ -156,7 +156,7 @@ impl Database {
     {
         match self.db_files {
             Some(ref mut db_files) => {
-                for (index, bloom) in (from..).into_iter().zip(blooms.map(Into::into)) {
+                for (index, bloom) in (from..).zip(blooms.map(Into::into)) {
                     let pos = Positions::from_index(index);
 
                     // Constant forks may lead to increased ratio of false positives in bloom filters

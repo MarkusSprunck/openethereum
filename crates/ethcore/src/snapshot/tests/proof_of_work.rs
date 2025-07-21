@@ -91,7 +91,7 @@ fn chunk_and_restore(amount: u64) {
     let manifest = ::snapshot::ManifestData {
         version: 2,
         state_hashes: Vec::new(),
-        block_hashes: block_hashes,
+        block_hashes,
         state_root: ::hash::KECCAK_NULL_RLP,
         block_number: amount,
         block_hash: best_hash,

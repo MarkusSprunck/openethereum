@@ -42,7 +42,7 @@ impl<T> UsingQueue<T> {
         UsingQueue {
             pending: None,
             in_use: vec![],
-            max_size: max_size,
+            max_size,
         }
     }
 
@@ -73,7 +73,7 @@ impl<T> UsingQueue<T> {
 
     /// Is there anything in the queue currently?
     pub fn is_in_use(&self) -> bool {
-        self.in_use.len() > 0
+        !self.in_use.is_empty()
     }
 
     /// Clears everything; the queue is entirely reset.
@@ -90,7 +90,7 @@ impl<T> UsingQueue<T> {
     {
         self.in_use
             .iter()
-            .position(|r| predicate(r))
+            .position(predicate)
             .map(|i| self.in_use.remove(i))
     }
 
@@ -136,8 +136,7 @@ impl<T> UsingQueue<T> {
             self.in_use
                 .last()
                 .into_iter()
-                .filter(|x| predicate(x))
-                .next()
+                .find(|x| predicate(x))
                 .cloned()
         }
     }

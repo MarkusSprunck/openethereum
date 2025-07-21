@@ -63,7 +63,7 @@ fn can_trace_block_and_uncle_reward() {
     // block with transaction and uncle
 
     let genesis_header = spec.genesis_header();
-    let genesis_gas = genesis_header.gas_limit().clone();
+    let genesis_gas = *genesis_header.gas_limit();
 
     let mut db = spec
         .ensure_db_good(get_temp_state_db(), &Default::default())
@@ -84,7 +84,7 @@ fn can_trace_block_and_uncle_reward() {
         db,
         &last_header,
         Arc::new(last_hashes.clone()),
-        author.clone(),
+        author,
         (3141562.into(), 31415620.into()),
         vec![],
         false,
@@ -124,7 +124,7 @@ fn can_trace_block_and_uncle_reward() {
         db,
         &last_header,
         Arc::new(last_hashes.clone()),
-        author.clone(),
+        author,
         (3141562.into(), 31415620.into()),
         vec![],
         false,
@@ -163,7 +163,7 @@ fn can_trace_block_and_uncle_reward() {
         db,
         &last_header,
         Arc::new(last_hashes.clone()),
-        author.clone(),
+        author,
         (3141562.into(), 31415620.into()),
         vec![],
         false,

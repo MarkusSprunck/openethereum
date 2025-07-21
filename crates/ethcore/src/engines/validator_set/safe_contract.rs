@@ -51,7 +51,7 @@ const REPORTS_SKIP_BLOCKS: u64 = 1;
 const MEMOIZE_CAPACITY: usize = 500;
 
 // TODO: ethabi should be able to generate this.
-const EVENT_NAME: &'static [u8] = &*b"InitiateChange(bytes32,address[])";
+const EVENT_NAME: &[u8] = b"InitiateChange(bytes32,address[])";
 
 lazy_static! {
     static ref EVENT_NAME_HASH: H256 = keccak(EVENT_NAME);
@@ -72,8 +72,8 @@ impl ::engines::StateDependentProof<EthereumMachine> for StateProof {
     fn check_proof(&self, machine: &EthereumMachine, proof: &[u8]) -> Result<(), String> {
         let (header, state_items) =
             decode_first_proof(&Rlp::new(proof), machine.params().eip1559_transition)
-                .map_err(|e| format!("proof incorrectly encoded: {}", e))?;
-        if &header != &self.header {
+                .map_err(|e| format!("proof incorrectly encoded: {e}"))?;
+        if header != self.header {
             return Err("wrong header in proof".into());
         }
 
@@ -158,7 +158,7 @@ fn check_first_proof(
 
     match res {
         ::state::ProvedExecution::BadProof => Err("Bad proof".into()),
-        ::state::ProvedExecution::Failed(e) => Err(format!("Failed call: {}", e)),
+        ::state::ProvedExecution::Failed(e) => Err(format!("Failed call: {e}")),
         ::state::ProvedExecution::Complete(e) => {
             decoder.decode(&e.output).map_err(|e| e.to_string())
         }
@@ -228,7 +228,7 @@ fn prove_initial(
 		validators.len(), proof.len());
 
     info!(target: "engine", "Signal for switch to contract-based validator set.");
-    info!(target: "engine", "Initial contract validators: {:?}", validators);
+    info!(target: "engine", "Initial contract validators: {validators:?}");
 
     Ok(proof)
 }
@@ -274,7 +274,7 @@ impl ValidatorSafeContract {
         // Skip the rest of the function unless there has been a transition to POSDAO AuRa.
         if self
             .posdao_transition
-            .map_or(true, |block_num| block < block_num)
+            .is_none_or(|block_num| block < block_num)
         {
             trace!(target: "engine", "Skipping queueing a malicious behavior report");
             return;
@@ -292,11 +292,11 @@ impl ValidatorSafeContract {
 
         match value {
             Ok(new) => {
-                debug!(target: "engine", "Set of validators obtained: {:?}", new);
+                debug!(target: "engine", "Set of validators obtained: {new:?}");
                 Some(SimpleList::new(new))
             }
             Err(s) => {
-                debug!(target: "engine", "Set of validators could not be updated: {}", s);
+                debug!(target: "engine", "Set of validators could not be updated: {s}");
                 None
             }
         }
@@ -325,7 +325,7 @@ impl ValidatorSafeContract {
 
         LogEntry {
             address: self.contract_address,
-            topics: topics,
+            topics,
             data: Vec::new(), // irrelevant for bloom.
         }
         .bloom()
@@ -394,7 +394,7 @@ impl ValidatorSet for ValidatorSafeContract {
         // Skip the rest of the function unless there has been a transition to POSDAO AuRa.
         if self
             .posdao_transition
-            .map_or(true, |block_num| header.number() < block_num)
+            .is_none_or(|block_num| header.number() < block_num)
         {
             trace!(target: "engine", "Skipping a call to emitInitiateChange");
             return Ok(Vec::new());
@@ -407,7 +407,7 @@ impl ValidatorSet for ValidatorSafeContract {
             .and_then(|x| {
                 decoder
                     .decode(&x)
-                    .map_err(|x| format!("chain spec bug: could not decode: {:?}", x))
+                    .map_err(|x| format!("chain spec bug: could not decode: {x:?}"))
             })
             .map_err(::engines::EngineError::FailedSystemCall)?;
         if !emit_initiate_change_callable {
@@ -440,7 +440,7 @@ impl ValidatorSet for ValidatorSafeContract {
         // Skip the rest of the function unless there has been a transition to POSDAO AuRa.
         if self
             .posdao_transition
-            .map_or(true, |block_num| header.number() < block_num)
+            .is_none_or(|block_num| header.number() < block_num)
         {
             trace!(target: "engine", "Skipping resending of queued malicious behavior reports");
             return Ok(());
@@ -465,8 +465,7 @@ impl ValidatorSet for ValidatorSafeContract {
             *resent_reports_in_block = header.number();
             let mut nonce = client.latest_nonce(our_address);
             for (address, block, data) in report_queue.iter() {
-                debug!(target: "engine", "Retrying to report validator {} for misbehavior on block {} with nonce {}.",
-                   address, block, nonce);
+                debug!(target: "engine", "Retrying to report validator {address} for misbehavior on block {block} with nonce {nonce}.");
                 while match self.transact(data.clone(), nonce) {
                     Ok(()) => false,
                     Err(EthcoreError(
@@ -474,12 +473,11 @@ impl ValidatorSet for ValidatorSafeContract {
                         _,
                     )) => true,
                     Err(err) => {
-                        warn!(target: "engine", "Cannot report validator {} for misbehavior on block {}: {}",
-                          address, block, err);
+                        warn!(target: "engine", "Cannot report validator {address} for misbehavior on block {block}: {err}");
                         false
                     }
                 } {
-                    warn!(target: "engine", "Nonce {} already used. Incrementing.", nonce);
+                    warn!(target: "engine", "Nonce {nonce} already used. Incrementing.");
                     nonce += U256::from(1);
                 }
                 nonce += U256::from(1);
@@ -546,7 +544,7 @@ impl ValidatorSet for ValidatorSafeContract {
                     info!(target: "engine", "Signal for transition within contract. New list: {:?}",
 						&*list);
 
-                    let proof = encode_proof(&header, receipts);
+                    let proof = encode_proof(header, receipts);
                     ::engines::EpochChange::Yes(::engines::Proof::Known(proof))
                 }
             },
@@ -609,9 +607,9 @@ impl ValidatorSet for ValidatorSafeContract {
             .get_mut(block_hash)
             .map(|list| list.contains(block_hash, address));
         maybe_existing.unwrap_or_else(|| {
-            self.get_list(caller).map_or(false, |list| {
+            self.get_list(caller).is_some_and(|list| {
                 let contains = list.contains(block_hash, address);
-                guard.insert(block_hash.clone(), list);
+                guard.insert(*block_hash, list);
                 contains
             })
         })
@@ -625,7 +623,7 @@ impl ValidatorSet for ValidatorSafeContract {
         maybe_existing.unwrap_or_else(|| {
             self.get_list(caller).map_or_else(Default::default, |list| {
                 let address = list.get(block_hash, nonce);
-                guard.insert(block_hash.clone(), list);
+                guard.insert(*block_hash, list);
                 address
             })
         })
@@ -637,7 +635,7 @@ impl ValidatorSet for ValidatorSafeContract {
         maybe_existing.unwrap_or_else(|| {
             self.get_list(caller).map_or_else(usize::max_value, |list| {
                 let address = list.count(block_hash);
-                guard.insert(block_hash.clone(), list);
+                guard.insert(*block_hash, list);
                 address
             })
         })
@@ -669,9 +667,7 @@ impl ReportQueue {
         self.0.retain(|&(malicious_validator_address, block, ref _data)| {
 			trace!(
 				target: "engine",
-				"Checking if report of malicious validator {} at block {} should be removed from cache",
-				malicious_validator_address,
-				block
+				"Checking if report of malicious validator {malicious_validator_address} at block {block} should be removed from cache"
 			);
 			// Check if the validator should be reported.
 			let (data, decoder) = validator_set::functions::should_validator_report::call(
@@ -686,7 +682,7 @@ impl ReportQueue {
 				}
 				Ok(true) => true,
 				Err(err) => {
-					warn!(target: "engine", "Failed to query report status {:?}, dropping pending report.", err);
+					warn!(target: "engine", "Failed to query report status {err:?}, dropping pending report.");
 					false
 				}
 			}

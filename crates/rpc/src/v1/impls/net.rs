@@ -26,7 +26,7 @@ pub struct NetClient<S: ?Sized> {
     /// Cached `network_id`.
     ///
     /// We cache it to avoid redundant aquire of sync read lock.
-    /// https://github.com/openethereum/openethereum/issues/8746
+    /// <https://github.com/openethereum/openethereum/issues/8746>
     network_id: u64,
 }
 
@@ -34,7 +34,7 @@ impl<S: ?Sized> NetClient<S>
 where
     S: SyncProvider,
 {
-    /// Creates new NetClient.
+    /// Creates new `NetClient`.
     pub fn new(sync: &Arc<S>) -> Self {
         NetClient {
             sync: sync.clone(),

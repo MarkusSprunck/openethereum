@@ -49,9 +49,7 @@ impl Default for ExternalMiner {
 impl ExternalMiner {
     /// Creates new external miner with prefilled hashrates.
     pub fn new(hashrates: Arc<Mutex<HashMap<H256, (Instant, U256)>>>) -> Self {
-        ExternalMiner {
-            hashrates: hashrates,
-        }
+        ExternalMiner { hashrates }
     }
 }
 

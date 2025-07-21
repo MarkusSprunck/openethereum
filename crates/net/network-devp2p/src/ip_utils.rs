@@ -323,7 +323,7 @@ pub fn select_public_address(port: u16) -> SocketAddr {
                 }
             }
         }
-        Err(e) => debug!("Error listing public interfaces: {:?}", e),
+        Err(e) => debug!("Error listing public interfaces: {e:?}"),
     }
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port))
 }
@@ -347,10 +347,10 @@ pub fn map_external_address(local: &NodeEndpoint) -> Option<NodeEndpoint> {
             };
             let search_gateway = search_gateway(search_options);
             match search_gateway {
-                Err(ref err) => debug!("Gateway search error: {}", err),
+                Err(ref err) => debug!("Gateway search error: {err}"),
                 Ok(gateway) => match gateway.get_external_ip() {
                     Err(ref err) => {
-                        debug!("IP request error: {}", err);
+                        debug!("IP request error: {err}");
                     }
                     Ok(external_addr) => {
                         match gateway.add_any_port(
@@ -360,7 +360,7 @@ pub fn map_external_address(local: &NodeEndpoint) -> Option<NodeEndpoint> {
                             "Parity Node/TCP",
                         ) {
                             Err(ref err) => {
-                                debug!("Port mapping error: {}", err);
+                                debug!("Port mapping error: {err}");
                             }
                             Ok(tcp_port) => {
                                 match gateway.add_any_port(
@@ -370,7 +370,7 @@ pub fn map_external_address(local: &NodeEndpoint) -> Option<NodeEndpoint> {
                                     "Parity Node/UDP",
                                 ) {
                                     Err(ref err) => {
-                                        debug!("Port mapping error: {}", err);
+                                        debug!("Port mapping error: {err}");
                                     }
                                     Ok(udp_port) => {
                                         return Some(NodeEndpoint {

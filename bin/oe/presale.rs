@@ -44,7 +44,7 @@ pub fn execute(cmd: ImportWallet) -> Result<String, String> {
     let kp = wallet.decrypt(&password).map_err(|_| "Invalid password.")?;
     let address = kp.address();
     import_account(&cmd, kp, password);
-    Ok(format!("{:?}", address))
+    Ok(format!("{address:?}"))
 }
 
 #[cfg(feature = "accounts")]

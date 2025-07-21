@@ -27,7 +27,7 @@ use std::{
 /// Set the panic hook to write to stderr and abort the process when a panic happens.
 pub fn set_abort() {
     set_with(|msg| {
-        eprintln!("{}", msg);
+        eprintln!("{msg}");
         process::abort()
     });
 }
@@ -80,13 +80,7 @@ fn gen_panic_msg(info: &PanicHookInfo) -> String {
 {backtrace:?}
 
 Thread '{name}' panicked at '{msg}', {file}:{line}
-{about}
-"#,
-        backtrace = backtrace,
-        name = name,
-        msg = msg,
-        file = file,
-        line = line,
-        about = ABOUT_PANIC
+{ABOUT_PANIC}
+"#
     )
 }

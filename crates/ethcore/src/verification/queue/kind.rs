@@ -128,7 +128,7 @@ pub mod blocks {
             match verify_block_unordered(un, engine, check_seal) {
                 Ok(verified) => Ok(verified),
                 Err(e) => {
-                    warn!(target: "client", "Stage 2 block verification failed for {}: {:?}", hash, e);
+                    warn!(target: "client", "Stage 2 block verification failed for {hash}: {e:?}");
                     Err(e)
                 }
             }
@@ -182,11 +182,11 @@ pub mod blocks {
         }
 
         fn parent_hash(&self) -> H256 {
-            self.header.parent_hash().clone()
+            *self.header.parent_hash()
         }
 
         fn difficulty(&self) -> U256 {
-            self.header.difficulty().clone()
+            *self.header.difficulty()
         }
     }
 
@@ -200,11 +200,11 @@ pub mod blocks {
         }
 
         fn parent_hash(&self) -> H256 {
-            self.header.parent_hash().clone()
+            *self.header.parent_hash()
         }
 
         fn difficulty(&self) -> U256 {
-            self.header.difficulty().clone()
+            *self.header.difficulty()
         }
     }
 }
@@ -228,10 +228,10 @@ pub mod headers {
             self.hash()
         }
         fn parent_hash(&self) -> H256 {
-            self.parent_hash().clone()
+            *self.parent_hash()
         }
         fn difficulty(&self) -> U256 {
-            self.difficulty().clone()
+            *self.difficulty()
         }
     }
 

@@ -75,10 +75,10 @@ impl<'s> NetSyncIo<'s> {
         chain_overlay: &'s RwLock<HashMap<BlockNumber, Bytes>>,
     ) -> NetSyncIo<'s> {
         NetSyncIo {
-            network: network,
-            chain: chain,
-            snapshot_service: snapshot_service,
-            chain_overlay: chain_overlay,
+            network,
+            chain,
+            snapshot_service,
+            chain_overlay,
         }
     }
 }

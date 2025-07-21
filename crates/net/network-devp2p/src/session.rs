@@ -229,12 +229,12 @@ impl Session {
             },
         }
         if let Some(data) = packet_data {
-            return Ok(self.read_packet(io, &data, host)?);
+            return self.read_packet(io, &data, host);
         }
         if create_session {
             self.complete_handshake(io, host)?;
             io.update_registration(self.token())
-                .unwrap_or_else(|e| debug!(target: "network", "Token registration error: {:?}", e));
+                .unwrap_or_else(|e| debug!(target: "network", "Token registration error: {e:?}"));
         }
         Ok(SessionData::None)
     }
@@ -333,7 +333,7 @@ impl Session {
                 while protocol != self.info.capabilities[i].protocol {
                     i += 1;
                     if i == self.info.capabilities.len() {
-                        debug!(target: "network", "Unknown protocol: {:?}", protocol);
+                        debug!(target: "network", "Unknown protocol: {protocol:?}");
                         return Ok(());
                     }
                 }
@@ -349,7 +349,7 @@ impl Session {
             if payload.len() > MAX_PAYLOAD_SIZE {
                 bail!(ErrorKind::OversizedPacket);
             }
-            let len = snappy::compress_into(&payload, &mut compressed);
+            let len = snappy::compress_into(payload, &mut compressed);
             trace!(target: "network", "compressed {} to {}", payload.len(), len);
             payload = &compressed[0..len];
         }
@@ -373,7 +373,7 @@ impl Session {
 
         if !timed_out && self.ping_time.elapsed() > PING_INTERVAL {
             if let Err(e) = self.send_ping(io) {
-                debug!("Error sending ping message: {:?}", e);
+                debug!("Error sending ping message: {e:?}");
             }
         }
         !timed_out
@@ -392,7 +392,7 @@ impl Session {
         {
             None => Vec::new(),
             Some(ProtocolState::Connected) => {
-                debug!(target: "network", "Protocol {:?} marked as connected more than once", protocol);
+                debug!(target: "network", "Protocol {protocol:?} marked as connected more than once");
                 Vec::new()
             }
             Some(ProtocolState::Pending(pending)) => pending
@@ -420,10 +420,10 @@ impl Session {
         }
         let data = if self.compression {
             let compressed = &packet.data[1..];
-            if snappy::decompressed_len(&compressed)? > MAX_PAYLOAD_SIZE {
+            if snappy::decompressed_len(compressed)? > MAX_PAYLOAD_SIZE {
                 bail!(ErrorKind::OversizedPacket);
             }
-            snappy::decompress(&compressed)?
+            snappy::decompress(compressed)?
         } else {
             packet.data[1..].to_owned()
         };
@@ -460,7 +460,7 @@ impl Session {
                 {
                     i += 1;
                     if i == self.info.capabilities.len() {
-                        debug!(target: "network", "Unknown packet: {:?}", packet_id);
+                        debug!(target: "network", "Unknown packet: {packet_id:?}");
                         return Ok(SessionData::Continue);
                     }
                 }
@@ -483,7 +483,7 @@ impl Session {
                         })
                     }
                     ProtocolState::Pending(ref mut pending) => {
-                        trace!(target: "network", "Packet {} deferred until protocol connection event completion", packet_id);
+                        trace!(target: "network", "Packet {packet_id} deferred until protocol connection event completion");
                         pending.push((data, protocol_packet_id));
 
                         Ok(SessionData::Continue)
@@ -491,7 +491,7 @@ impl Session {
                 }
             }
             _ => {
-                debug!(target: "network", "Unknown packet: {:?}", packet_id);
+                debug!(target: "network", "Unknown packet: {packet_id:?}");
                 Ok(SessionData::Continue)
             }
         }
@@ -506,7 +506,7 @@ impl Session {
         Message: Send + Sync + Clone,
     {
         let mut rlp = RlpStream::new();
-        rlp.append_raw(&[PACKET_HELLO as u8], 0);
+        rlp.append_raw(&[PACKET_HELLO], 0);
         rlp.begin_list(5)
             .append(&host.protocol_version)
             .append(&host.client_version())
@@ -575,7 +575,7 @@ impl Session {
             offset += caps[i].packet_count;
             i += 1;
         }
-        debug!(target: "network", "Hello: {} v{} {} {:?}", client_version, protocol, id, caps);
+        debug!(target: "network", "Hello: {client_version} v{protocol} {id} {caps:?}");
         let protocol = ::std::cmp::min(protocol, host.protocol_version);
         self.info.protocol_version = protocol;
         self.info.client_version = client_version;
@@ -586,7 +586,7 @@ impl Session {
             return Err(self.disconnect(io, DisconnectReason::UselessPeer));
         }
         if protocol < MIN_PROTOCOL_VERSION {
-            trace!(target: "network", "Peer protocol version mismatch: {}", protocol);
+            trace!(target: "network", "Peer protocol version mismatch: {protocol}");
             return Err(self.disconnect(io, DisconnectReason::UselessPeer));
         }
         self.compression = protocol >= MIN_COMPRESSION_PROTOCOL_VERSION;

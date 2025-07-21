@@ -164,12 +164,12 @@ where
             gas_limit: *gas,
             value: *value,
         });
-        let contract_address = contract_address(address, &self.sender, &self.nonce, &code).0;
+        let contract_address = contract_address(address, &self.sender, &self.nonce, code).0;
         Ok(ContractCreateResult::Created(contract_address, *gas))
     }
 
     fn calc_address(&self, code: &[u8], address: CreateContractAddress) -> Option<Address> {
-        Some(contract_address(address, &self.sender, &self.nonce, &code).0)
+        Some(contract_address(address, &self.sender, &self.nonce, code).0)
     }
 
     fn call(
@@ -185,7 +185,7 @@ where
     ) -> Result<MessageCallResult, vm::TrapKind> {
         self.callcreates.push(CallCreate {
             data: data.to_vec(),
-            destination: Some(receive_address.clone()),
+            destination: Some(*receive_address),
             gas_limit: *gas,
             value: value.unwrap(),
         });
@@ -271,10 +271,12 @@ pub fn json_executive_test<H: FnMut(&str, HookType)>(
     json_data: &[u8],
     start_stop_hook: &mut H,
 ) -> Vec<String> {
-    let tests = ethjson::vm::Test::load(json_data).expect(&format!(
-        "Could not parse JSON executive test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::vm::Test::load(json_data).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON executive test data from {}",
+            path.display()
+        )
+    });
     let mut failed = Vec::new();
 
     for (name, vm) in tests.into_iter() {
@@ -282,13 +284,13 @@ pub fn json_executive_test<H: FnMut(&str, HookType)>(
             continue;
         }
 
-        start_stop_hook(&format!("{}", name), HookType::OnStart);
+        start_stop_hook(&name.to_string(), HookType::OnStart);
 
         let mut fail = false;
 
         let mut fail_unless = |cond: bool, s: &str| {
             if !cond && !fail {
-                failed.push(format!("{}: {}", name, s));
+                failed.push(format!("{name}: {s}"));
                 fail = true
             }
         };
@@ -336,7 +338,7 @@ pub fn json_executive_test<H: FnMut(&str, HookType)>(
                 &origin_info,
                 &mut substate,
                 OutputPolicy::Return,
-                params.address.clone(),
+                params.address,
                 &mut tracer,
                 &mut vm_tracer,
             ));
@@ -360,7 +362,7 @@ pub fn json_executive_test<H: FnMut(&str, HookType)>(
             for l in &substate.logs {
                 rlp.append(l);
             }
-            keccak(&rlp.drain())
+            keccak(rlp.drain())
         };
 
         match res {
@@ -383,7 +385,7 @@ pub fn json_executive_test<H: FnMut(&str, HookType)>(
                         fail_unless(
                             found_code
                                 .as_ref()
-                                .map_or_else(|| code.is_empty(), |c| &**c == &code),
+                                .map_or_else(|| code.is_empty(), |c| **c == code),
                             "code is incorrect",
                         );
                     }
@@ -417,12 +419,12 @@ pub fn json_executive_test<H: FnMut(&str, HookType)>(
         };
 
         if fail {
-            println!("   - vm: {:?}...FAILED", name);
+            println!("   - vm: {name:?}...FAILED");
         } else {
-            println!("   - vm: {:?}...OK", name);
+            println!("   - vm: {name:?}...OK");
         }
 
-        start_stop_hook(&format!("{}", name), HookType::OnStop);
+        start_stop_hook(&name.to_string(), HookType::OnStop);
     }
 
     failed

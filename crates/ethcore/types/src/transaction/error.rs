@@ -99,13 +99,13 @@ pub enum Error {
 
 impl From<crypto::publickey::Error> for Error {
     fn from(err: crypto::publickey::Error) -> Self {
-        Error::InvalidSignature(format!("{}", err))
+        Error::InvalidSignature(format!("{err}"))
     }
 }
 
 impl From<rlp::DecoderError> for Error {
     fn from(err: rlp::DecoderError) -> Self {
-        Error::InvalidRlp(format!("{}", err))
+        Error::InvalidRlp(format!("{err}"))
     }
 }
 
@@ -116,50 +116,47 @@ impl fmt::Display for Error {
             AlreadyImported => "Already imported".into(),
             Old => "No longer valid".into(),
             TooCheapToReplace { prev, new } => format!(
-                "Gas price too low to replace, previous tx gas: {:?}, new tx gas: {:?}",
-                prev, new
+                "Gas price too low to replace, previous tx gas: {prev:?}, new tx gas: {new:?}"
             ),
             LimitReached => "Transaction limit reached".into(),
             InsufficientGasPrice { minimal, got } => {
-                format!("Insufficient gas price. Min={}, Given={}", minimal, got)
+                format!("Insufficient gas price. Min={minimal}, Given={got}")
             }
             GasPriceLowerThanBaseFee {
                 gas_price,
                 base_fee,
             } => {
                 format!(
-                    "Max gas price is lower then required base fee. Gas price={}, Base fee={}",
-                    gas_price, base_fee
+                    "Max gas price is lower then required base fee. Gas price={gas_price}, Base fee={base_fee}"
                 )
             }
             InsufficientGas { minimal, got } => {
-                format!("Insufficient gas. Min={}, Given={}", minimal, got)
+                format!("Insufficient gas. Min={minimal}, Given={got}")
             }
-            InsufficientBalance { balance, cost } => format!(
-                "Insufficient balance for transaction. Balance={}, Cost={}",
-                balance, cost
-            ),
+            InsufficientBalance { balance, cost } => {
+                format!("Insufficient balance for transaction. Balance={balance}, Cost={cost}")
+            }
             GasLimitExceeded { limit, got } => {
-                format!("Gas limit exceeded. Limit={}, Given={}", limit, got)
+                format!("Gas limit exceeded. Limit={limit}, Given={got}")
             }
-            InvalidGasLimit(ref err) => format!("Invalid gas limit. {}", err),
+            InvalidGasLimit(ref err) => format!("Invalid gas limit. {err}"),
             SenderBanned => "Sender is temporarily banned.".into(),
             RecipientBanned => "Recipient is temporarily banned.".into(),
             CodeBanned => "Contract code is temporarily banned.".into(),
             InvalidChainId => "Transaction of this chain ID is not allowed on this chain.".into(),
-            InvalidSignature(ref err) => format!("Transaction has invalid signature: {}.", err),
+            InvalidSignature(ref err) => format!("Transaction has invalid signature: {err}."),
             NotAllowed => {
                 "Sender does not have permissions to execute this type of transaction".into()
             }
             TooBig => "Transaction too big".into(),
-            InvalidRlp(ref err) => format!("Transaction has invalid RLP structure: {}.", err),
+            InvalidRlp(ref err) => format!("Transaction has invalid RLP structure: {err}."),
             TransactionTypeNotEnabled => {
-                format!("Transaction type is not enabled for current block")
+                "Transaction type is not enabled for current block".to_string()
             }
             SenderIsNotEOA => "Transaction sender is not an EOA (see EIP-3607)".into(),
         };
 
-        f.write_fmt(format_args!("Transaction error ({})", msg))
+        f.write_fmt(format_args!("Transaction error ({msg})"))
     }
 }
 

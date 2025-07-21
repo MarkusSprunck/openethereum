@@ -28,10 +28,10 @@ pub struct Ethereum {
     pub mix_hash: H256,
 }
 
-impl Into<Generic> for Ethereum {
-    fn into(self) -> Generic {
+impl From<Ethereum> for Generic {
+    fn from(val: Ethereum) -> Self {
         let mut s = RlpStream::new_list(2);
-        s.append(&self.mix_hash).append(&self.nonce);
+        s.append(&val.mix_hash).append(&val.nonce);
         Generic(s.out())
     }
 }
@@ -54,21 +54,21 @@ pub struct Tendermint {
     pub precommits: Vec<H520>,
 }
 
-impl Into<Generic> for AuthorityRound {
-    fn into(self) -> Generic {
+impl From<AuthorityRound> for Generic {
+    fn from(val: AuthorityRound) -> Self {
         let mut s = RlpStream::new_list(2);
-        s.append(&self.step).append(&self.signature);
+        s.append(&val.step).append(&val.signature);
         Generic(s.out())
     }
 }
 
-impl Into<Generic> for Tendermint {
-    fn into(self) -> Generic {
+impl From<Tendermint> for Generic {
+    fn from(val: Tendermint) -> Self {
         let mut stream = RlpStream::new_list(3);
         stream
-            .append(&self.round)
-            .append(&self.proposal)
-            .append_list(&self.precommits);
+            .append(&val.round)
+            .append(&val.proposal)
+            .append_list(&val.precommits);
         Generic(stream.out())
     }
 }
@@ -108,9 +108,9 @@ impl From<ethjson::spec::Seal> for Seal {
     }
 }
 
-impl Into<Generic> for Seal {
-    fn into(self) -> Generic {
-        match self {
+impl From<Seal> for Generic {
+    fn from(val: Seal) -> Self {
+        match val {
             Seal::Generic(generic) => generic,
             Seal::Ethereum(eth) => eth.into(),
             Seal::AuthorityRound(ar) => ar.into(),

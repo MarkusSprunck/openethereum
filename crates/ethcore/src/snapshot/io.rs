@@ -157,7 +157,7 @@ impl LooseWriter {
 
     // writing logic is the same for both kinds of chunks.
     fn write_chunk(&mut self, hash: H256, chunk: &[u8]) -> io::Result<()> {
-        let file_path = self.dir.join(format!("{:x}", hash));
+        let file_path = self.dir.join(format!("{hash:x}"));
         let mut file = File::create(file_path)?;
         file.write_all(chunk)?;
         Ok(())
@@ -230,7 +230,7 @@ impl PackedReader {
             + (off_bytes[0] as u64);
 
         let manifest_len = file_len - manifest_off - 8;
-        trace!(target: "snapshot", "loading manifest of length {} from offset {}", manifest_len, manifest_off);
+        trace!(target: "snapshot", "loading manifest of length {manifest_len} from offset {manifest_off}");
 
         let mut manifest_buf = vec![0; manifest_len as usize];
 
@@ -249,11 +249,11 @@ impl PackedReader {
             return Err(::snapshot::error::Error::VersionNotSupported(version));
         }
 
-        let state: Vec<ChunkInfo> = rlp.list_at(0 + start)?;
+        let state: Vec<ChunkInfo> = rlp.list_at(start)?;
         let blocks: Vec<ChunkInfo> = rlp.list_at(1 + start)?;
 
         let manifest = ManifestData {
-            version: version,
+            version,
             state_hashes: state.iter().map(|c| c.0).collect(),
             block_hashes: blocks.iter().map(|c| c.0).collect(),
             state_root: rlp.val_at(2 + start)?,
@@ -262,10 +262,10 @@ impl PackedReader {
         };
 
         Ok(Some(PackedReader {
-            file: file,
+            file,
             state_hashes: state.into_iter().map(|c| (c.0, (c.1, c.2))).collect(),
             block_hashes: blocks.into_iter().map(|c| (c.0, (c.1, c.2))).collect(),
-            manifest: manifest,
+            manifest,
         }))
     }
 }
@@ -323,7 +323,7 @@ impl SnapshotReader for LooseReader {
     }
 
     fn chunk(&self, hash: H256) -> io::Result<Bytes> {
-        let path = self.dir.join(format!("{:x}", hash));
+        let path = self.dir.join(format!("{hash:x}"));
         let mut buf = Vec::new();
         let mut file = File::open(&path)?;
         file.read_to_end(&mut buf)?;
@@ -342,9 +342,8 @@ mod tests {
     };
     use snapshot::ManifestData;
 
-    const STATE_CHUNKS: &'static [&'static [u8]] =
-        &[b"dog", b"cat", b"hello world", b"hi", b"notarealchunk"];
-    const BLOCK_CHUNKS: &'static [&'static [u8]] = &[
+    const STATE_CHUNKS: &[&[u8]] = &[b"dog", b"cat", b"hello world", b"hi", b"notarealchunk"];
+    const BLOCK_CHUNKS: &[&[u8]] = &[
         b"hello!",
         b"goodbye!",
         b"abcdefg",
@@ -364,21 +363,21 @@ mod tests {
         let mut block_hashes = Vec::new();
 
         for chunk in STATE_CHUNKS {
-            let hash = keccak(&chunk);
-            state_hashes.push(hash.clone());
+            let hash = keccak(chunk);
+            state_hashes.push(hash);
             writer.write_state_chunk(hash, chunk).unwrap();
         }
 
         for chunk in BLOCK_CHUNKS {
-            let hash = keccak(&chunk);
-            block_hashes.push(hash.clone());
-            writer.write_block_chunk(keccak(&chunk), chunk).unwrap();
+            let hash = keccak(chunk);
+            block_hashes.push(hash);
+            writer.write_block_chunk(keccak(chunk), chunk).unwrap();
         }
 
         let manifest = ManifestData {
             version: SNAPSHOT_VERSION,
-            state_hashes: state_hashes,
-            block_hashes: block_hashes,
+            state_hashes,
+            block_hashes,
             state_root: keccak(b"notarealroot"),
             block_number: 12345678987654321,
             block_hash: keccak(b"notarealblock"),
@@ -390,7 +389,7 @@ mod tests {
         assert_eq!(reader.manifest(), &manifest);
 
         for hash in manifest.state_hashes.iter().chain(&manifest.block_hashes) {
-            reader.chunk(hash.clone()).unwrap();
+            reader.chunk(*hash).unwrap();
         }
     }
 
@@ -403,21 +402,21 @@ mod tests {
         let mut block_hashes = Vec::new();
 
         for chunk in STATE_CHUNKS {
-            let hash = keccak(&chunk);
-            state_hashes.push(hash.clone());
+            let hash = keccak(chunk);
+            state_hashes.push(hash);
             writer.write_state_chunk(hash, chunk).unwrap();
         }
 
         for chunk in BLOCK_CHUNKS {
-            let hash = keccak(&chunk);
-            block_hashes.push(hash.clone());
-            writer.write_block_chunk(keccak(&chunk), chunk).unwrap();
+            let hash = keccak(chunk);
+            block_hashes.push(hash);
+            writer.write_block_chunk(keccak(chunk), chunk).unwrap();
         }
 
         let manifest = ManifestData {
             version: SNAPSHOT_VERSION,
-            state_hashes: state_hashes,
-            block_hashes: block_hashes,
+            state_hashes,
+            block_hashes,
             state_root: keccak(b"notarealroot"),
             block_number: 12345678987654321,
             block_hash: keccak(b"notarealblock)"),
@@ -429,7 +428,7 @@ mod tests {
         assert_eq!(reader.manifest(), &manifest);
 
         for hash in manifest.state_hashes.iter().chain(&manifest.block_hashes) {
-            reader.chunk(hash.clone()).unwrap();
+            reader.chunk(*hash).unwrap();
         }
     }
 }

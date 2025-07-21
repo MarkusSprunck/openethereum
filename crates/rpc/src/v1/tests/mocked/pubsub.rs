@@ -30,11 +30,11 @@ fn rpc() -> MetaIoHandler<Metadata, core::NoopMiddleware> {
     let mut io = MetaIoHandler::default();
     let called = atomic::AtomicBool::new(false);
     io.add_method("hello", move |_| {
-        if !called.load(atomic::Ordering::SeqCst) {
+        if called.load(atomic::Ordering::SeqCst) {
+            Ok(core::Value::String("world".into()))
+        } else {
             called.store(true, atomic::Ordering::SeqCst);
             Ok(core::Value::String("hello".into()))
-        } else {
-            Ok(core::Value::String("world".into()))
         }
     });
     io

@@ -71,7 +71,7 @@ pub struct RecoveredAccount {
     /// public key of the recovered account
     pub public_key: Public,
     /// If the signature contains chain replay protection,
-    /// And the chain_id encoded within the signature
+    /// And the `chain_id` encoded within the signature
     /// matches the current chain this would be true, otherwise false.
     pub is_valid_for_current_chain: bool,
 }

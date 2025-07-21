@@ -27,7 +27,7 @@ use bytes::Bytes;
 use ethereum_types::{Address, BigEndianHash, H256, U256};
 use hash::keccak;
 use num_bigint::BigUint;
-use std::{cmp, marker::PhantomData, mem, sync::Arc};
+use std::{cmp, marker::PhantomData, sync::Arc};
 
 use vm::{
     self, ActionParams, ActionValue, CallType, ContractCreateResult, CreateContractAddress,
@@ -230,7 +230,7 @@ impl<Cost: 'static + CostType> vm::ResumeCall for Interpreter<Cost> {
                 MessageCallResult::Success(gas_left, data) => {
                     let output = this.mem.writeable_slice(out_off, out_size);
                     let len = cmp::min(output.len(), data.len());
-                    (&mut output[..len]).copy_from_slice(&data[..len]);
+                    output[..len].copy_from_slice(&data[..len]);
 
                     this.return_data = data;
                     this.stack.push(U256::one());
@@ -242,7 +242,7 @@ impl<Cost: 'static + CostType> vm::ResumeCall for Interpreter<Cost> {
                 MessageCallResult::Reverted(gas_left, data) => {
                     let output = this.mem.writeable_slice(out_off, out_size);
                     let len = cmp::min(output.len(), data.len());
-                    (&mut output[..len]).copy_from_slice(&data[..len]);
+                    output[..len].copy_from_slice(&data[..len]);
 
                     this.return_data = data;
                     this.stack.push(U256::zero());
@@ -450,12 +450,10 @@ impl<Cost: CostType> Interpreter<Cost> {
 
                 // Execute instruction
                 let current_gas = self.gasometer.as_mut().expect(GASOMETER_PROOF).current_gas;
-                let result = match self.exec_instruction(
-                    current_gas,
-                    ext,
-                    instruction,
-                    requirements.provide_gas,
-                ) {
+
+                evm_debug!({ self.informant.after_instruction(instruction) });
+                match self.exec_instruction(current_gas, ext, instruction, requirements.provide_gas)
+                {
                     Err(x) => {
                         if self.do_trace {
                             ext.trace_failed();
@@ -463,9 +461,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                         return InterpreterResult::Done(Err(x));
                     }
                     Ok(x) => x,
-                };
-                evm_debug!({ self.informant.after_instruction(instruction) });
-                result
+                }
             }
         };
 
@@ -538,7 +534,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 init_size,
                 apply,
             } => {
-                let mem = mem::replace(&mut self.mem, Vec::new());
+                let mem = std::mem::take(&mut self.mem);
                 return InterpreterResult::Done(Ok(GasLeft::NeedsReturn {
                     gas_left: gas.as_u256(),
                     data: mem.into_return_data(init_off, init_size),
@@ -638,7 +634,7 @@ impl<Cost: CostType> Interpreter<Cost> {
 
     fn store_written(instruction: Instruction, stack: &dyn Stack<U256>) -> Option<(U256, U256)> {
         match instruction {
-            instructions::SSTORE => Some((stack.peek(0).clone(), stack.peek(1).clone())),
+            instructions::SSTORE => Some((*stack.peek(0), *stack.peek(1))),
             _ => None,
         }
     }
@@ -798,7 +794,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 // Get sender & receive addresses, check if we have balance
                 let (sender_address, receive_address, has_balance, call_type) = match instruction {
                     instructions::CALL => {
-                        if ext.is_static() && value.map_or(false, |v| !v.is_zero()) {
+                        if ext.is_static() && value.is_some_and(|v| !v.is_zero()) {
                             return Err(vm::Error::MutableCallInStaticContext);
                         }
                         let has_balance = ext.balance(&self.params.address)?
@@ -864,7 +860,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                     Ok(MessageCallResult::Success(gas_left, data)) => {
                         let output = self.mem.writeable_slice(out_off, out_size);
                         let len = cmp::min(output.len(), data.len());
-                        (&mut output[..len]).copy_from_slice(&data[..len]);
+                        output[..len].copy_from_slice(&data[..len]);
 
                         self.stack.push(U256::one());
                         self.return_data = data;
@@ -876,7 +872,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                     Ok(MessageCallResult::Reverted(gas_left, data)) => {
                         let output = self.mem.writeable_slice(out_off, out_size);
                         let len = cmp::min(output.len(), data.len());
-                        (&mut output[..len]).copy_from_slice(&data[..len]);
+                        output[..len].copy_from_slice(&data[..len]);
 
                         self.stack.push(U256::zero());
                         self.return_data = data;
@@ -897,9 +893,9 @@ impl<Cost: CostType> Interpreter<Cost> {
                 let init_size = self.stack.pop_back();
 
                 return Ok(InstructionResult::StopExecutionNeedsReturn {
-                    gas: gas,
-                    init_off: init_off,
-                    init_size: init_size,
+                    gas,
+                    init_off,
+                    init_size,
                     apply: true,
                 });
             }
@@ -908,9 +904,9 @@ impl<Cost: CostType> Interpreter<Cost> {
                 let init_size = self.stack.pop_back();
 
                 return Ok(InstructionResult::StopExecutionNeedsReturn {
-                    gas: gas,
-                    init_off: init_off,
-                    init_size: init_size,
+                    gas,
+                    init_off,
+                    init_size,
                     apply: false,
                 });
             }
@@ -919,7 +915,7 @@ impl<Cost: CostType> Interpreter<Cost> {
             }
             instructions::SUICIDE => {
                 let address = u256_to_address(&self.stack.pop_back());
-                ext.al_insert_address(address.clone());
+                ext.al_insert_address(address);
                 ext.suicide(&address)?;
                 return Ok(InstructionResult::StopExecution);
             }
@@ -982,7 +978,7 @@ impl<Cost: CostType> Interpreter<Cost> {
             }
             instructions::MLOAD => {
                 let word = self.mem.read(self.stack.pop_back());
-                self.stack.push(U256::from(word));
+                self.stack.push(word);
             }
             instructions::MSTORE => {
                 let offset = self.stack.pop_back();
@@ -1024,11 +1020,9 @@ impl<Cost: CostType> Interpreter<Cost> {
                         &current_val,
                         &val,
                     );
-                } else {
-                    if !current_val.is_zero() && val.is_zero() {
-                        let sstore_clears_schedule = ext.schedule().sstore_refund_gas;
-                        ext.add_sstore_refund(sstore_clears_schedule);
-                    }
+                } else if !current_val.is_zero() && val.is_zero() {
+                    let sstore_clears_schedule = ext.schedule().sstore_refund_gas;
+                    ext.add_sstore_refund(sstore_clears_schedule);
                 }
                 ext.set_storage(key, BigEndianHash::from_uint(&val))?;
                 ext.al_insert_storage_key(self.params.address, key);
@@ -1040,11 +1034,10 @@ impl<Cost: CostType> Interpreter<Cost> {
                 self.stack.push(gas.as_u256());
             }
             instructions::ADDRESS => {
-                self.stack
-                    .push(address_to_u256(self.params.address.clone()));
+                self.stack.push(address_to_u256(self.params.address));
             }
             instructions::ORIGIN => {
-                self.stack.push(address_to_u256(self.params.origin.clone()));
+                self.stack.push(address_to_u256(self.params.origin));
             }
             instructions::BALANCE => {
                 let address = u256_to_address(&self.stack.pop_back());
@@ -1053,7 +1046,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 ext.al_insert_address(address);
             }
             instructions::CALLER => {
-                self.stack.push(address_to_u256(self.params.sender.clone()));
+                self.stack.push(address_to_u256(self.params.sender));
             }
             instructions::CALLVALUE => {
                 self.stack.push(match self.params.value {
@@ -1103,11 +1096,10 @@ impl<Cost: CostType> Interpreter<Cost> {
                 Self::copy_data_to_memory(
                     &mut self.mem,
                     &mut self.stack,
-                    &self
-                        .params
+                    self.params
                         .data
                         .as_ref()
-                        .map_or_else(|| &[] as &[u8], |d| &*d as &[u8]),
+                        .map_or_else(|| &[] as &[u8], |d| d as &[u8]),
                 );
             }
             instructions::RETURNDATACOPY => {
@@ -1119,7 +1111,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                         return Err(vm::Error::OutOfBounds);
                     }
                 }
-                Self::copy_data_to_memory(&mut self.mem, &mut self.stack, &*self.return_data);
+                Self::copy_data_to_memory(&mut self.mem, &mut self.stack, &self.return_data);
             }
             instructions::CODECOPY => {
                 Self::copy_data_to_memory(&mut self.mem, &mut self.stack, &self.reader.code);
@@ -1135,7 +1127,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 ext.al_insert_address(address);
             }
             instructions::GASPRICE => {
-                self.stack.push(self.params.gas_price.clone());
+                self.stack.push(self.params.gas_price);
             }
             instructions::BLOCKHASH => {
                 let block_number = self.stack.pop_back();
@@ -1143,8 +1135,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 self.stack.push(block_hash.into_uint());
             }
             instructions::COINBASE => {
-                self.stack
-                    .push(address_to_u256(ext.env_info().author.clone()));
+                self.stack.push(address_to_u256(ext.env_info().author));
             }
             instructions::TIMESTAMP => {
                 self.stack.push(U256::from(ext.env_info().timestamp));
@@ -1153,10 +1144,10 @@ impl<Cost: CostType> Interpreter<Cost> {
                 self.stack.push(U256::from(ext.env_info().number));
             }
             instructions::DIFFICULTY => {
-                self.stack.push(ext.env_info().difficulty.clone());
+                self.stack.push(ext.env_info().difficulty);
             }
             instructions::GASLIMIT => {
-                self.stack.push(ext.env_info().gas_limit.clone());
+                self.stack.push(ext.env_info().gas_limit);
             }
             instructions::CHAINID => self.stack.push(ext.chain_id().into()),
             instructions::SELFBALANCE => {
@@ -1186,7 +1177,7 @@ impl<Cost: CostType> Interpreter<Cost> {
                 let position = instruction
                     .dup_position()
                     .expect("dup_position always return some for DUP* instructions");
-                let val = self.stack.peek(position).clone();
+                let val = *self.stack.peek(position);
                 self.stack.push(val);
             }
             instructions::SWAP1

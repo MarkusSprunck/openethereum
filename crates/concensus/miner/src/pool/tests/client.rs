@@ -154,7 +154,7 @@ impl pool::client::Client for TestClient {
         &self,
         transaction: &[u8],
     ) -> Result<UnverifiedTransaction, transaction::Error> {
-        let rlp = Rlp::new(&transaction);
+        let rlp = Rlp::new(transaction);
         if rlp.as_raw().len() > self.max_transaction_size {
             return Err(transaction::Error::TooBig);
         }

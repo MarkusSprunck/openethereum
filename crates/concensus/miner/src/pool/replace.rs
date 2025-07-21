@@ -71,7 +71,7 @@ impl<S, C> ReplaceByScoreReadinessAndValidity<S, C> {
         if old.sender() == new.sender() {
             // prefer earliest transaction
             let choice = match new.nonce().cmp(&old.nonce()) {
-                cmp::Ordering::Equal => self.scoring.choose(&old, &new),
+                cmp::Ordering::Equal => self.scoring.choose(old, new),
                 _ if both_local => Choice::InsertNew,
                 cmp::Ordering::Less => Choice::ReplaceOld,
                 cmp::Ordering::Greater => Choice::RejectNew,
@@ -618,7 +618,7 @@ mod tests {
                 gas_price: 1,
                 ..Default::default()
             };
-            tx.unsigned().sign(&old_sender.secret(), None).verified()
+            tx.unsigned().sign(old_sender.secret(), None).verified()
         };
         let tx_old_ready_2 = {
             let tx = Tx {
@@ -626,7 +626,7 @@ mod tests {
                 gas_price: 1,
                 ..Default::default()
             };
-            tx.unsigned().sign(&old_sender.secret(), None).verified()
+            tx.unsigned().sign(old_sender.secret(), None).verified()
         };
         let tx_old_ready_3 = {
             let tx = Tx {
@@ -634,7 +634,7 @@ mod tests {
                 gas_price: 1,
                 ..Default::default()
             };
-            tx.unsigned().sign(&old_sender.secret(), None).verified()
+            tx.unsigned().sign(old_sender.secret(), None).verified()
         };
 
         let new_tx = {
@@ -699,7 +699,7 @@ mod tests {
                 gas_price: 1,
                 ..Default::default()
             };
-            tx.unsigned().sign(&new_sender.secret(), None).verified()
+            tx.unsigned().sign(new_sender.secret(), None).verified()
         };
         let tx_new_ready_2 = {
             let tx = Tx {
@@ -707,7 +707,7 @@ mod tests {
                 gas_price: 1,
                 ..Default::default()
             };
-            tx.unsigned().sign(&new_sender.secret(), None).verified()
+            tx.unsigned().sign(new_sender.secret(), None).verified()
         };
         let tx_new_ready_3 = {
             let tx = Tx {
@@ -715,7 +715,7 @@ mod tests {
                 gas_price: 10, // hi
                 ..Default::default()
             };
-            tx.unsigned().sign(&new_sender.secret(), None).verified()
+            tx.unsigned().sign(new_sender.secret(), None).verified()
         };
 
         let old_tx = txpool::Transaction {

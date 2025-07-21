@@ -156,9 +156,9 @@ impl Transaction {
 
     fn transaction(&self) -> &transaction::TypedTransaction {
         match *self {
-            Transaction::Unverified(ref tx) => &*tx,
-            Transaction::Retracted(ref tx) => &*tx,
-            Transaction::Local(ref tx) => &*tx,
+            Transaction::Unverified(ref tx) => tx,
+            Transaction::Retracted(ref tx) => tx,
+            Transaction::Local(ref tx) => tx,
         }
     }
 
@@ -221,7 +221,7 @@ impl<C: Client> txpool::Verifier<Transaction>
         let hash = tx.hash();
 
         if self.client.transaction_already_included(&hash) {
-            trace!(target: "txqueue", "[{:?}] Rejected tx already in the blockchain", hash);
+            trace!(target: "txqueue", "[{hash:?}] Rejected tx already in the blockchain");
             bail!(transaction::Error::AlreadyImported)
         }
 
@@ -308,15 +308,15 @@ impl<C: Client> txpool::Verifier<Transaction>
                 match self.client.verify_transaction(tx) {
                     Ok(signed) => signed.into(),
                     Err(err) => {
-                        debug!(target: "txqueue", "[{:?}] Rejected tx {:?}", hash, err);
+                        debug!(target: "txqueue", "[{hash:?}] Rejected tx {err:?}");
                         bail!(err)
                     }
                 }
             }
-            Transaction::Local(tx) => match self.client.verify_transaction_basic(&**tx) {
+            Transaction::Local(tx) => match self.client.verify_transaction_basic(&tx) {
                 Ok(()) => tx,
                 Err(err) => {
-                    warn!(target: "txqueue", "[{:?}] Rejected local tx {:?}", hash, err);
+                    warn!(target: "txqueue", "[{hash:?}] Rejected local tx {err:?}");
                     return Err(err);
                 }
             },
@@ -324,7 +324,7 @@ impl<C: Client> txpool::Verifier<Transaction>
 
         // Verify RLP payload
         if let Err(err) = self.client.decode_transaction(&transaction.encode()) {
-            debug!(target: "txqueue", "[{:?}] Rejected transaction's rlp payload", err);
+            debug!(target: "txqueue", "[{err:?}] Rejected transaction's rlp payload");
             bail!(err)
         }
 
@@ -336,9 +336,7 @@ impl<C: Client> txpool::Verifier<Transaction>
                 if code_hash != KECCAK_EMPTY {
                     debug!(
                         target: "txqueue",
-                        "[{:?}] Rejected tx, sender is not an EOA: {}",
-                        hash,
-                        code_hash
+                        "[{hash:?}] Rejected tx, sender is not an EOA: {code_hash}"
                     );
                     bail!(transaction::Error::SenderIsNotEOA);
                 }
@@ -350,9 +348,9 @@ impl<C: Client> txpool::Verifier<Transaction>
         if max_priority_fee < self.options.minimal_gas_price {
             let transaction_type = self.client.transaction_type(&transaction);
             if let TransactionType::Service = transaction_type {
-                debug!(target: "txqueue", "Service tx {:?} below minimal gas price accepted", hash);
+                debug!(target: "txqueue", "Service tx {hash:?} below minimal gas price accepted");
             } else if is_own || account_details.is_local {
-                info!(target: "own_tx", "Local tx {:?} below minimal gas price accepted", hash);
+                info!(target: "own_tx", "Local tx {hash:?} below minimal gas price accepted");
             } else {
                 trace!(
                     target: "txqueue",
@@ -382,8 +380,7 @@ impl<C: Client> txpool::Verifier<Transaction>
         if overflow_1 || overflow_2 {
             trace!(
                 target: "txqueue",
-                "[{:?}] Rejected tx, price overflow",
-                hash
+                "[{hash:?}] Rejected tx, price overflow"
             );
             bail!(transaction::Error::InsufficientBalance {
                 cost: U256::max_value(),
@@ -399,7 +396,7 @@ impl<C: Client> txpool::Verifier<Transaction>
                 cost,
             );
             bail!(transaction::Error::InsufficientBalance {
-                cost: cost,
+                cost,
                 balance: account_details.balance,
             });
         }

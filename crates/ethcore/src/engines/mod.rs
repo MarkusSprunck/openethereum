@@ -68,7 +68,7 @@ use unexpected::{Mismatch, OutOfBounds};
 
 /// Default EIP-210 contract code.
 /// As defined in https://github.com/ethereum/EIPs/pull/210
-pub const DEFAULT_BLOCKHASH_CONTRACT: &'static str = "73fffffffffffffffffffffffffffffffffffffffe33141561006a5760014303600035610100820755610100810715156100455760003561010061010083050761010001555b6201000081071515610064576000356101006201000083050761020001555b5061013e565b4360003512151561008457600060405260206040f361013d565b61010060003543031315156100a857610100600035075460605260206060f361013c565b6101006000350715156100c55762010000600035430313156100c8565b60005b156100ea576101006101006000350507610100015460805260206080f361013b565b620100006000350715156101095763010000006000354303131561010c565b60005b1561012f57610100620100006000350507610200015460a052602060a0f361013a565b600060c052602060c0f35b5b5b5b5b";
+pub const DEFAULT_BLOCKHASH_CONTRACT: &str = "73fffffffffffffffffffffffffffffffffffffffe33141561006a5760014303600035610100820755610100810715156100455760003561010061010083050761010001555b6201000081071515610064576000356101006201000083050761020001555b5061013e565b4360003512151561008457600060405260206040f361013d565b61010060003543031315156100a857610100600035075460605260206060f361013c565b6101006000350715156100c55762010000600035430313156100c8565b60005b156100ea576101006101006000350507610100015460805260206080f361013b565b620100006000350715156101095763010000006000354303131561010c565b60005b1561012f57610100620100006000350507610200015460a052602060a0f361013a565b600060c052602060c0f35b5b5b5b5b";
 /// The number of generations back that uncles can be.
 pub const MAX_UNCLE_AGE: usize = 6;
 
@@ -127,15 +127,14 @@ impl fmt::Display for EngineError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::EngineError::*;
         let msg = match *self {
-            CliqueMissingCheckpoint(ref hash) => format!("Missing checkpoint block: {}", hash),
-            CliqueMissingVanity => format!("Extra data is missing vanity data"),
-            CliqueMissingSignature => format!("Extra data is missing signature"),
+            CliqueMissingCheckpoint(ref hash) => format!("Missing checkpoint block: {hash}"),
+            CliqueMissingVanity => "Extra data is missing vanity data".to_string(),
+            CliqueMissingSignature => "Extra data is missing signature".to_string(),
             CliqueCheckpointInvalidSigners(len) => format!(
-                "Checkpoint block list was of length: {} of checkpoint but
-															it needs to be bigger than zero and a divisible by 20",
-                len
+                "Checkpoint block list was of length: {len} of checkpoint but
+															it needs to be bigger than zero and a divisible by 20"
             ),
-            CliqueCheckpointNoSigner => format!("Checkpoint block list of signers was empty"),
+            CliqueCheckpointNoSigner => "Checkpoint block list of signers was empty".to_string(),
             CliqueInvalidNonce(ref mis) => format!(
                 "Unexpected nonce {} expected {} or {}",
                 mis,
@@ -143,33 +142,33 @@ impl fmt::Display for EngineError {
                 u64::max_value()
             ),
             CliqueWrongAuthorCheckpoint(ref oob) => {
-                format!("Unexpected checkpoint author: {}", oob)
+                format!("Unexpected checkpoint author: {oob}")
             }
-            CliqueFaultyRecoveredSigners(ref mis) => format!("Faulty recovered signers {:?}", mis),
+            CliqueFaultyRecoveredSigners(ref mis) => format!("Faulty recovered signers {mis:?}"),
             CliqueTooRecentlySigned(ref address) => {
-                format!("The signer: {} has signed a block too recently", address)
+                format!("The signer: {address} has signed a block too recently")
             }
             Custom(ref s) => s.clone(),
-            DoubleVote(ref address) => format!("Author {} issued too many blocks.", address),
-            NotProposer(ref mis) => format!("Author is not a current proposer: {}", mis),
-            NotAuthorized(ref address) => format!("Signer {} is not authorized.", address),
+            DoubleVote(ref address) => format!("Author {address} issued too many blocks."),
+            NotProposer(ref mis) => format!("Author is not a current proposer: {mis}"),
+            NotAuthorized(ref address) => format!("Signer {address} is not authorized."),
             UnexpectedMessage => "This Engine should not be fed messages.".into(),
-            BadSealFieldSize(ref oob) => format!("Seal field has an unexpected length: {}", oob),
-            InsufficientProof(ref msg) => format!("Insufficient validation proof: {}", msg),
-            FailedSystemCall(ref msg) => format!("Failed to make system call: {}", msg),
+            BadSealFieldSize(ref oob) => format!("Seal field has an unexpected length: {oob}"),
+            InsufficientProof(ref msg) => format!("Insufficient validation proof: {msg}"),
+            FailedSystemCall(ref msg) => format!("Failed to make system call: {msg}"),
             SystemCallResultDecoding(ref msg) => {
-                format!("Failed to decode the result of a system call: {}", msg)
+                format!("Failed to decode the result of a system call: {msg}")
             }
             SystemCallResultInvalid(ref msg) => {
-                format!("The result of a system call is invalid: {}", msg)
+                format!("The result of a system call is invalid: {msg}")
             }
-            MalformedMessage(ref msg) => format!("Received malformed consensus message: {}", msg),
-            RequiresClient => format!("Call requires client but none registered"),
-            RequiresSigner => format!("Call requires signer but none registered"),
-            InvalidEngine => format!("Invalid engine specification or implementation"),
+            MalformedMessage(ref msg) => format!("Received malformed consensus message: {msg}"),
+            RequiresClient => "Call requires client but none registered".to_string(),
+            RequiresSigner => "Call requires signer but none registered".to_string(),
+            InvalidEngine => "Invalid engine specification or implementation".to_string(),
         };
 
-        f.write_fmt(format_args!("Engine error ({})", msg))
+        f.write_fmt(format_args!("Engine error ({msg})"))
     }
 }
 
@@ -239,7 +238,7 @@ pub fn default_system_or_code_call<'a>(
             ),
         };
 
-        result.map_err(|e| format!("{}", e))
+        result.map_err(|e| format!("{e}"))
     }
 }
 
@@ -507,7 +506,7 @@ pub trait Engine<M: Machine>: Sync + Send {
         let now = time::SystemTime::now()
             .duration_since(time::UNIX_EPOCH)
             .unwrap_or_default();
-        cmp::max(now.as_secs() as u64, parent_timestamp + 1)
+        cmp::max(now.as_secs(), parent_timestamp + 1)
     }
 
     /// Check whether the parent timestamp is valid.

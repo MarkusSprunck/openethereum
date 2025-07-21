@@ -20,7 +20,7 @@ use call_contract::{CallContract, RegistryInfo};
 use ethabi::FunctionOutputDecoder;
 use ethereum_types::Address;
 use parking_lot::RwLock;
-use std::{collections::HashMap, mem, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use types::{ids::BlockId, transaction::SignedTransaction};
 
 use_contract!(
@@ -28,7 +28,7 @@ use_contract!(
     "res/contracts/service_transaction.json"
 );
 
-const SERVICE_TRANSACTION_CONTRACT_REGISTRY_NAME: &'static str = "service_transaction_checker";
+const SERVICE_TRANSACTION_CONTRACT_REGISTRY_NAME: &str = "service_transaction_checker";
 
 /// Service transactions checker.
 #[derive(Default, Clone)]
@@ -58,7 +58,7 @@ impl ServiceTransactionChecker {
         client: &C,
         sender: Address,
     ) -> Result<bool, String> {
-        trace!(target: "txqueue", "Checking service transaction checker contract from {}", sender);
+        trace!(target: "txqueue", "Checking service transaction checker contract from {sender}");
         if let Some(allowed) = self
             .certified_addresses_cache
             .try_read()
@@ -72,13 +72,12 @@ impl ServiceTransactionChecker {
                 SERVICE_TRANSACTION_CONTRACT_REGISTRY_NAME.to_owned(),
                 BlockId::Latest,
             )
-            .ok_or_else(|| "Certifier contract is not configured")?;
+            .ok_or("Certifier contract is not configured")?;
         self.call_contract(client, contract_address, sender)
-            .and_then(|allowed| {
+            .inspect(|&allowed| {
                 if let Some(mut cache) = self.certified_addresses_cache.try_write() {
                     cache.insert(sender, allowed);
                 };
-                Ok(allowed)
             })
     }
 
@@ -90,10 +89,7 @@ impl ServiceTransactionChecker {
         trace!(target: "txqueue", "Refreshing certified addresses cache");
         // replace the cache with an empty list,
         // since it's not recent it won't be used anyway.
-        let cache = mem::replace(
-            &mut *self.certified_addresses_cache.write(),
-            HashMap::default(),
-        );
+        let cache = std::mem::take(&mut *self.certified_addresses_cache.write());
 
         if let Some(contract_address) = client.registry_address(
             SERVICE_TRANSACTION_CONTRACT_REGISTRY_NAME.to_owned(),

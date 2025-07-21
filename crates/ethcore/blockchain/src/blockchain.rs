@@ -24,7 +24,6 @@ use std::{
 };
 
 use ansi_term::Colour;
-use blooms_db;
 use common_types::{
     blockchain_info::BlockChainInfo,
     encoded,
@@ -288,7 +287,7 @@ impl BlockProvider for BlockChain {
     }
 
     fn first_block(&self) -> Option<H256> {
-        self.first_block.clone()
+        self.first_block
     }
 
     fn best_ancient_block(&self) -> Option<H256> {
@@ -465,9 +464,9 @@ impl BlockProvider for BlockChain {
 			.chunks(128)
 			.flat_map(move |blocks_chunk| {
 				blocks_chunk.into_par_iter()
-					.filter_map(|hash| self.block_number(&hash).map(|r| (r, hash)))
-					.filter_map(|(number, hash)| self.block_receipts(&hash).map(|r| (number, hash, r.receipts)))
-					.filter_map(|(number, hash, receipts)| self.block_body(&hash).map(|ref b| (number, hash, receipts, b.transaction_hashes())))
+					.filter_map(|hash| self.block_number(hash).map(|r| (r, hash)))
+					.filter_map(|(number, hash)| self.block_receipts(hash).map(|r| (number, hash, r.receipts)))
+					.filter_map(|(number, hash, receipts)| self.block_body(hash).map(|ref b| (number, hash, receipts, b.transaction_hashes())))
 					.flat_map(|(number, hash, mut receipts, mut hashes)| {
 						if receipts.len() != hashes.len() {
 							warn!("Block {} ({}) has different number of receipts ({}) to transactions ({}). Database corrupt?", number, hash, receipts.len(), hashes.len());
@@ -612,17 +611,15 @@ impl<'a> Iterator for EpochTransitionIter<'a> {
             // if there are multiple candidates, at most one will be on the
             // canon chain.
             for transition in transitions.candidates.into_iter() {
-                let is_in_canon_chain = self
-                    .chain
-                    .block_hash(transition.block_number)
-                    .map_or(false, |hash| hash == transition.block_hash);
+                let is_in_canon_chain =
+                    self.chain.block_hash(transition.block_number) == Some(transition.block_hash);
 
                 // if the transition is within the block gap, there will only be
                 // one candidate, and it will be from a snapshot restored from.
                 let is_ancient = self
                     .chain
                     .first_block_number()
-                    .map_or(false, |first| first > transition.block_number);
+                    .is_some_and(|first| first > transition.block_number);
 
                 if is_ancient || is_in_canon_chain {
                     return Some((transitions.number, transition));
@@ -776,7 +773,7 @@ impl BlockChain {
                     }
 
                     if hash != bc.genesis_hash() {
-                        info!("First new block calculated: {:?}", hash);
+                        info!("First new block calculated: {hash:?}");
                         let mut batch = db.key_value().transaction();
                         batch.put(db::COL_EXTRA, b"first", hash.as_bytes());
                         db.key_value().write(batch).expect("Low level database error when writing 'first' block. Some issue with disk?");
@@ -791,10 +788,7 @@ impl BlockChain {
             // and write them
             if let (Some(hash), Some(number)) = (best_ancient, best_ancient_number) {
                 let mut best_ancient_block = bc.best_ancient_block.write();
-                *best_ancient_block = Some(BestAncientBlock {
-                    hash: hash,
-                    number: number,
-                });
+                *best_ancient_block = Some(BestAncientBlock { hash, number });
             }
         }
 
@@ -807,7 +801,7 @@ impl BlockChain {
         self.db
             .key_value()
             .read_with_cache(db::COL_EXTRA, &self.block_details, parent)
-            .map_or(false, |d| d.children.contains(hash))
+            .is_some_and(|d| d.children.contains(hash))
     }
 
     /// Returns a tree route between `from` and `to`, which is a tuple of:
@@ -873,13 +867,13 @@ impl BlockChain {
         while from_details.number > to_details.number {
             from_branch.push(current_from);
             is_from_route_finalized = is_from_route_finalized || from_details.is_finalized;
-            current_from = from_details.parent.clone();
+            current_from = from_details.parent;
             from_details = self.block_details(&from_details.parent)?;
         }
 
         while to_details.number > from_details.number {
             to_branch.push(current_to);
-            current_to = to_details.parent.clone();
+            current_to = to_details.parent;
             to_details = self.block_details(&to_details.parent)?;
         }
 
@@ -889,11 +883,11 @@ impl BlockChain {
         while current_from != current_to {
             from_branch.push(current_from);
             is_from_route_finalized = is_from_route_finalized || from_details.is_finalized;
-            current_from = from_details.parent.clone();
+            current_from = from_details.parent;
             from_details = self.block_details(&from_details.parent)?;
 
             to_branch.push(current_to);
-            current_to = to_details.parent.clone();
+            current_to = to_details.parent;
             to_details = self.block_details(&to_details.parent)?;
         }
 
@@ -904,8 +898,8 @@ impl BlockChain {
         Some(TreeRoute {
             blocks: from_branch,
             ancestor: current_from,
-            index: index,
-            is_from_route_finalized: is_from_route_finalized,
+            index,
+            is_from_route_finalized,
         })
     }
 
@@ -950,7 +944,7 @@ impl BlockChain {
         if let Some(parent_details) = maybe_parent {
             // parent known to be in chain.
             let info = BlockInfo {
-                hash: hash,
+                hash,
                 number: block_number,
                 total_difficulty: parent_details.total_difficulty + block_difficulty,
                 location: BlockLocation::CanonChain,
@@ -972,7 +966,7 @@ impl BlockChain {
                         block.view().transaction_hashes(),
                         &info,
                     ),
-                    info: info,
+                    info,
                     block,
                 },
                 is_best,
@@ -989,7 +983,7 @@ impl BlockChain {
 				.expect("parent total difficulty always supplied for first block in chunk. only first block can have missing parent; qed");
 
             let info = BlockInfo {
-                hash: hash,
+                hash,
                 number: block_number,
                 total_difficulty: d + block_difficulty,
                 location: BlockLocation::CanonChain,
@@ -1019,7 +1013,7 @@ impl BlockChain {
                         block.view().transaction_hashes(),
                         &info,
                     ),
-                    info: info,
+                    info,
                     block,
                 },
                 is_best,
@@ -1087,7 +1081,7 @@ impl BlockChain {
                     return;
                 }
 
-                cur_ancient_block.hash.clone()
+                cur_ancient_block.hash
             };
 
             let mut block_hash = *hash;
@@ -1108,7 +1102,7 @@ impl BlockChain {
             }
 
             if !is_linked {
-                trace!(target: "blockchain", "The given block {:x} is not linked to the known ancient block {:x}", hash, target_hash);
+                trace!(target: "blockchain", "The given block {hash:x} is not linked to the known ancient block {target_hash:x}");
                 return;
             }
         }
@@ -1140,7 +1134,7 @@ impl BlockChain {
             batch.delete(db::COL_EXTRA, b"ancient");
             *pending_best_ancient_block = Some(None);
         } else if block_number > ancient_number {
-            trace!(target: "blockchain", "Updating the best ancient block to {}.", block_number);
+            trace!(target: "blockchain", "Updating the best ancient block to {block_number}.");
             batch.put(db::COL_EXTRA, b"ancient", block_hash.as_bytes());
             *pending_best_ancient_block = Some(Some(BestAncientBlock {
                 hash: *block_hash,
@@ -1168,11 +1162,10 @@ impl BlockChain {
         };
 
         // ensure we don't write any duplicates.
-        if transitions
+        if !transitions
             .candidates
             .iter()
-            .find(|c| c.block_hash == transition.block_hash)
-            .is_none()
+            .any(|c| c.block_hash == transition.block_hash)
         {
             transitions.candidates.push(transition);
             batch.write(db::COL_EXTRA, &epoch_num, &transitions);
@@ -1194,8 +1187,7 @@ impl BlockChain {
 
     /// Get a specific epoch transition by block number and provided block hash.
     pub fn epoch_transition(&self, block_num: u64, block_hash: H256) -> Option<EpochTransition> {
-        trace!(target: "blockchain", "Loading epoch transition at block {}, {}",
-			block_num, block_hash);
+        trace!(target: "blockchain", "Loading epoch transition at block {block_num}, {block_hash}");
 
         self.db
             .key_value()
@@ -1265,7 +1257,7 @@ impl BlockChain {
     pub fn add_child(&self, batch: &mut DBTransaction, block_hash: H256, child_hash: H256) {
         let mut parent_details = self
             .uncommitted_block_details(&block_hash)
-            .unwrap_or_else(|| panic!("Invalid block hash: {:?}", block_hash));
+            .unwrap_or_else(|| panic!("Invalid block hash: {block_hash:?}"));
 
         parent_details.children.push(child_hash);
 
@@ -1376,11 +1368,11 @@ impl BlockChain {
         let parent_hash = header.parent_hash();
         let parent_details = self
             .block_details(&parent_hash)
-            .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
+            .unwrap_or_else(|| panic!("Invalid parent hash: {parent_hash:?}"));
 
         BlockInfo {
-            hash: hash,
-            number: number,
+            hash,
+            number,
             total_difficulty: parent_details.total_difficulty + header.difficulty(),
             location: match extras.fork_choice {
                 ForkChoice::New => {
@@ -1405,8 +1397,8 @@ impl BlockChain {
                                 .collect::<Vec<_>>();
                             BlockLocation::BranchBecomingCanonChain(BranchBecomingCanonChainData {
                                 ancestor: route.ancestor,
-                                enacted: enacted,
-                                retracted: retracted,
+                                enacted,
+                                retracted,
                             })
                         }
                     }
@@ -1525,22 +1517,22 @@ impl BlockChain {
             *best_block = block;
         }
 
-        let pending_txs = mem::replace(&mut *pending_write_txs, HashMap::new());
+        let pending_txs = std::mem::take(&mut *pending_write_txs);
         let (retracted_txs, enacted_txs) = pending_txs
             .into_iter()
-            .partition::<HashMap<_, _>, _>(|&(_, ref value)| value.is_none());
+            .partition::<HashMap<_, _>, _>(|(_, value)| value.is_none());
 
         let pending_hashes_keys: Vec<_> = pending_write_hashes.keys().cloned().collect();
         let enacted_txs_keys: Vec<_> = enacted_txs.keys().cloned().collect();
         let pending_block_hashes: Vec<_> = pending_block_details.keys().cloned().collect();
 
-        write_hashes.extend(mem::replace(&mut *pending_write_hashes, HashMap::new()));
+        write_hashes.extend(std::mem::take(&mut *pending_write_hashes));
         write_txs.extend(
             enacted_txs
                 .into_iter()
                 .map(|(k, v)| (k, v.expect("Transactions were partitioned; qed"))),
         );
-        write_block_details.extend(mem::replace(&mut *pending_block_details, HashMap::new()));
+        write_block_details.extend(std::mem::take(&mut *pending_block_details));
 
         for hash in retracted_txs.keys() {
             write_txs.remove(hash);
@@ -1604,7 +1596,7 @@ impl BlockChain {
         }
 
         let mut excluded = HashSet::new();
-        let ancestry = self.ancestry_iter(parent.clone())?;
+        let ancestry = self.ancestry_iter(*parent)?;
 
         for a in ancestry.clone().take(uncle_generations) {
             if let Some(uncles) = self.uncle_hashes(&a) {
@@ -1664,7 +1656,7 @@ impl BlockChain {
         // update parent
         let mut parent_details = self
             .uncommitted_block_details(&parent_hash)
-            .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
+            .unwrap_or_else(|| panic!("Invalid parent hash: {parent_hash:?}"));
         parent_details.children.push(info.hash);
 
         // create current block details.
@@ -1673,7 +1665,7 @@ impl BlockChain {
             total_difficulty: info.total_difficulty,
             parent: parent_hash,
             children: vec![],
-            is_finalized: is_finalized,
+            is_finalized,
         };
 
         // write to batch
@@ -1921,7 +1913,7 @@ impl BlockChain {
         // Make sure to call internal methods first to avoid
         // recursive locking of `best_block`.
         let first_block_hash = self.first_block();
-        let first_block_number = self.first_block_number().into();
+        let first_block_number = self.first_block_number();
         let genesis_hash = self.genesis_hash();
 
         // ensure data consistencly by locking everything first
@@ -2045,7 +2037,7 @@ mod tests {
             let parent_hash = header.parent_hash();
             let parent_details = bc
                 .uncommitted_block_details(&parent_hash)
-                .unwrap_or_else(|| panic!("Invalid parent hash: {:?}", parent_hash));
+                .unwrap_or_else(|| panic!("Invalid parent hash: {parent_hash:?}"));
             let block_total_difficulty = parent_details.total_difficulty + header.difficulty();
             if block_total_difficulty > bc.best_block_total_difficulty() {
                 common_types::engines::ForkChoice::New
@@ -2059,7 +2051,7 @@ mod tests {
             block,
             receipts,
             ExtrasInsert {
-                fork_choice: fork_choice,
+                fork_choice,
                 is_finalized: false,
             },
         )
@@ -2154,7 +2146,7 @@ mod tests {
         block_hashes.reverse();
 
         assert_eq!(
-            bc.ancestry_iter(block_hashes[0].clone())
+            bc.ancestry_iter(block_hashes[0])
                 .unwrap()
                 .collect::<Vec<_>>(),
             block_hashes
@@ -2826,7 +2818,7 @@ mod tests {
 
         let genesis = BlockBuilder::genesis();
         let b1 = genesis.add_block_with(|| BlockOptions {
-            bloom: bloom_b1.clone(),
+            bloom: bloom_b1,
             difficulty: 9.into(),
             ..Default::default()
         });

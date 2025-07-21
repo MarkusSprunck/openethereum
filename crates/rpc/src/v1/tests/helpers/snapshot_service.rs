@@ -57,7 +57,7 @@ impl SnapshotService for TestSnapshotService {
         None
     }
     fn restoration_status(&self) -> RestorationStatus {
-        self.status.lock().clone()
+        *self.status.lock()
     }
     fn creation_status(&self) -> CreationStatus {
         CreationStatus::Inactive

@@ -27,7 +27,7 @@ pub struct Web3Client;
 
 impl Web3 for Web3Client {
     fn client_version(&self) -> Result<String> {
-        Ok(version_short().to_owned().replacen("/", "//", 1))
+        Ok(version_short().clone().replacen('/', "//", 1))
     }
 
     fn sha3(&self, data: Bytes) -> Result<H256> {

@@ -63,13 +63,13 @@ impl fmt::Display for ConfirmationRequest {
 impl fmt::Display for ConfirmationPayload {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ConfirmationPayload::SendTransaction(ref transaction) => write!(f, "{}", transaction),
+            ConfirmationPayload::SendTransaction(ref transaction) => write!(f, "{transaction}"),
             ConfirmationPayload::SignTransaction(ref transaction) => {
-                write!(f, "(Sign only) {}", transaction)
+                write!(f, "(Sign only) {transaction}")
             }
-            ConfirmationPayload::EthSignMessage(ref sign) => write!(f, "{}", sign),
-            ConfirmationPayload::EIP191SignMessage(ref sign) => write!(f, "{}", sign),
-            ConfirmationPayload::Decrypt(ref decrypt) => write!(f, "{}", decrypt),
+            ConfirmationPayload::EthSignMessage(ref sign) => write!(f, "{sign}"),
+            ConfirmationPayload::EIP191SignMessage(ref sign) => write!(f, "{sign}"),
+            ConfirmationPayload::Decrypt(ref decrypt) => write!(f, "{decrypt}"),
         }
     }
 }
@@ -314,7 +314,7 @@ mod tests {
             id: 15.into(),
             payload: helpers::ConfirmationPayload::EthSignMessage(
                 Address::from_low_u64_be(1),
-                vec![5].into(),
+                vec![5],
             ),
             origin: Origin::Rpc("test service".into()),
         };
@@ -402,7 +402,7 @@ mod tests {
             id: 15.into(),
             payload: helpers::ConfirmationPayload::Decrypt(
                 Address::from_low_u64_be(10),
-                vec![1, 2, 3].into(),
+                vec![1, 2, 3],
             ),
             origin: Default::default(),
         };
@@ -424,7 +424,7 @@ mod tests {
 			"condition": { "block": 66 }
 		}"#;
         let s2 = r#"{"gas": "0x1233"}"#;
-        let s3 = r#"{}"#;
+        let s3 = r"{}";
 
         // when
         let res1: TransactionModification = serde_json::from_str(s1).unwrap();

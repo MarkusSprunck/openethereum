@@ -34,7 +34,6 @@ use crate::{
     sync::{ManageNetwork, SyncProvider},
     types::BlockNumber,
 };
-use atty;
 use ethcore::{
     client::{
         BlockChainClient, BlockChainInfo, BlockId, BlockInfo, BlockQueueInfo, ChainInfo,
@@ -49,8 +48,8 @@ use parking_lot::{Mutex, RwLock};
 /// Format byte counts to standard denominations.
 pub fn format_bytes(b: usize) -> String {
     match binary_prefix(b as f64) {
-        Standalone(bytes) => format!("{} bytes", bytes),
-        Prefixed(prefix, n) => format!("{:.0} {}B", n, prefix),
+        Standalone(bytes) => format!("{bytes} bytes"),
+        Prefixed(prefix, n) => format!("{n:.0} {prefix}B"),
     }
 }
 
@@ -206,10 +205,10 @@ impl<T: InformantData> Informant<T> {
     ) -> Self {
         Informant {
             last_tick: RwLock::new(Instant::now()),
-            with_color: with_color,
-            target: target,
-            snapshot: snapshot,
-            rpc_stats: rpc_stats,
+            with_color,
+            target,
+            snapshot,
+            rpc_stats,
             last_import: Mutex::new(Instant::now()),
             skipped: AtomicUsize::new(0),
             skipped_txs: AtomicUsize::new(0),
@@ -252,11 +251,11 @@ impl<T: InformantData> Informant<T> {
         } = full_report;
 
         let rpc_stats = self.rpc_stats.as_ref();
-        let snapshot_sync = sync_info.as_ref().map_or(false, |s| s.snapshot_sync)
+        let snapshot_sync = sync_info.as_ref().is_some_and(|s| s.snapshot_sync)
             && self
                 .snapshot
                 .as_ref()
-                .map_or(false, |s| match s.restoration_status() {
+                .is_some_and(|s| match s.restoration_status() {
                     RestorationStatus::Ongoing { .. } | RestorationStatus::Initializing { .. } => {
                         true
                     }
@@ -301,7 +300,7 @@ impl<T: InformantData> Informant<T> {
                                     format!("Syncing snapshot {}/{}", state_chunks_done + block_chunks_done, state_chunks + block_chunks)
                                 },
                                 RestorationStatus::Initializing { chunks_done } => {
-                                    format!("Snapshot initializing ({} chunks restored)", chunks_done)
+                                    format!("Snapshot initializing ({chunks_done} chunks restored)")
                                 },
                                 _ => String::new(),
                             }
@@ -311,19 +310,17 @@ impl<T: InformantData> Informant<T> {
                 false => String::new(),
             },
             match chain_info.ancient_block_number {
-                Some(ancient_number) => format!(" Ancient:#{}", ancient_number),
+                Some(ancient_number) => format!(" Ancient:#{ancient_number}"),
                 None => String::new(),
             },
             match sync_info.as_ref() {
-                Some(ref sync_info) => format!("{}{}/{} peers",
+                Some(sync_info) => format!("{}{}/{} peers",
                     match importing {
-                        true => format!("{}",
-                            if self.target.executes_transactions() {
+                        true => (if self.target.executes_transactions() {
                                 paint(Green.bold(), format!("{:>8}   ", format!("LI:#{}", sync_info.last_imported_block_number)))
                             } else {
                                 String::new()
-                            }
-                        ),
+                            }).to_string(),
                         false => match sync_info.last_imported_ancient_number {
                             Some(number) => format!("{}   ", paint(Yellow.bold(), format!("{:>8}", format!("AB:#{}", number)))),
                             None => String::new(),
@@ -334,9 +331,9 @@ impl<T: InformantData> Informant<T> {
                 ),
                 _ => String::new(),
             },
-            cache_sizes.display(Blue.bold(), &paint),
+            cache_sizes.display(Blue.bold(), paint),
             match rpc_stats {
-                Some(ref rpc_stats) => format!(
+                Some(rpc_stats) => format!(
                     "RPC: {} conn, {} req/s, {} µs",
                     paint(Blue.bold(), format!("{:2}", rpc_stats.sessions())),
                     paint(Blue.bold(), format!("{:4}", rpc_stats.requests_rate())),
@@ -393,8 +390,8 @@ impl ChainNotify for Informant<FullNodeInformantData> {
                     Colour::Blue.bold().paint(format!("{:.2}", size as f32 / 1024f32)),
                     if skipped > 0 {
                         format!(" + another {} block(s) containing {} tx(s)",
-                            Colour::Red.bold().paint(format!("{}", skipped)),
-                            Colour::Red.bold().paint(format!("{}", skipped_txs))
+                            Colour::Red.bold().paint(format!("{skipped}")),
+                            Colour::Red.bold().paint(format!("{skipped_txs}"))
                         )
                     } else {
                         String::new()

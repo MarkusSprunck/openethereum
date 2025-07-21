@@ -42,6 +42,7 @@ impl Reservations {
     const CLEAN_AT: usize = 512;
 
     /// Create new nonces manager with given executor.
+    #[must_use]
     pub fn new(executor: Executor) -> Self {
         Reservations {
             nonces: Default::default(),
@@ -105,7 +106,7 @@ impl SenderReservations {
         let executor = self.executor.clone();
         let dropped = self.dropped.clone();
         self.previous_ready = next_sent.clone();
-        match mem::replace(&mut self.previous, Some(rx)) {
+        match self.previous.replace(rx) {
             Some(previous) => Reserved {
                 previous: Either::A(previous),
                 next,
@@ -160,11 +161,11 @@ impl Future for Reserved {
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         let mut value = try_ready!(self.previous.poll().map_err(|e| {
-            warn!("Unexpected nonce cancellation: {}", e);
+            warn!("Unexpected nonce cancellation: {e}");
         }));
 
         if value < self.minimal {
-            value = self.minimal
+            value = self.minimal;
         }
         let matches_prospective = value == self.prospective_value;
 
@@ -189,9 +190,9 @@ impl Drop for Reserved {
                 previous
                     .map(move |nonce| {
                         next_sent.store(true, atomic::Ordering::SeqCst);
-                        next.send(nonce).expect(Ready::RECV_PROOF)
+                        next.send(nonce).expect(Ready::RECV_PROOF);
                     })
-                    .map_err(|err| error!("Error dropping `Reserved`: {:?}", err)),
+                    .map_err(|err| error!("Error dropping `Reserved`: {err:?}")),
             );
         }
     }

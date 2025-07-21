@@ -88,7 +88,7 @@ mod tests {
             "Person[0]",
         ];
         for case in test_cases {
-            assert_eq!(TYPE_REGEX.is_match(case), false)
+            assert!(!TYPE_REGEX.is_match(case))
         }
 
         let test_cases = vec![
@@ -100,7 +100,7 @@ mod tests {
             "contents",
         ];
         for case in test_cases {
-            assert_eq!(TYPE_REGEX.is_match(case), true)
+            assert!(TYPE_REGEX.is_match(case))
         }
     }
 
@@ -186,6 +186,6 @@ mod tests {
 			}
 		}"#;
         let data = from_str::<EIP712>(string).unwrap();
-        assert_eq!(data.validate().is_err(), true);
+        assert!(data.validate().is_err());
     }
 }

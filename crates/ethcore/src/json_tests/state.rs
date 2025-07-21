@@ -28,10 +28,10 @@ fn skip_test(
     chain: &String,
     number: usize,
 ) -> bool {
-    trace!(target: "json-tests", "[state, skip_test] subname: '{}', chain: '{}', number: {}", subname, chain, number);
+    trace!(target: "json-tests", "[state, skip_test] subname: '{subname}', chain: '{chain}', number: {number}");
     test.skip.iter().any(|state_test| {
         if let Some(subtest) = state_test.names.get(subname) {
-            trace!(target: "json-tests", "[state, skip_test] Maybe skipping {:?}", subtest);
+            trace!(target: "json-tests", "[state, skip_test] Maybe skipping {subtest:?}");
             chain == &subtest.chain
                 && (subtest.subnumbers[0] == "*"
                     || subtest.subnumbers.contains(&number.to_string()))
@@ -48,10 +48,12 @@ pub fn json_state_test<H: FnMut(&str, HookType)>(
     start_stop_hook: &mut H,
 ) -> Vec<String> {
     let _ = ::env_logger::try_init();
-    let tests = ethjson::state::test::Test::load(json_data).expect(&format!(
-        "Could not parse JSON state test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::state::test::Test::load(json_data).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON state test data from {}",
+            path.display()
+        )
+    });
     let mut failed = Vec::new();
 
     for (name, test) in tests.into_iter() {
@@ -79,10 +81,8 @@ pub fn json_state_test<H: FnMut(&str, HookType)>(
 
                 //hardcode base fee for part of the london tests, that miss base fee field in env
                 let mut test_env = env.clone();
-                if spec_name >= ForkSpec::London {
-                    if test_env.base_fee.is_none() {
-                        test_env.base_fee = Some(0x0a.into());
-                    }
+                if spec_name >= ForkSpec::London && test_env.base_fee.is_none() {
+                    test_env.base_fee = Some(0x0a.into());
                 }
 
                 for (i, state) in states.into_iter().enumerate() {
@@ -92,8 +92,8 @@ pub fn json_state_test<H: FnMut(&str, HookType)>(
                         spec_name,
                         i
                     );
-                    if skip_test(&state_test, &name, &spec.name, i + 1) {
-                        println!("{}: SKIPPED", info);
+                    if skip_test(state_test, &name, &spec.name, i + 1) {
+                        println!("{info}: SKIPPED");
                         continue;
                     }
 
@@ -110,14 +110,13 @@ pub fn json_state_test<H: FnMut(&str, HookType)>(
                     };
                     match result() {
                         Err(err) => {
-                            println!("{} !!! Unexpected internal error: {:?}", info, err);
+                            println!("{info} !!! Unexpected internal error: {err:?}");
                             flushln!("{} fail", info);
                             failed.push(name.clone());
                         }
                         Ok(Ok(TransactSuccess { state_root, .. })) if state_root != post_root => {
                             println!(
-                                "{}: post state root mismatch: got {:?}, want {:?}",
-                                info, state_root, post_root
+                                "{info}: post state root mismatch: got {state_root:?}, want {post_root:?}"
                             );
                             flushln!("{} fail", info);
                             failed.push(name.clone());
@@ -128,10 +127,9 @@ pub fn json_state_test<H: FnMut(&str, HookType)>(
                             ..
                         })) if state_root != post_root => {
                             println!(
-                                "{}: post state root mismatch: got {:?}, want {:?}",
-                                info, state_root, post_root
+                                "{info}: post state root mismatch: got {state_root:?}, want {post_root:?}"
                             );
-                            println!("{} !!! Execution error: {:?}", info, error);
+                            println!("{info} !!! Execution error: {error:?}");
                             flushln!("{} fail", info);
                             failed.push(name.clone());
                         }

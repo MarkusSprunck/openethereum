@@ -78,7 +78,7 @@ impl RollingFinality {
                     .pop_front()
                     .expect("we just pushed a block; qed");
                 self.remove_signers(&signers);
-                trace!(target: "finality", "Encountered already finalized block {}", hash);
+                trace!(target: "finality", "Encountered already finalized block {hash}");
                 break;
             }
         }
@@ -140,7 +140,7 @@ impl RollingFinality {
             newly_finalized.push(hash);
         }
 
-        trace!(target: "finality", "Blocks finalized by {:?}: {:?}", head, newly_finalized);
+        trace!(target: "finality", "Blocks finalized by {head:?}: {newly_finalized:?}");
 
         self.last_pushed = Some(head);
         Ok(newly_finalized)
@@ -214,13 +214,10 @@ mod tests {
         // 3 / 6 signers is < 51% so no finality.
         for (i, hash) in hashes.iter().take(6).cloned().enumerate() {
             let i = i % 3;
-            assert!(
-                finality
-                    .push_hash(hash, i as u64, vec![signers[i]])
-                    .unwrap()
-                    .len()
-                    == 0
-            );
+            assert!(finality
+                .push_hash(hash, i as u64, vec![signers[i]])
+                .unwrap()
+                .is_empty());
         }
 
         // after pushing a block signed by a fourth validator, the first four
@@ -302,13 +299,10 @@ mod tests {
         // 4 / 7 signers is < 67% so no finality.
         for (i, hash) in hashes.iter().take(8).cloned().enumerate() {
             let i = i % 4;
-            assert!(
-                finality
-                    .push_hash(hash, i as u64, vec![signers[i]])
-                    .unwrap()
-                    .len()
-                    == 0
-            );
+            assert!(finality
+                .push_hash(hash, i as u64, vec![signers[i]])
+                .unwrap()
+                .is_empty());
         }
 
         // after pushing a block signed by a fifth validator, the first five

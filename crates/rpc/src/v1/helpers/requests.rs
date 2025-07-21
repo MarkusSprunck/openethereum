@@ -92,7 +92,7 @@ impl From<FilledTransactionRequest> for TransactionRequest {
             data: Some(r.data),
             nonce: r.nonce,
             condition: r.condition,
-            access_list: r.access_list.map(Into::into),
+            access_list: r.access_list,
             max_priority_fee_per_gas: r.max_priority_fee_per_gas,
         }
     }

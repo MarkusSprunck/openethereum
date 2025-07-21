@@ -20,11 +20,11 @@ use version::version_short;
 
 #[test]
 fn rpc_web3_version() {
-    let web3 = Web3Client::default().to_delegate();
+    let web3 = Web3Client.to_delegate();
     let mut io = IoHandler::new();
     io.extend_with(web3);
 
-    let v = version_short().to_owned().replacen("/", "//", 1);
+    let v = version_short().clone().replacen('/', "//", 1);
 
     let request = r#"{"jsonrpc": "2.0", "method": "web3_clientVersion", "params": [], "id": 1}"#;
     let response = r#"{"jsonrpc":"2.0","result":"VER","id":1}"#
@@ -36,7 +36,7 @@ fn rpc_web3_version() {
 
 #[test]
 fn rpc_web3_sha3() {
-    let web3 = Web3Client::default().to_delegate();
+    let web3 = Web3Client.to_delegate();
     let mut io = IoHandler::new();
     io.extend_with(web3);
 
@@ -48,7 +48,7 @@ fn rpc_web3_sha3() {
 
 #[test]
 fn rpc_web3_sha3_wiki() {
-    let web3 = Web3Client::default().to_delegate();
+    let web3 = Web3Client.to_delegate();
     let mut io = IoHandler::new();
     io.extend_with(web3);
 

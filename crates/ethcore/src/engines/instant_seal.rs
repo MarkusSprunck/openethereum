@@ -80,8 +80,8 @@ impl<M: Machine> Engine<M> for InstantSeal<M> {
             let last_sealed_block = self.last_sealed_block.load(Ordering::SeqCst);
             // Return a regular seal if the given block is _higher_ than
             // the last sealed one
-            if block_number > last_sealed_block {
-                if self
+            if block_number > last_sealed_block
+                && self
                     .last_sealed_block
                     .compare_exchange(
                         last_sealed_block,
@@ -90,9 +90,8 @@ impl<M: Machine> Engine<M> for InstantSeal<M> {
                         Ordering::SeqCst,
                     )
                     .is_ok()
-                {
-                    return Seal::Regular(Vec::new());
-                }
+            {
+                return Seal::Regular(Vec::new());
             }
         }
         Seal::None

@@ -106,7 +106,7 @@ impl VaultKey {
     pub fn new(password: &Password, iterations: NonZeroU32) -> Self {
         VaultKey {
             password: password.clone(),
-            iterations: iterations,
+            iterations,
         }
     }
 }

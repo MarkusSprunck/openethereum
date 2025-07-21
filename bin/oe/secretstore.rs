@@ -332,5 +332,5 @@ pub fn start(
         return Ok(None);
     }
 
-    KeyServer::new(conf, deps, executor).map(|s| Some(s))
+    KeyServer::new(conf, deps, executor).map(Some)
 }

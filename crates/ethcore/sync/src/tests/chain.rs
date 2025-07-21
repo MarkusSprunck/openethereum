@@ -80,7 +80,7 @@ fn empty_blocks() {
         } else {
             EachBlockWith::Uncle
         };
-        net.peer(1).chain.add_blocks(5, with.clone());
+        net.peer(1).chain.add_blocks(5, with);
         net.peer(2).chain.add_blocks(5, with);
     }
     net.sync();

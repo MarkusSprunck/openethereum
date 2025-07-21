@@ -30,7 +30,7 @@ pub struct SignerRpc {
 impl SignerRpc {
     pub fn new(url: &str, authfile: &PathBuf) -> Result<Self, RpcError> {
         Ok(SignerRpc {
-            rpc: Rpc::new(&url, authfile)?,
+            rpc: Rpc::new(url, authfile)?,
         })
     }
 
@@ -51,7 +51,7 @@ impl SignerRpc {
         self.rpc.request(
             "signer_confirmRequest",
             vec![
-                Self::to_value(&format!("{:#x}", id)),
+                Self::to_value(&format!("{id:#x}")),
                 Self::to_value(&TransactionModification {
                     sender: None,
                     gas_price: new_gas_price,
@@ -66,7 +66,7 @@ impl SignerRpc {
     pub fn reject_request(&mut self, id: U256) -> BoxFuture<Result<bool, RpcError>, Canceled> {
         self.rpc.request(
             "signer_rejectRequest",
-            vec![JsonValue::String(format!("{:#x}", id))],
+            vec![JsonValue::String(format!("{id:#x}"))],
         )
     }
 

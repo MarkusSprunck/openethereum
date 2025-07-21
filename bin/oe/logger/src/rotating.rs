@@ -32,7 +32,7 @@ lazy_static! {
             builder.parse(&log);
         }
 
-        if !builder.try_init().is_ok() {
+        if builder.try_init().is_err() {
             println!("logger initialization failed!");
         }
     };
@@ -58,7 +58,7 @@ impl RotatingLogger {
     /// It does not enforce levels - it's just read only.
     pub fn new(levels: String) -> Self {
         RotatingLogger {
-            levels: levels,
+            levels,
             logs: RwLock::new(ArrayVec::<[_; LOG_SIZE]>::new()),
         }
     }

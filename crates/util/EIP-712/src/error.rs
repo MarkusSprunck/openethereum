@@ -74,34 +74,31 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorKind::UnexpectedType(expected, field) => {
-                write!(f, "Expected type '{}' for field '{}'", expected, field)
+                write!(f, "Expected type '{expected}' for field '{field}'")
             }
             ErrorKind::NonExistentType => {
                 write!(f, "The given primaryType wasn't found in the types field")
             }
             ErrorKind::InvalidAddressLength(len) => write!(
                 f,
-                "Address string should be a 0x-prefixed 40 character string, got length {}",
-                len
+                "Address string should be a 0x-prefixed 40 character string, got length {len}"
             ),
-            ErrorKind::HexParseError(hex) => write!(f, "Failed to parse hex '{}'", hex),
+            ErrorKind::HexParseError(hex) => write!(f, "Failed to parse hex '{hex}'"),
             ErrorKind::UnknownType(field, ty) => {
-                write!(f, "The field '{}' has an unknown type '{}'", field, ty)
+                write!(f, "The field '{field}' has an unknown type '{ty}'")
             }
             ErrorKind::UnexpectedToken(token, typename) => write!(
                 f,
-                "Unexpected token '{}' while parsing typename '{}'",
-                token, typename
+                "Unexpected token '{token}' while parsing typename '{typename}'"
             ),
             ErrorKind::UnsupportedArrayDepth => write!(f, "Maximum depth for nested arrays is 10"),
-            ErrorKind::ValidationError(msg) => write!(f, "{}", msg),
+            ErrorKind::ValidationError(msg) => write!(f, "{msg}"),
             ErrorKind::UnequalArrayItems(expected, ty, got) => write!(
                 f,
-                "Expected {} items for array type {}, got {} items",
-                expected, ty, got
+                "Expected {expected} items for array type {ty}, got {got} items"
             ),
             ErrorKind::InvalidArraySize(size) => {
-                write!(f, "Attempted to declare fixed size with length {}", size)
+                write!(f, "Attempted to declare fixed size with length {size}")
             }
         }
     }

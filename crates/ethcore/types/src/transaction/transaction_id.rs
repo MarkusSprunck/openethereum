@@ -21,9 +21,11 @@ use serde_repr::*;
 
 #[derive(Serialize_repr, Eq, Hash, Deserialize_repr, Debug, Copy, Clone, PartialEq)]
 #[repr(u8)]
+#[derive(Default)]
 pub enum TypedTxId {
     EIP1559Transaction = 0x02,
     AccessList = 0x01,
+    #[default]
     Legacy = 0x00,
 }
 
@@ -61,12 +63,6 @@ impl TypedTxId {
     #[allow(non_snake_case)]
     pub fn to_U64_option_id(self) -> Option<U64> {
         Some(U64::from(self as u8))
-    }
-}
-
-impl Default for TypedTxId {
-    fn default() -> TypedTxId {
-        TypedTxId::Legacy
     }
 }
 

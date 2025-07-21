@@ -47,8 +47,8 @@ pub fn generate_document_key(
     .map_err(errors::encryption)?;
 
     Ok(EncryptedDocumentKey {
-        common_point: common_point.into(),
-        encrypted_point: encrypted_point.into(),
+        common_point,
+        encrypted_point,
         encrypted_key: encrypted_key.into(),
     })
 }
@@ -62,9 +62,9 @@ pub fn encrypt_document(key: Bytes, document: Bytes) -> Result<Bytes, Error> {
     let iv = initialization_vector();
     let mut encrypted_document = vec![0; document.len() + iv.len()];
     {
-        let (mut encryption_buffer, iv_buffer) = encrypted_document.split_at_mut(document.len());
+        let (encryption_buffer, iv_buffer) = encrypted_document.split_at_mut(document.len());
 
-        crypto::aes::encrypt_128_ctr(&key, &iv, &document, &mut encryption_buffer)
+        crypto::aes::encrypt_128_ctr(&key, &iv, &document, encryption_buffer)
             .map_err(errors::encryption)?;
         iv_buffer.copy_from_slice(&iv);
     }
@@ -167,7 +167,7 @@ fn encrypt_secret(secret: &Public, joint_public: &Public) -> Result<(Public, Pub
         .map_err(errors::encryption)?;
 
     // M + k * y
-    let mut encrypted_point = joint_public.clone();
+    let mut encrypted_point = *joint_public;
     ec_math_utils::public_mul_secret(&mut encrypted_point, key_pair.secret())
         .map_err(errors::encryption)?;
     ec_math_utils::public_add(&mut encrypted_point, secret).map_err(errors::encryption)?;

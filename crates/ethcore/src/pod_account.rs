@@ -70,7 +70,7 @@ impl PodAccount {
                 .storage_changes()
                 .iter()
                 .fold(BTreeMap::new(), |mut m, (k, v)| {
-                    m.insert(k.clone(), v.clone());
+                    m.insert(*k, *v);
                     m
                 }),
             code: acc.code().map(|x| x.to_vec()),
@@ -87,7 +87,7 @@ impl PodAccount {
                 .iter()
                 .map(|(k, v)| (k, rlp::encode(&v.into_uint()))),
         ));
-        stream.append(&keccak(&self.code.as_ref().unwrap_or(&vec![])));
+        stream.append(&keccak(self.code.as_ref().unwrap_or(&vec![])));
         stream.out()
     }
 
@@ -107,7 +107,7 @@ impl PodAccount {
         let mut t = factory.create(db, &mut r);
         for (k, v) in &self.storage {
             if let Err(e) = t.insert(k.as_bytes(), &rlp::encode(&v.into_uint())) {
-                warn!("Encountered potential DB corruption: {}", e);
+                warn!("Encountered potential DB corruption: {e}");
             }
         }
     }
@@ -165,7 +165,7 @@ impl fmt::Display for PodAccount {
             self.balance,
             self.nonce,
             self.code.as_ref().map_or(0, |c| c.len()),
-            self.code.as_ref().map_or_else(H256::default, |c| keccak(c)),
+            self.code.as_ref().map_or_else(H256::default, keccak),
             self.storage.len(),
         )
     }
@@ -179,13 +179,13 @@ pub fn diff_pod(pre: Option<&PodAccount>, post: Option<&PodAccount>) -> Option<A
 			balance: Diff::Born(x.balance),
 			nonce: Diff::Born(x.nonce),
 			code: Diff::Born(x.code.as_ref().expect("account is newly created; newly created accounts must be given code; all caches should remain in place; qed").clone()),
-			storage: x.storage.iter().map(|(k, v)| (k.clone(), Diff::Born(v.clone()))).collect(),
+			storage: x.storage.iter().map(|(k, v)| (*k, Diff::Born(*v))).collect(),
 		}),
 		(Some(x), None) => Some(AccountDiff {
 			balance: Diff::Died(x.balance),
 			nonce: Diff::Died(x.nonce),
 			code: Diff::Died(x.code.as_ref().expect("account is deleted; only way to delete account is running SUICIDE; account must have had own code cached to make operation; all caches should remain in place; qed").clone()),
-			storage: x.storage.iter().map(|(k, v)| (k.clone(), Diff::Died(v.clone()))).collect(),
+			storage: x.storage.iter().map(|(k, v)| (*k, Diff::Died(*v))).collect(),
 		}),
 		(Some(pre), Some(post)) => {
 			let storage: Vec<_> = pre.storage.keys().merge(post.storage.keys())
@@ -199,7 +199,7 @@ pub fn diff_pod(pre: Option<&PodAccount>, post: Option<&PodAccount>) -> Option<A
 					_ => Diff::Same,
 				},
 				storage: storage.into_iter().map(|k|
-					(k.clone(), Diff::new(
+					(*k, Diff::new(
 						pre.storage.get(k).cloned().unwrap_or_else(H256::default),
 						post.storage.get(k).cloned().unwrap_or_else(H256::default)
 					))).collect(),

@@ -115,7 +115,9 @@ impl PushWorkHandler for Stratum {
 impl Drop for Stratum {
     fn drop(&mut self) {
         // shut down rpc server
-        self.rpc_server.take().map(|server| server.close());
+        if let Some(server) = self.rpc_server.take() {
+            server.close()
+        }
     }
 }
 
@@ -139,8 +141,8 @@ impl StratumImpl {
     fn subscribe(&self, _params: Params, meta: SocketMetadata) -> RpcResult {
         use std::str::FromStr;
 
-        self.subscribers.write().push(meta.addr().clone());
-        self.job_queue.write().insert(meta.addr().clone());
+        self.subscribers.write().push(*meta.addr());
+        self.job_queue.write().insert(*meta.addr());
         trace!(target: "stratum", "Subscription request from {:?}", meta.addr());
 
         Ok(match self.dispatcher.initial() {
@@ -148,10 +150,10 @@ impl StratumImpl {
                 Ok(val) => Ok(val),
                 Err(e) => {
                     warn!(target: "stratum", "Invalid payload: '{}' ({:?})", &initial, e);
-                    to_value(&[0u8; 0])
+                    to_value([0u8; 0])
                 }
             },
-            None => to_value(&[0u8; 0]),
+            None => to_value([0u8; 0]),
         }
         .expect("Empty slices are serializable; qed"))
     }
@@ -164,11 +166,11 @@ impl StratumImpl {
                 if let Some(valid_secret) = self.secret {
                     let hash = keccak(secret);
                     if hash != valid_secret {
-                        return to_value(&false);
+                        return to_value(false);
                     }
                 }
-                trace!(target: "stratum", "New worker #{} registered", worker_id);
-                self.workers.write().insert(meta.addr().clone(), worker_id);
+                trace!(target: "stratum", "New worker #{worker_id} registered");
+                self.workers.write().insert(*meta.addr(), worker_id);
                 to_value(true)
             })
             .map(|v| v.expect("Only true/false is returned and it's always serializable; qed"))
@@ -197,13 +199,13 @@ impl StratumImpl {
                         to_value(true)
                     }
                     Err(submit_err) => {
-                        warn!("Error while submitting share: {:?}", submit_err);
+                        warn!("Error while submitting share: {submit_err:?}");
                         to_value(false)
                     }
                 }
             }
             _ => {
-                trace!(target: "stratum", "Invalid submit work format {:?}", params);
+                trace!(target: "stratum", "Invalid submit work format {params:?}");
                 to_value(false)
             }
         }
@@ -225,26 +227,25 @@ impl StratumImpl {
                 if *counter == ::std::u32::MAX {
                     *counter = NOTIFY_COUNTER_INITIAL;
                 } else {
-                    *counter = *counter + 1
+                    *counter += 1
                 }
                 *counter
             };
 
             let mut hup_peers = HashSet::new();
             let workers_msg = format!(
-                "{{ \"id\": {}, \"method\": \"mining.notify\", \"params\": {} }}",
-                next_request_id, payload
+                "{{ \"id\": {next_request_id}, \"method\": \"mining.notify\", \"params\": {payload} }}"
             );
             trace!(target: "stratum", "pushing work for {} workers (payload: '{}')", workers.len(), &workers_msg);
             for (addr, _) in workers.iter() {
-                trace!(target: "stratum", "pusing work to {}", addr);
+                trace!(target: "stratum", "pusing work to {addr}");
                 match tcp_dispatcher.push_message(addr, workers_msg.clone()) {
                     Err(PushMessageError::NoSuchPeer) => {
-                        trace!(target: "stratum", "Worker no longer connected: {}", addr);
-                        hup_peers.insert(addr.clone());
+                        trace!(target: "stratum", "Worker no longer connected: {addr}");
+                        hup_peers.insert(*addr);
                     }
                     Err(e) => {
-                        warn!(target: "stratum", "Unexpected transport error: {:?}", e);
+                        warn!(target: "stratum", "Unexpected transport error: {e:?}");
                     }
                     Ok(_) => {}
                 }
@@ -403,7 +404,7 @@ mod tests {
     fn terminated_str(origin: &'static str) -> String {
         let mut s = String::new();
         s.push_str(origin);
-        s.push_str("\n");
+        s.push('\n');
         s
     }
 

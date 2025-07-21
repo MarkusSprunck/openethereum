@@ -33,7 +33,7 @@ impl rlp::Decodable for ForkHash {
             }
 
             let mut blob = [0; 4];
-            blob.copy_from_slice(&b[..]);
+            blob.copy_from_slice(b);
 
             Ok(Self(u32::from_be_bytes(blob)))
         })
@@ -49,7 +49,7 @@ impl From<H256> for ForkHash {
 impl std::ops::AddAssign<BlockNumber> for ForkHash {
     fn add_assign(&mut self, block: BlockNumber) {
         let blob = block.to_be_bytes();
-        self.0 = crc32::update(self.0, &crc32::IEEE_TABLE, &blob)
+        self.0 = crc32::update(self.0, &crc32::IEEE_TABLE, &blob);
     }
 }
 
@@ -211,10 +211,9 @@ impl ForkFilter {
                 // 1a) A remotely announced but remotely not passed block is already passed locally, disconnect,
                 // since the chains are incompatible.
                 return Err(RejectReason::LocalIncompatibleOrStale);
-            } else {
-                // 1b) Remotely announced fork not yet passed locally, connect.
-                return Ok(());
             }
+            // 1b) Remotely announced fork not yet passed locally, connect.
+            return Ok(());
         }
 
         // 2) If the remote FORK_HASH is a subset of the local past forks...
@@ -225,9 +224,8 @@ impl ForkFilter {
                 if let Some((actual_fork_block, _)) = it.next() {
                     if *actual_fork_block == fork_id.next {
                         return Ok(());
-                    } else {
-                        return Err(RejectReason::RemoteStale);
                     }
+                    return Err(RejectReason::RemoteStale);
                 }
 
                 break;

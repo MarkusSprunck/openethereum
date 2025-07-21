@@ -18,7 +18,6 @@ use parking_lot::Mutex;
 use std::{cmp, collections::VecDeque, sync::Arc, thread};
 
 use ethstore::{ethkey::Password, Error, PresaleWallet};
-use num_cpus;
 
 pub fn run(passwords: VecDeque<Password>, wallet_path: &str) -> Result<(), Error> {
     let passwords = Arc::new(Mutex::new(passwords));
@@ -27,7 +26,7 @@ pub fn run(passwords: VecDeque<Password>, wallet_path: &str) -> Result<(), Error
 
     for _ in 0..num_cpus::get() {
         let passwords = passwords.clone();
-        let wallet = PresaleWallet::open(&wallet_path)?;
+        let wallet = PresaleWallet::open(wallet_path)?;
         handles.push(thread::spawn(move || {
             look_for_password(passwords, wallet);
         }));
@@ -36,7 +35,7 @@ pub fn run(passwords: VecDeque<Password>, wallet_path: &str) -> Result<(), Error
     for handle in handles {
         handle
             .join()
-            .map_err(|err| Error::Custom(format!("Error finishing thread: {:?}", err)))?;
+            .map_err(|err| Error::Custom(format!("Error finishing thread: {err:?}")))?;
     }
 
     Ok(())

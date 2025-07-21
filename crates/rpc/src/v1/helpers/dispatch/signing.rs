@@ -104,7 +104,7 @@ impl super::Accounts for Signer {
         };
 
         let hash = t.signature_hash(chain_id);
-        let signature = signature(&*self.accounts, filled.from, hash, password)?;
+        let signature = signature(&self.accounts, filled.from, hash, password)?;
 
         Ok(signature.map(|sig| {
             SignedTransaction::new(t.with_signature(sig, chain_id))

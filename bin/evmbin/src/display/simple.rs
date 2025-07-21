@@ -39,7 +39,7 @@ impl vm::Informant for Informant {
     type Sink = Config;
 
     fn before_test(&mut self, name: &str, action: &str) {
-        println!("Test: {} ({})", name, action);
+        println!("Test: {name} ({action})");
     }
 
     fn clone_sink(&self) -> Self::Sink {

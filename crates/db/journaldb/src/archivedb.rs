@@ -102,7 +102,7 @@ impl ::traits::KeyedHashDB for ArchiveDB {
         let mut ret: HashMap<H256, i32> = self
             .backing
             .iter(self.column)
-            .map(|(key, _)| (H256::from_slice(&*key), 1))
+            .map(|(key, _)| (H256::from_slice(&key), 1))
             .collect();
 
         for (key, refs) in self.overlay.keys() {
@@ -125,7 +125,7 @@ impl JournalDB for ArchiveDB {
             overlay: self.overlay.clone(),
             backing: self.backing.clone(),
             latest_era: self.latest_era,
-            column: self.column.clone(),
+            column: self.column,
         })
     }
 
@@ -158,7 +158,7 @@ impl JournalDB for ArchiveDB {
             }
         }
 
-        if self.latest_era.map_or(true, |e| now > e) {
+        if self.latest_era.is_none_or(|e| now > e) {
             batch.put(self.column, &LATEST_ERA_KEY, &encode(&now));
             self.latest_era = Some(now);
         }
@@ -411,7 +411,7 @@ mod tests {
             let mut jdb = ArchiveDB::new(shared_db.clone(), None);
             // history is 1
             let foo = jdb.insert(b"foo");
-            jdb.emplace(bar.clone(), DBValue::from_slice(b"bar"));
+            jdb.emplace(bar, DBValue::from_slice(b"bar"));
             jdb.commit_batch(0, &keccak(b"0"), None).unwrap();
             foo
         };

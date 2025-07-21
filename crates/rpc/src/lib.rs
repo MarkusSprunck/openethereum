@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! OpenEthereum JSON-RPC Servers (WS, HTTP, IPC).
+//! `OpenEthereum` JSON-RPC Servers (WS, HTTP, IPC).
 
 #![warn(missing_docs)]
-#![cfg_attr(feature = "cargo-clippy", warn(clippy::all, clippy::pedantic))]
+#![warn(clippy::all, clippy::pedantic)]
 #![cfg_attr(
 	feature = "cargo-clippy",
 	allow(

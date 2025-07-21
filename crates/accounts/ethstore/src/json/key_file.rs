@@ -100,7 +100,7 @@ impl<'a> Visitor<'a> for KeyFileFieldVisitor {
             "address" => Ok(KeyFileField::Address),
             "name" => Ok(KeyFileField::Name),
             "meta" => Ok(KeyFileField::Meta),
-            _ => Err(Error::custom(format!("Unknown field: '{}'", value))),
+            _ => Err(Error::custom(format!("Unknown field: '{value}'"))),
         }
     }
 }
@@ -110,7 +110,7 @@ impl<'a> Deserialize<'a> for KeyFile {
     where
         D: Deserializer<'a>,
     {
-        static FIELDS: &'static [&'static str] = &["id", "version", "crypto", "Crypto", "address"];
+        static FIELDS: &[&str] = &["id", "version", "crypto", "Crypto", "address"];
         deserializer.deserialize_struct("KeyFile", FIELDS, KeyFileVisitor)
     }
 }
@@ -176,12 +176,12 @@ impl<'a> Visitor<'a> for KeyFileVisitor {
         let crypto = crypto.ok_or_else(|| V::Error::missing_field("crypto"))?;
 
         let result = KeyFile {
-            id: id,
-            version: version,
-            crypto: crypto,
-            address: address,
-            name: name,
-            meta: meta,
+            id,
+            version,
+            crypto,
+            address,
+            name,
+            meta,
         };
 
         Ok(result)
@@ -342,7 +342,7 @@ mod tests {
         };
 
         let serialized = serde_json::to_string(&file).unwrap();
-        println!("{}", serialized);
+        println!("{serialized}");
         let deserialized = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(file, deserialized);

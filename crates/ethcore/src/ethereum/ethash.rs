@@ -210,7 +210,7 @@ impl Ethash {
         Arc::new(Ethash {
             ethash_params,
             machine,
-            pow: EthashManager::new(cache_dir.as_ref(), optimize_for.into(), progpow_transition),
+            pow: EthashManager::new(cache_dir, optimize_for.into(), progpow_transition),
         })
     }
 }
@@ -361,7 +361,7 @@ impl Engine<EthereumMachine> for Arc<Ethash> {
             return Err(From::from(BlockError::DifficultyOutOfBounds(OutOfBounds {
                 min: Some(min_difficulty),
                 max: None,
-                found: header.difficulty().clone(),
+                found: *header.difficulty(),
             })));
         }
 
@@ -374,7 +374,7 @@ impl Engine<EthereumMachine> for Arc<Ethash> {
 
         if &difficulty < header.difficulty() {
             return Err(From::from(BlockError::InvalidProofOfWork(OutOfBounds {
-                min: Some(header.difficulty().clone()),
+                min: Some(*header.difficulty()),
                 max: None,
                 found: difficulty,
             })));
@@ -387,15 +387,15 @@ impl Engine<EthereumMachine> for Arc<Ethash> {
         let seal = Seal::parse_seal(header.seal())?;
 
         let result = self.pow.compute_light(
-            header.number() as u64,
+            header.number(),
             &header.bare_hash().0,
             seal.nonce.to_low_u64_be(),
         );
         let mix = H256(result.mix_hash);
         let difficulty = ethash::boundary_to_difficulty(&H256(result.value));
         trace!(target: "miner", "num: {num}, seed: {seed}, h: {h}, non: {non}, mix: {mix}, res: {res}",
-			   num = header.number() as u64,
-			   seed = H256(slow_hash_block_number(header.number() as u64)),
+			   num = header.number(),
+			   seed = H256(slow_hash_block_number(header.number())),
 			   h = header.bare_hash(),
 			   non = seal.nonce.to_low_u64_be(),
 			   mix = H256(result.mix_hash),
@@ -410,7 +410,7 @@ impl Engine<EthereumMachine> for Arc<Ethash> {
         }
         if &difficulty < header.difficulty() {
             return Err(From::from(BlockError::InvalidProofOfWork(OutOfBounds {
-                min: Some(header.difficulty().clone()),
+                min: Some(*header.difficulty()),
                 max: None,
                 found: difficulty,
             })));
@@ -433,7 +433,7 @@ impl Engine<EthereumMachine> for Arc<Ethash> {
         if header.difficulty() != &expected_difficulty {
             return Err(From::from(BlockError::InvalidDifficulty(Mismatch {
                 expected: expected_difficulty,
-                found: header.difficulty().clone(),
+                found: *header.difficulty(),
             })));
         }
 
@@ -550,10 +550,10 @@ fn ecip1017_eras_block_reward(era_rounds: u64, mut reward: U256, block_number: u
     };
     let mut divi = U256::from(1);
     for _ in 0..eras {
-        reward = reward * U256::from(4);
-        divi = divi * U256::from(5);
+        reward *= U256::from(4);
+        divi *= U256::from(5);
     }
-    reward = reward / divi;
+    reward /= divi;
     (eras, reward)
 }
 

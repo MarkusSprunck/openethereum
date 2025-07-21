@@ -34,16 +34,11 @@ use std::{
 
 type Cache = Either<Vec<Node>, MmapMut>;
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Default)]
 pub enum OptimizeFor {
+    #[default]
     Cpu,
     Memory,
-}
-
-impl Default for OptimizeFor {
-    fn default() -> Self {
-        OptimizeFor::Cpu
-    }
 }
 
 fn byte_size(cache: &Cache) -> usize {
@@ -125,9 +120,9 @@ impl NodeCacheBuilder {
             Ok(NodeCache {
                 builder: self.clone(),
                 epoch: epoch(block_number),
-                cache_dir: cache_dir,
+                cache_dir,
                 cache_path: path,
-                cache: cache,
+                cache,
             })
         } else {
             Err(io::Error::new(
@@ -158,7 +153,7 @@ impl NodeCacheBuilder {
         NodeCache {
             builder: self.clone(),
             epoch: epoch(block_number),
-            cache_dir: cache_dir.into(),
+            cache_dir,
             cache_path: path,
             cache: nodes,
         }
@@ -178,7 +173,7 @@ impl NodeCache {
         {
             fs::remove_file(last).unwrap_or_else(|error| match error.kind() {
                 io::ErrorKind::NotFound => (),
-                _ => warn!("Error removing stale DAG cache: {:?}", error),
+                _ => warn!("Error removing stale DAG cache: {error:?}"),
             });
         }
 
@@ -193,7 +188,7 @@ fn make_memmapped_cache(path: &Path, num_nodes: usize, ident: &H256) -> io::Resu
         .read(true)
         .write(true)
         .create(true)
-        .open(&path)?;
+        .open(path)?;
     file.set_len((num_nodes * NODE_BYTES) as _)?;
 
     let mut memmap = unsafe { MmapMut::map_mut(&file)? };
@@ -229,7 +224,7 @@ fn consume_cache(cache: &mut Cache, path: &Path) -> io::Result<()> {
                 .read(true)
                 .write(true)
                 .create(true)
-                .open(&path)?;
+                .open(path)?;
 
             let buf = unsafe {
                 slice::from_raw_parts_mut(vec.as_mut_ptr() as *mut u8, vec.len() * NODE_BYTES)
@@ -275,8 +270,7 @@ fn read_from_path(path: &Path) -> io::Result<Vec<Node>> {
     nodes.shrink_to_fit();
 
     if nodes.len() % NODE_BYTES != 0 || nodes.capacity() % NODE_BYTES != 0 {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "Node cache is not a multiple of node size",
         ));
     }
@@ -326,7 +320,7 @@ unsafe fn initialize_memory(memory: *mut Node, num_nodes: usize, ident: &H256) {
 
     for i in 1..num_nodes {
         // We use raw pointers here, see above
-        let dst = slice::from_raw_parts_mut(memory.offset(i as _) as *mut u8, NODE_BYTES);
+        let dst = slice::from_raw_parts_mut(memory.add(i) as *mut u8, NODE_BYTES);
         let src = slice::from_raw_parts(memory.offset(i as isize - 1) as *mut u8, NODE_BYTES);
         keccak_512::write(src, dst);
     }

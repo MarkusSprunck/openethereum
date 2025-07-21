@@ -106,13 +106,13 @@ pub enum Error {
 
 impl From<Box<ethtrie::TrieError>> for Error {
     fn from(err: Box<ethtrie::TrieError>) -> Self {
-        Error::Internal(format!("Internal error: {}", err))
+        Error::Internal(format!("Internal error: {err}"))
     }
 }
 
 impl From<ethtrie::TrieError> for Error {
     fn from(err: ethtrie::TrieError) -> Self {
-        Error::Internal(format!("Internal error: {}", err))
+        Error::Internal(format!("Internal error: {err}"))
     }
 }
 
@@ -123,32 +123,31 @@ impl fmt::Display for Error {
             OutOfGas => write!(f, "Out of gas"),
             BadJumpDestination { destination } => write!(
                 f,
-                "Bad jump destination {:x}  (trimmed to usize)",
-                destination
+                "Bad jump destination {destination:x}  (trimmed to usize)"
             ),
-            BadInstruction { instruction } => write!(f, "Bad instruction {:x}", instruction),
+            BadInstruction { instruction } => write!(f, "Bad instruction {instruction:x}"),
             StackUnderflow {
                 instruction,
                 wanted,
                 on_stack,
-            } => write!(f, "Stack underflow {} {}/{}", instruction, wanted, on_stack),
+            } => write!(f, "Stack underflow {instruction} {wanted}/{on_stack}"),
             OutOfStack {
                 instruction,
                 wanted,
                 limit,
-            } => write!(f, "Out of stack {} {}/{}", instruction, wanted, limit),
+            } => write!(f, "Out of stack {instruction} {wanted}/{limit}"),
             SubStackUnderflow { wanted, on_stack } => {
-                write!(f, "Subroutine stack underflow {}/{}", wanted, on_stack)
+                write!(f, "Subroutine stack underflow {wanted}/{on_stack}")
             }
             OutOfSubStack { wanted, limit } => {
-                write!(f, "Out of subroutine stack {}/{}", wanted, limit)
+                write!(f, "Out of subroutine stack {wanted}/{limit}")
             }
             InvalidSubEntry => write!(f, "Invalid subroutine entry"),
-            BuiltIn(name) => write!(f, "Built-in failed: {}", name),
-            Internal(ref msg) => write!(f, "Internal error: {}", msg),
+            BuiltIn(name) => write!(f, "Built-in failed: {name}"),
+            Internal(ref msg) => write!(f, "Internal error: {msg}"),
             MutableCallInStaticContext => write!(f, "Mutable call in static context"),
             InvalidCode => write!(f, "Invalid code to deploy as a contract"),
-            Wasm(ref msg) => write!(f, "Internal error: {}", msg),
+            Wasm(ref msg) => write!(f, "Internal error: {msg}"),
             OutOfBounds => write!(f, "Out of bounds"),
             Reverted => write!(f, "Reverted"),
         }

@@ -55,7 +55,7 @@ const BLOOMS_DB_VERSION: u32 = 13;
 /// Defines how many items are migrated to the new version of database at once.
 const BATCH_SIZE: usize = 1024;
 /// Version file name.
-const VERSION_FILE_NAME: &'static str = "db_version";
+const VERSION_FILE_NAME: &str = "db_version";
 
 /// Migration related erorrs.
 #[derive(Debug)]
@@ -80,13 +80,13 @@ impl Display for Error {
         let out = match *self {
 			Error::UnknownDatabaseVersion => "Current database version cannot be read".into(),
 			Error::FutureDBVersion => "Database was created with newer client version. Upgrade your client or delete DB and resync.".into(),
-			Error::MigrationImpossible => format!("Database migration to version {} is not possible.", CURRENT_VERSION),
-            Error::BloomsDB(ref err) => format!("blooms-db migration error: {}", err),
+			Error::MigrationImpossible => format!("Database migration to version {CURRENT_VERSION} is not possible."),
+            Error::BloomsDB(ref err) => format!("blooms-db migration error: {err}"),
             Error::UseMigrationTool => "For db versions 15 and lower (v2.5.13=>13, 2.7.2=>14, v3.0.1=>15) please use upgrade db tool to manually upgrade db: https://github.com/openethereum/3.1-db-upgrade-tool".into(),
-			Error::Io(ref err) => format!("Unexpected io error on DB migration: {}.", err),
+			Error::Io(ref err) => format!("Unexpected io error on DB migration: {err}."),
 		};
 
-        write!(f, "{}", out)
+        write!(f, "{out}")
     }
 }
 
@@ -123,7 +123,7 @@ fn current_version(path: &Path) -> Result<u32, Error> {
 fn update_version(path: &Path) -> Result<(), Error> {
     fs::create_dir_all(path)?;
     let mut file = fs::File::create(version_file_path(path))?;
-    file.write_all(format!("{}", CURRENT_VERSION).as_bytes())?;
+    file.write_all(format!("{CURRENT_VERSION}").as_bytes())?;
     Ok(())
 }
 
@@ -175,12 +175,12 @@ fn migrate_database(
         return Ok(());
     }
 
-    let backup_path = backup_database_path(&db_path);
+    let backup_path = backup_database_path(db_path);
     // remove the backup dir if it exists
     let _ = fs::remove_dir_all(&backup_path);
 
     // migrate old database to the new one
-    let temp_path = migrations.execute(&db_path, version)?;
+    let temp_path = migrations.execute(db_path, version)?;
 
     // completely in-place migration leads to the paths being equal.
     // in that case, no need to shuffle directories.
@@ -189,12 +189,12 @@ fn migrate_database(
     }
 
     // create backup
-    fs::rename(&db_path, &backup_path)?;
+    fs::rename(db_path, &backup_path)?;
 
     // replace the old database with the new one
-    if let Err(err) = fs::rename(&temp_path, &db_path) {
+    if let Err(err) = fs::rename(&temp_path, db_path) {
         // if something went wrong, bring back backup
-        fs::rename(&backup_path, &db_path)?;
+        fs::rename(&backup_path, db_path)?;
         return Err(err.into());
     }
 
@@ -208,7 +208,7 @@ fn exists(path: &Path) -> bool {
 
 /// Migrates the database.
 pub fn migrate(path: &Path, compaction_profile: &DatabaseCompactionProfile) -> Result<(), Error> {
-    let compaction_profile = helpers::compaction_profile(&compaction_profile, path);
+    let compaction_profile = helpers::compaction_profile(compaction_profile, path);
 
     // read version file.
     let version = current_version(path)?;
@@ -232,10 +232,7 @@ pub fn migrate(path: &Path, compaction_profile: &DatabaseCompactionProfile) -> R
 
     // Further migrations
     if version < CURRENT_VERSION && exists(&db_path) {
-        println!(
-            "Migrating database from version {} to {}",
-            version, CURRENT_VERSION
-        );
+        println!("Migrating database from version {version} to {CURRENT_VERSION}");
         migrate_database(
             version,
             &db_path,

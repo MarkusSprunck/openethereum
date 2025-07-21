@@ -63,9 +63,9 @@ impl<T> OutOfBounds<T> {
 impl<T: fmt::Display> fmt::Display for OutOfBounds<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let msg = match (self.min.as_ref(), self.max.as_ref()) {
-            (Some(min), Some(max)) => format!("Min={}, Max={}", min, max),
-            (Some(min), _) => format!("Min={}", min),
-            (_, Some(max)) => format!("Max={}", max),
+            (Some(min), Some(max)) => format!("Min={min}, Max={max}"),
+            (Some(min), _) => format!("Min={min}"),
+            (_, Some(max)) => format!("Max={max}"),
             (None, None) => "".into(),
         };
 

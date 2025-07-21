@@ -126,18 +126,18 @@ impl Restoration {
         let components = params
             .engine
             .snapshot_components()
-            .ok_or_else(|| ::snapshot::Error::SnapshotsUnsupported)?;
+            .ok_or(::snapshot::Error::SnapshotsUnsupported)?;
 
         let secondary = components.rebuilder(chain, raw_db.clone(), &manifest)?;
 
-        let root = manifest.state_root.clone();
+        let root = manifest.state_root;
 
         Ok(Restoration {
-            manifest: manifest,
+            manifest,
             state_chunks_left: state_chunks,
             block_chunks_left: block_chunks,
             state: StateRebuilder::new(raw_db.key_value().clone(), params.pruning),
-            secondary: secondary,
+            secondary,
             writer: params.writer,
             snappy_buffer: Vec::new(),
             final_state_root: root,
@@ -151,7 +151,7 @@ impl Restoration {
         if self.state_chunks_left.contains(&hash) {
             let expected_len = snappy::decompressed_len(chunk)?;
             if expected_len > MAX_CHUNK_SIZE {
-                trace!(target: "snapshot", "Discarding large chunk: {} vs {}", expected_len, MAX_CHUNK_SIZE);
+                trace!(target: "snapshot", "Discarding large chunk: {expected_len} vs {MAX_CHUNK_SIZE}");
                 return Err(::snapshot::Error::ChunkTooLarge.into());
             }
             let len = snappy::decompress_into(chunk, &mut self.snappy_buffer)?;
@@ -179,7 +179,7 @@ impl Restoration {
         if self.block_chunks_left.contains(&hash) {
             let expected_len = snappy::decompressed_len(chunk)?;
             if expected_len > MAX_CHUNK_SIZE {
-                trace!(target: "snapshot", "Discarding large chunk: {} vs {}", expected_len, MAX_CHUNK_SIZE);
+                trace!(target: "snapshot", "Discarding large chunk: {expected_len} vs {MAX_CHUNK_SIZE}");
                 return Err(::snapshot::Error::ChunkTooLarge.into());
             }
             let len = snappy::decompress_into(chunk, &mut self.snappy_buffer)?;
@@ -375,10 +375,10 @@ impl Service {
     // replace one the client's database with our own.
     fn replace_client_db(&self) -> Result<(), Error> {
         let migrated_blocks = self.migrate_blocks()?;
-        info!(target: "snapshot", "Migrated {} ancient blocks", migrated_blocks);
+        info!(target: "snapshot", "Migrated {migrated_blocks} ancient blocks");
 
         let rest_db = self.restoration_db();
-        self.client.restore_db(&*rest_db.to_string_lossy())?;
+        self.client.restore_db(&rest_db.to_string_lossy())?;
         Ok(())
     }
 
@@ -418,7 +418,7 @@ impl Service {
                 return None;
             }
 
-            trace!(target: "snapshot", "Trying to import ancient blocks until {}", highest_block_num);
+            trace!(target: "snapshot", "Trying to import ancient blocks until {highest_block_num}");
 
             // Here we start from the highest block number and go backward to 0,
             // thus starting at `highest_block_num` and targetting `0`.
@@ -479,7 +479,7 @@ impl Service {
             }
 
             if block_number % 10_000 == 0 {
-                info!(target: "snapshot", "Block restoration at #{}", block_number);
+                info!(target: "snapshot", "Block restoration at #{block_number}");
             }
         }
 
@@ -529,17 +529,14 @@ impl Service {
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
             .is_err()
         {
-            info!(
-                "Skipping snapshot at #{} as another one is currently in-progress.",
-                num
-            );
+            info!("Skipping snapshot at #{num} as another one is currently in-progress.");
             return Ok(());
         }
 
         self.taking_snapshot_at
             .store(num as usize, Ordering::SeqCst);
 
-        info!("Taking snapshot at #{}", num);
+        info!("Taking snapshot at #{num}");
         {
             scopeguard::defer! {{
                 self.taking_snapshot.store(false, Ordering::SeqCst);
@@ -565,7 +562,7 @@ impl Service {
                 }
             }
 
-            info!("Finished taking snapshot at #{}", num);
+            info!("Finished taking snapshot at #{num}");
 
             let mut reader = self.reader.write();
 
@@ -637,7 +634,7 @@ impl Service {
             manifest: manifest.clone(),
             pruning: self.pruning,
             db: self.restoration_db_handler.open(&rest_db)?,
-            writer: writer,
+            writer,
             genesis: &self.genesis_block,
             guard: Guard::new(rest_db),
             engine: &*self.engine,
@@ -690,12 +687,12 @@ impl Service {
             // Import the chunk, don't fail and continue if one fails
             match self.import_prev_chunk(restoration, &manifest, prev_chunk_file) {
                 Ok(true) => num_temp_chunks += 1,
-                Err(e) => trace!(target: "snapshot", "Error importing chunk: {:?}", e),
+                Err(e) => trace!(target: "snapshot", "Error importing chunk: {e:?}"),
                 _ => (),
             }
         }
 
-        trace!(target:"snapshot", "Imported {} previous chunks", num_temp_chunks);
+        trace!(target:"snapshot", "Imported {num_temp_chunks} previous chunks");
 
         // Remove the prev temp directory
         fs::remove_dir_all(&prev_chunks)?;
@@ -729,7 +726,7 @@ impl Service {
 
         self.feed_chunk_with_restoration(restoration, hash, &buffer, is_state)?;
 
-        trace!(target: "snapshot", "Fed chunk {:?}", hash);
+        trace!(target: "snapshot", "Fed chunk {hash:?}");
 
         Ok(true)
     }
@@ -740,7 +737,7 @@ impl Service {
     fn finalize_restoration(&self, rest: &mut Option<Restoration>) -> Result<(), Error> {
         trace!(target: "snapshot", "finalizing restoration");
 
-        let recover = rest.as_ref().map_or(false, |rest| rest.writer.is_some());
+        let recover = rest.as_ref().is_some_and(|rest| rest.writer.is_some());
 
         // destroy the restoration before replacing databases and snapshot.
         rest.take()
@@ -780,7 +777,7 @@ impl Service {
             Ok(())
             | Err(Error(SnapshotErrorKind::Snapshot(SnapshotError::RestorationAborted), _)) => (),
             Err(e) => {
-                warn!("Encountered error during snapshot restoration: {}", e);
+                warn!("Encountered error during snapshot restoration: {e}");
                 *restoration = None;
                 *self.status.lock() = RestorationStatus::Failed;
                 let _ = fs::remove_dir_all(self.restoration_dir());
@@ -799,7 +796,7 @@ impl Service {
         let (result, db) = {
             match self.restoration_status() {
                 RestorationStatus::Inactive | RestorationStatus::Failed => {
-                    trace!(target: "snapshot", "Tried to restore chunk {:x} while inactive or failed", hash);
+                    trace!(target: "snapshot", "Tried to restore chunk {hash:x} while inactive or failed");
                     return Ok(());
                 }
                 RestorationStatus::Ongoing { .. } | RestorationStatus::Initializing { .. } => {
@@ -902,7 +899,7 @@ impl SnapshotService for Service {
                             .iter()
                             .filter(|h| !restoration.state_chunks_left.contains(h)),
                     )
-                    .map(|h| *h)
+                    .copied()
                     .collect();
 
                 Some(completed_chunks)
@@ -942,7 +939,7 @@ impl SnapshotService for Service {
             _ => (),
         }
 
-        cur_status.clone()
+        *cur_status
     }
 
     fn begin_restore(&self, manifest: ManifestData) {
@@ -951,7 +948,7 @@ impl SnapshotService for Service {
             .lock()
             .send(ClientIoMessage::BeginRestoration(manifest))
         {
-            trace!("Error sending snapshot service message: {:?}", e);
+            trace!("Error sending snapshot service message: {e:?}");
         }
     }
 
@@ -968,7 +965,7 @@ impl SnapshotService for Service {
             .lock()
             .send(ClientIoMessage::FeedStateChunk(hash, chunk))
         {
-            trace!("Error sending snapshot service message: {:?}", e);
+            trace!("Error sending snapshot service message: {e:?}");
         }
     }
 
@@ -978,7 +975,7 @@ impl SnapshotService for Service {
             .lock()
             .send(ClientIoMessage::FeedBlockChunk(hash, chunk))
         {
-            trace!("Error sending snapshot service message: {:?}", e);
+            trace!("Error sending snapshot service message: {e:?}");
         }
     }
 
@@ -1037,7 +1034,7 @@ mod tests {
             pruning: Algorithm::Archive,
             channel: service.channel(),
             snapshot_root: dir,
-            client: client,
+            client,
         };
 
         let service = Service::new(snapshot_params).unwrap();
@@ -1086,7 +1083,7 @@ mod tests {
             },
             pruning: Algorithm::Archive,
             db: restoration_db_handler(db_config)
-                .open(&tempdir.path().to_owned())
+                .open(tempdir.path())
                 .unwrap(),
             writer: None,
             genesis: &gb,

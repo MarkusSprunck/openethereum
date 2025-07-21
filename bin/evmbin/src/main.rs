@@ -57,7 +57,7 @@ mod info;
 
 use info::Informant;
 
-const USAGE: &'static str = r#"
+const USAGE: &str = r#"
 EVM implementation for Parity.
   Copyright 2015-2020 Parity Technologies (UK) Ltd.
 
@@ -175,11 +175,11 @@ fn run_state_test(args: Args) {
     let config = args.config();
     let file = args.arg_file.expect("FILE is required");
     let mut file = match fs::File::open(&file) {
-        Err(err) => die(format!("Unable to open: {:?}: {}", file, err)),
+        Err(err) => die(format!("Unable to open: {file:?}: {err}")),
         Ok(file) => file,
     };
     let state_test = match Test::load(&mut file) {
-        Err(err) => die(format!("Unable to load the test file: {}", err)),
+        Err(err) => die(format!("Unable to load the test file: {err}")),
         Ok(test) => test,
     };
     let only_test = args.flag_only.map(|s| s.to_lowercase());
@@ -200,15 +200,13 @@ fn run_state_test(args: Args) {
         for (spec, states) in test.post_states {
             //hardcode base fee for part of the london tests, that miss base fee field in env
             let mut test_env = env_info.clone();
-            if spec >= ForkSpec::London {
-                if test_env.base_fee.is_none() {
-                    test_env.base_fee = Some(0x0a.into());
-                }
+            if spec >= ForkSpec::London && test_env.base_fee.is_none() {
+                test_env.base_fee = Some(0x0a.into());
             }
 
             if let Some(false) = only_chain
                 .as_ref()
-                .map(|only_chain| &format!("{:?}", spec).to_lowercase() == only_chain)
+                .map(|only_chain| &format!("{spec:?}").to_lowercase() == only_chain)
             {
                 continue;
             }
@@ -306,7 +304,7 @@ fn run_call<T: Informant>(args: Args, informant: T) {
         params.access_list.enable();
         params.access_list.insert_address(from);
         params.access_list.insert_address(to);
-        for (builtin, _) in spec.engine.builtins() {
+        for builtin in spec.engine.builtins().keys() {
             params.access_list.insert_address(*builtin);
         }
     }
@@ -405,12 +403,12 @@ impl Args {
         Ok(match self.flag_chain {
             Some(ref spec_name) => {
                 let fork_spec: Result<ethjson::spec::ForkSpec, _> =
-                    serde_json::from_str(&format!("{:?}", spec_name));
+                    serde_json::from_str(&format!("{spec_name:?}"));
                 if let Ok(fork_spec) = fork_spec {
                     ethcore::client::EvmTestClient::spec_from_json(&fork_spec)
                         .expect("this forkspec is not defined")
                 } else {
-                    let file = fs::File::open(spec_name).map_err(|e| format!("{}", e))?;
+                    let file = fs::File::open(spec_name).map_err(|e| format!("{e}"))?;
                     spec::Spec::load(&::std::env::temp_dir(), file)?
                 }
             }
@@ -424,15 +422,15 @@ impl Args {
 }
 
 fn arg<T>(v: Result<T, String>, param: &str) -> T {
-    v.unwrap_or_else(|e| die(format!("Invalid {}: {}", param, e)))
+    v.unwrap_or_else(|e| die(format!("Invalid {param}: {e}")))
 }
 
 fn to_string<T: fmt::Display>(msg: T) -> String {
-    format!("{}", msg)
+    format!("{msg}")
 }
 
 fn die<T: fmt::Display>(msg: T) -> ! {
-    println!("{}", msg);
+    println!("{msg}");
     ::std::process::exit(-1)
 }
 
@@ -444,7 +442,7 @@ mod tests {
 
     fn run<T: AsRef<str>>(args: &[T]) -> Args {
         Docopt::new(USAGE)
-            .and_then(|d| d.argv(args.into_iter()).deserialize())
+            .and_then(|d| d.argv(args).deserialize())
             .unwrap()
     }
 
@@ -473,11 +471,11 @@ mod tests {
             "--std-out-only",
         ]);
 
-        assert_eq!(args.flag_json, true);
-        assert_eq!(args.flag_std_json, true);
-        assert_eq!(args.flag_std_dump_json, true);
-        assert_eq!(args.flag_std_err_only, true);
-        assert_eq!(args.flag_std_out_only, true);
+        assert!(args.flag_json);
+        assert!(args.flag_std_json);
+        assert!(args.flag_std_dump_json);
+        assert!(args.flag_std_err_only);
+        assert!(args.flag_std_out_only);
         assert_eq!(args.gas(), Ok(1.into()));
         assert_eq!(args.gas_price(), Ok(2.into()));
         assert_eq!(args.from(), Ok(Address::from_low_u64_be(3)));
@@ -501,11 +499,11 @@ mod tests {
             "--std-dump-json",
         ]);
 
-        assert_eq!(args.cmd_state_test, true);
+        assert!(args.cmd_state_test);
         assert!(args.arg_file.is_some());
-        assert_eq!(args.flag_json, true);
-        assert_eq!(args.flag_std_json, true);
-        assert_eq!(args.flag_std_dump_json, true);
+        assert!(args.flag_json);
+        assert!(args.flag_std_json);
+        assert!(args.flag_std_dump_json);
         assert_eq!(args.flag_chain, Some("homestead".to_owned()));
         assert_eq!(args.flag_only, Some("add11".to_owned()));
     }

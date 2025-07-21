@@ -218,7 +218,7 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                 ref mut recent_reported_hashes,
             } => {
                 // Check validity of recently reported blocks -- in case of re-org, rewind block to last valid
-                while let Some((num, hash)) = recent_reported_hashes.front().cloned() {
+                while let Some((num, hash)) = recent_reported_hashes.front().copied() {
                     if self.block_hash(BlockId::Number(num)) == Some(hash) {
                         break;
                     }
@@ -250,8 +250,7 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                     // find all new hashes
                     current_hashes
                         .difference(previous_hashes)
-                        .cloned()
-                        .map(Into::into)
+                        .copied()
                         .collect()
                 };
 
@@ -276,7 +275,7 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                 // retrieve reorg logs
                 let (mut reorg, reorg_len) = last_block_hash
                     .map_or_else(|| (Vec::new(), 0), |h| self.removed_logs(h, &filter));
-                *block_number -= reorg_len as u64;
+                *block_number -= reorg_len;
 
                 filter.from_block = BlockId::Number(*block_number);
                 filter.to_block = BlockId::Latest;

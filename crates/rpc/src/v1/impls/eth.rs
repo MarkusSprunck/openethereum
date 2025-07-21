@@ -165,7 +165,7 @@ where
     M: MinerService<State = T>,
     EM: ExternalMinerService,
 {
-    /// Creates new EthClient.
+    /// Creates new `EthClient`.
     pub fn new(
         client: &Arc<C>,
         snapshot: &Arc<SN>,
@@ -203,40 +203,37 @@ where
         let (block, difficulty, extra, is_pending) = match id {
             BlockNumberOrId::Number(BlockNumber::Pending) => {
                 let info = self.client.chain_info();
-                match self.miner.pending_block(info.best_block_number) {
-                    Some(pending_block) => {
-                        warn!("`Pending` is deprecated and may be removed in future versions.");
+                if let Some(pending_block) = self.miner.pending_block(info.best_block_number) {
+                    warn!("`Pending` is deprecated and may be removed in future versions.");
 
-                        let difficulty = {
-                            let latest_difficulty = self
-                                .client
-                                .block_total_difficulty(BlockId::Latest)
-                                .expect("blocks in chain have details; qed");
-                            let pending_difficulty = self
-                                .miner
-                                .pending_block_header(info.best_block_number)
-                                .map(|header| *header.difficulty());
+                    let difficulty = {
+                        let latest_difficulty = self
+                            .client
+                            .block_total_difficulty(BlockId::Latest)
+                            .expect("blocks in chain have details; qed");
+                        let pending_difficulty = self
+                            .miner
+                            .pending_block_header(info.best_block_number)
+                            .map(|header| *header.difficulty());
 
-                            if let Some(difficulty) = pending_difficulty {
-                                difficulty + latest_difficulty
-                            } else {
-                                latest_difficulty
-                            }
-                        };
+                        if let Some(difficulty) = pending_difficulty {
+                            difficulty + latest_difficulty
+                        } else {
+                            latest_difficulty
+                        }
+                    };
 
-                        let extra = self.client.engine().extra_info(&pending_block.header);
+                    let extra = self.client.engine().extra_info(&pending_block.header);
 
-                        (
-                            Some(encoded::Block::new(pending_block.rlp_bytes())),
-                            Some(difficulty),
-                            Some(extra),
-                            true,
-                        )
-                    }
-                    None => {
-                        warn!("`Pending` is deprecated and may be removed in future versions. Falling back to `Latest`");
-                        client_query(BlockId::Latest)
-                    }
+                    (
+                        Some(encoded::Block::new(pending_block.rlp_bytes())),
+                        Some(difficulty),
+                        Some(extra),
+                        true,
+                    )
+                } else {
+                    warn!("`Pending` is deprecated and may be removed in future versions. Falling back to `Latest`");
+                    client_query(BlockId::Latest)
                 }
             }
 
@@ -266,10 +263,7 @@ where
                 };
                 Ok(Some(RichBlock {
                     inner: Block {
-                        hash: match is_pending {
-                            true => None,
-                            false => Some(view.hash()),
-                        },
+                        hash: if is_pending { None } else { Some(view.hash()) },
                         size: Some(block.rlp().as_raw().len().into()),
                         parent_hash: view.parent_hash(),
                         uncles_hash: view.uncles_hash(),
@@ -278,15 +272,17 @@ where
                         state_root: view.state_root(),
                         transactions_root: view.transactions_root(),
                         receipts_root: view.receipts_root(),
-                        number: match is_pending {
-                            true => None,
-                            false => Some(view.number().into()),
+                        number: if is_pending {
+                            None
+                        } else {
+                            Some(view.number().into())
                         },
                         gas_used: view.gas_used(),
                         gas_limit: view.gas_limit(),
-                        logs_bloom: match is_pending {
-                            true => None,
-                            false => Some(view.log_bloom()),
+                        logs_bloom: if is_pending {
+                            None
+                        } else {
+                            Some(view.log_bloom())
                         },
                         timestamp: view.timestamp().into(),
                         difficulty: view.difficulty(),
@@ -298,16 +294,17 @@ where
                             .collect(),
                         base_fee_per_gas: base_fee,
                         uncles: block.uncle_hashes(),
-                        transactions: match include_txs {
-                            true => BlockTransactions::Full(
+                        transactions: if include_txs {
+                            BlockTransactions::Full(
                                 block
                                     .view()
                                     .localized_transactions()
                                     .into_iter()
                                     .map(|t| Transaction::from_localized(t, base_fee))
                                     .collect(),
-                            ),
-                            false => BlockTransactions::Hashes(block.transaction_hashes()),
+                            )
+                        } else {
+                            BlockTransactions::Hashes(block.transaction_hashes())
                         },
                         extra_data: Bytes::new(view.extra_data()),
                     },
@@ -325,7 +322,7 @@ where
                     .rich_block(BlockNumber::Num(t.block_number).into(), false)
                     .and_then(errors::check_block_number_existence(
                         &*self.client,
-                        BlockNumber::Num(t.block_number).into(),
+                        BlockNumber::Num(t.block_number),
                         self.options,
                     ));
                 let base_fee = match block {
@@ -527,12 +524,11 @@ where
             |s| (Some(s), self.miner.pending_block_header(best_block_number)),
         );
 
-        match (maybe_state, maybe_header) {
-            (Some(state), Some(header)) => (state, header),
-            _ => {
-                warn!("Falling back to \"Latest\"");
-                self.client.latest_state_and_header()
-            }
+        if let (Some(state), Some(header)) = (maybe_state, maybe_header) {
+            (state, header)
+        } else {
+            warn!("Falling back to \"Latest\"");
+            self.client.latest_state_and_header()
         }
     }
 }
@@ -574,10 +570,10 @@ where
             require_canonical,
         } => {
             // block check takes precedence over canon check.
-            match client.block_status(BlockId::Hash(hash.clone())) {
+            match client.block_status(BlockId::Hash(hash)) {
                 BlockStatus::InChain => {}
                 _ => return Err(errors::unknown_block()),
-            };
+            }
 
             if require_canonical && !client.is_canon(&hash) {
                 return Err(errors::invalid_input());
@@ -610,7 +606,7 @@ where
 {
     fn protocol_version(&self) -> Result<String> {
         let version = self.sync.status().protocol_version.to_owned();
-        Ok(format!("{}", version))
+        Ok(format!("{version}"))
     }
 
     fn syncing(&self) -> Result<SyncStatus> {
@@ -648,12 +644,8 @@ where
                 starting_block: status.start_block_number.into(),
                 current_block,
                 highest_block,
-                warp_chunks_amount: warp_chunks_amount
-                    .map(|x| U256::from(x as u64))
-                    .map(Into::into),
-                warp_chunks_processed: warp_chunks_processed
-                    .map(|x| U256::from(x as u64))
-                    .map(Into::into),
+                warp_chunks_amount: warp_chunks_amount.map(|x| U256::from(u64::from(x))),
+                warp_chunks_processed: warp_chunks_processed.map(|x| U256::from(u64::from(x))),
             };
             Ok(SyncStatus::Info(info))
         } else {
@@ -666,7 +658,7 @@ where
         if miner.is_zero() {
             (self.accounts)()
                 .first()
-                .cloned()
+                .copied()
                 .ok_or_else(|| errors::account("No accounts were found", ""))
         } else {
             Ok(miner)
@@ -782,9 +774,10 @@ where
             (gas_used.as_u64() as f64) / (h.gas_limit().as_u64() as f64)
         };
 
-        let get_block_transactions = |i| match self.client.block_body(BlockId::Number(i)) {
-            Some(body) => Some(body.transactions()),
-            None => None,
+        let get_block_transactions = |i| {
+            self.client
+                .block_body(BlockId::Number(i))
+                .map(|body| body.transactions())
         };
 
         let reward_percentiles = reward_percentiles.unwrap_or_default();
@@ -803,7 +796,7 @@ where
                         if !is_last {
                             result.gas_used_ratio.push(calculate_gas_used_ratio(&h));
 
-                            if reward_percentiles.len() > 0 {
+                            if !reward_percentiles.is_empty() {
                                 let mut gas_and_reward: Vec<(U256, U256)> = vec![];
                                 if let Some(txs) = get_block_transactions(i) {
                                     if let Some(receipt) = self.client.block_receipts(&h.hash()) {
@@ -864,7 +857,7 @@ where
                         if !is_last {
                             result.gas_used_ratio.push(calculate_gas_used_ratio(&h));
 
-                            if reward_percentiles.len() > 0 {
+                            if !reward_percentiles.is_empty() {
                                 //zero values since can't be calculated for pending block
                                 reward_final.push(vec![0.into(); reward_percentiles.len()]);
                             }
@@ -879,7 +872,7 @@ where
                                 if !is_last {
                                     result.gas_used_ratio.push(0.into());
 
-                                    if reward_percentiles.len() > 0 {
+                                    if !reward_percentiles.is_empty() {
                                         //zero values since can't be calculated for pending block
                                         reward_final.push(vec![0.into(); reward_percentiles.len()]);
                                     }
@@ -901,7 +894,7 @@ where
                 }
             } else {
                 unreachable!();
-            };
+            }
         }
 
         if !reward_final.is_empty() {
@@ -930,7 +923,7 @@ where
         let res = self
             .client
             .balance(&address, self.get_state(num))
-            .ok_or_else(|| errors::state_pruned());
+            .ok_or_else(errors::state_pruned);
 
         Box::new(future::done(res))
     }
@@ -1030,7 +1023,7 @@ where
                 try_bf!(check_known(&*self.client, number.clone()));
                 self.client
                     .nonce(&address, block_number_to_id(number))
-                    .ok_or_else(|| errors::state_pruned())
+                    .ok_or_else(errors::state_pruned)
             }
         };
 
@@ -1047,24 +1040,23 @@ where
     }
 
     fn block_transaction_count_by_number(&self, num: BlockNumber) -> BoxFuture<Option<U256>> {
-        Box::new(future::done(match num {
-            BlockNumber::Pending => Ok(Some(
+        Box::new(future::done(if num == BlockNumber::Pending {
+            Ok(Some(
                 self.miner
                     .pending_transaction_hashes(&*self.client)
                     .len()
                     .into(),
-            )),
-            _ => {
-                let trx_count = self
-                    .client
-                    .block(block_number_to_id(num.clone()))
-                    .map(|block| block.transactions_count().into());
-                Ok(trx_count).and_then(errors::check_block_number_existence(
-                    &*self.client,
-                    num,
-                    self.options,
-                ))
-            }
+            ))
+        } else {
+            let trx_count = self
+                .client
+                .block(block_number_to_id(num.clone()))
+                .map(|block| block.transactions_count().into());
+            Ok(trx_count).and_then(errors::check_block_number_existence(
+                &*self.client,
+                num,
+                self.options,
+            ))
         }))
     }
 
@@ -1078,19 +1070,18 @@ where
     }
 
     fn block_uncles_count_by_number(&self, num: BlockNumber) -> BoxFuture<Option<U256>> {
-        Box::new(future::done(match num {
-            BlockNumber::Pending => Ok(Some(0.into())),
-            _ => {
-                let uncles_count = self
-                    .client
-                    .block(block_number_to_id(num.clone()))
-                    .map(|block| block.uncles_count().into());
-                Ok(uncles_count).and_then(errors::check_block_number_existence(
-                    &*self.client,
-                    num,
-                    self.options,
-                ))
-            }
+        Box::new(future::done(if num == BlockNumber::Pending {
+            Ok(Some(0.into()))
+        } else {
+            let uncles_count = self
+                .client
+                .block(block_number_to_id(num.clone()))
+                .map(|block| block.uncles_count().into());
+            Ok(uncles_count).and_then(errors::check_block_number_existence(
+                &*self.client,
+                num,
+                self.options,
+            ))
         }))
     }
 
@@ -1340,7 +1331,6 @@ where
                     false,
                 )
             })
-            .map(Into::into)
     }
 
     fn submit_transaction(&self, raw: Bytes) -> Result<H256> {

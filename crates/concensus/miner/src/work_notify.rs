@@ -53,19 +53,19 @@ impl WorkPoster {
     /// Create new `WorkPoster`.
     pub fn new(urls: &[String], fetch: FetchClient, executor: Executor) -> Self {
         let urls = urls
-            .into_iter()
+            .iter()
             .filter_map(|u| match Url::parse(u) {
                 Ok(url) => Some(url),
                 Err(e) => {
-                    warn!("Error parsing URL {} : {}", u, e);
+                    warn!("Error parsing URL {u} : {e}");
                     None
                 }
             })
             .collect();
         WorkPoster {
             client: fetch,
-            executor: executor,
-            urls: urls,
+            executor,
+            urls,
             seed_compute: Mutex::new(SeedHashCompute::default()),
         }
     }
@@ -78,8 +78,7 @@ impl NotifyWork for WorkPoster {
         let seed_hash = &self.seed_compute.lock().hash_block_number(number);
         let seed_hash = H256::from_slice(&seed_hash[..]);
         let body = format!(
-            r#"{{ "result": ["0x{:x}","0x{:x}","0x{:x}","0x{:x}"] }}"#,
-            pow_hash, seed_hash, target, number
+            r#"{{ "result": ["0x{pow_hash:x}","0x{seed_hash:x}","0x{target:x}","0x{number:x}"] }}"#
         );
 
         for u in &self.urls {
@@ -96,7 +95,7 @@ impl NotifyWork for WorkPoster {
                         Default::default(),
                     )
                     .map_err(move |e| {
-                        warn!("Error sending HTTP notification to {} : {}, retrying", u, e);
+                        warn!("Error sending HTTP notification to {u} : {e}, retrying");
                     })
                     .map(|_| ()),
             );

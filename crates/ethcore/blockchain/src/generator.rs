@@ -121,13 +121,13 @@ impl BlockBuilder {
     /// Add new block with default options.
     #[inline]
     pub fn add_block(&self) -> Self {
-        self.add_block_with(|| BlockOptions::default())
+        self.add_block_with(BlockOptions::default)
     }
 
     /// Add `count` number of blocks with default options.
     #[inline]
     pub fn add_blocks(&self, count: usize) -> Self {
-        self.add_blocks_with(count, || BlockOptions::default())
+        self.add_blocks_with(count, BlockOptions::default)
     }
 
     /// Add block with specified options.
@@ -159,7 +159,7 @@ impl BlockBuilder {
         let count = rand::random::<u8>() as usize / 5;
         let transactions = std::iter::repeat_with(|| {
             let data_len = rand::random::<u8>();
-            let data = std::iter::repeat_with(|| rand::random::<u8>())
+            let data = std::iter::repeat_with(rand::random::<u8>)
                 .take(data_len as usize)
                 .collect::<Vec<_>>();
             TypedTransaction::Legacy(Transaction {
@@ -285,7 +285,7 @@ mod tests {
         let genesis = BlockBuilder::genesis();
         let block_1 = genesis.add_block();
         let block_1001 = block_1.add_blocks(1000);
-        let block_1002 = block_1001.add_block_with(|| BlockOptions::default());
+        let block_1002 = block_1001.add_block_with(BlockOptions::default);
         let generator = BlockGenerator::new(vec![genesis, block_1, block_1001, block_1002]);
         assert_eq!(generator.count(), 1003);
     }

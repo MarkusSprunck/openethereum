@@ -27,26 +27,26 @@ use std::{fmt, str::FromStr};
 #[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub struct Uint(pub U256);
 
-impl Into<U256> for Uint {
-    fn into(self) -> U256 {
-        self.0
+impl From<Uint> for U256 {
+    fn from(val: Uint) -> Self {
+        val.0
     }
 }
 
-impl Into<u64> for Uint {
-    fn into(self) -> u64 {
-        self.0.low_u64()
+impl From<Uint> for u64 {
+    fn from(val: Uint) -> Self {
+        val.0.low_u64()
     }
 }
 
-impl Into<usize> for Uint {
-    fn into(self) -> usize {
-        self.0.low_u64() as usize
+impl From<Uint> for usize {
+    fn from(val: Uint) -> Self {
+        val.0.low_u64() as usize
     }
 }
-impl Into<u8> for Uint {
-    fn into(self) -> u8 {
-        self.0.low_u64() as u8
+impl From<Uint> for u8 {
+    fn from(val: Uint) -> Self {
+        val.0.low_u64() as u8
     }
 }
 
@@ -91,11 +91,10 @@ impl<'a> Visitor<'a> for UintVisitor {
         let value = match value.len() {
             0 => U256::from(0),
             2 if value.starts_with("0x") => U256::from(0),
-            _ if value.starts_with("0x") => U256::from_str(&value[2..]).map_err(|e| {
-                Error::custom(format!("Invalid hex value {}: {}", value, e).as_str())
-            })?,
+            _ if value.starts_with("0x") => U256::from_str(&value[2..])
+                .map_err(|e| Error::custom(format!("Invalid hex value {value}: {e}").as_str()))?,
             _ => U256::from_dec_str(value).map_err(|e| {
-                Error::custom(format!("Invalid decimal value {}: {:?}", value, e).as_str())
+                Error::custom(format!("Invalid decimal value {value}: {e:?}").as_str())
             })?,
         };
 

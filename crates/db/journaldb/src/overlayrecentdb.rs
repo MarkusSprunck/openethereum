@@ -146,7 +146,7 @@ impl Clone for OverlayRecentDB {
             transaction_overlay: self.transaction_overlay.clone(),
             backing: self.backing.clone(),
             journal_overlay: self.journal_overlay.clone(),
-            column: self.column.clone(),
+            column: self.column,
         }
     }
 }
@@ -157,8 +157,8 @@ impl OverlayRecentDB {
         let journal_overlay = Arc::new(RwLock::new(OverlayRecentDB::read_overlay(&*backing, col)));
         OverlayRecentDB {
             transaction_overlay: ::new_memory_db(),
-            backing: backing,
-            journal_overlay: journal_overlay,
+            backing,
+            journal_overlay,
             column: col,
         }
     }
@@ -200,10 +200,12 @@ impl OverlayRecentDB {
                     .expect("Low-level database error.")
                 {
                     trace!("read_overlay: era={}, index={}", era, db_key.index);
-                    let value = decode::<DatabaseValue>(&rlp_data).expect(&format!(
-                        "read_overlay: Error decoding DatabaseValue era={}, index{}",
-                        era, db_key.index
-                    ));
+                    let value = decode::<DatabaseValue>(&rlp_data).unwrap_or_else(|_| {
+                        panic!(
+                            "read_overlay: Error decoding DatabaseValue era={}, index{}",
+                            era, db_key.index
+                        )
+                    });
                     count += value.inserts.len();
                     let mut inserted_keys = Vec::new();
                     for (k, v) in value.inserts {
@@ -241,10 +243,10 @@ impl OverlayRecentDB {
         JournalOverlay {
             backing_overlay: overlay,
             pending_overlay: HashMap::default(),
-            journal: journal,
-            latest_era: latest_era,
-            earliest_era: earliest_era,
-            cumulative_size: cumulative_size,
+            journal,
+            latest_era,
+            earliest_era,
+            cumulative_size,
         }
     }
 }
@@ -261,7 +263,7 @@ impl ::traits::KeyedHashDB for OverlayRecentDB {
         let mut ret: HashMap<H256, i32> = self
             .backing
             .iter(self.column)
-            .map(|(key, _)| (H256::from_slice(&*key), 1))
+            .map(|(key, _)| (H256::from_slice(&key), 1))
             .collect();
 
         for (key, refs) in self.transaction_overlay.keys() {
@@ -329,7 +331,7 @@ impl JournalDB for OverlayRecentDB {
 
     // t_nb 9.6
     fn journal_under(&mut self, batch: &mut DBTransaction, now: u64, id: &H256) -> io::Result<u32> {
-        trace!(target: "journaldb", "entry: #{} ({})", now, id);
+        trace!(target: "journaldb", "entry: #{now} ({id})");
 
         let mut journal_overlay = self.journal_overlay.write();
 
@@ -339,11 +341,11 @@ impl JournalDB for OverlayRecentDB {
         let mut tx = self.transaction_overlay.drain();
         let inserted_keys: Vec<_> = tx
             .iter()
-            .filter_map(|(k, &(_, c))| if c > 0 { Some(k.clone()) } else { None })
+            .filter_map(|(k, &(_, c))| if c > 0 { Some(*k) } else { None })
             .collect();
         let removed_keys: Vec<_> = tx
             .iter()
-            .filter_map(|(k, &(_, c))| if c < 0 { Some(k.clone()) } else { None })
+            .filter_map(|(k, &(_, c))| if c < 0 { Some(*k) } else { None })
             .collect();
         let ops = inserted_keys.len() + removed_keys.len();
 
@@ -375,23 +377,23 @@ impl JournalDB for OverlayRecentDB {
         let db_key = DatabaseKey { era: now, index };
 
         batch.put_vec(self.column, &encode(&db_key), encoded_value.to_vec());
-        if journal_overlay.latest_era.map_or(true, |e| now > e) {
-            trace!(target: "journaldb", "Set latest era to {}", now);
+        if journal_overlay.latest_era.is_none_or(|e| now > e) {
+            trace!(target: "journaldb", "Set latest era to {now}");
             batch.put_vec(self.column, &LATEST_ERA_KEY, encode(&now).to_vec());
             journal_overlay.latest_era = Some(now);
         }
 
-        if journal_overlay.earliest_era.map_or(true, |e| e > now) {
-            trace!(target: "journaldb", "Set earliest era to {}", now);
+        if journal_overlay.earliest_era.is_none_or(|e| e > now) {
+            trace!(target: "journaldb", "Set earliest era to {now}");
             journal_overlay.earliest_era = Some(now);
         }
 
         journal_overlay
             .journal
             .entry(now)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(JournalEntry {
-                id: id.clone(),
+                id: *id,
                 insertions: inserted_keys,
                 deletions: removed_keys,
             });
@@ -404,7 +406,7 @@ impl JournalDB for OverlayRecentDB {
         end_era: u64,
         canon_id: &H256,
     ) -> io::Result<u32> {
-        trace!(target: "journaldb", "canonical: #{} ({})", end_era, canon_id);
+        trace!(target: "journaldb", "canonical: #{end_era} ({canon_id})");
 
         let mut journal_overlay = self.journal_overlay.write();
         let journal_overlay = &mut *journal_overlay;
@@ -431,7 +433,7 @@ impl JournalDB for OverlayRecentDB {
                                 journal_overlay.backing_overlay.raw(&to_short_key(h))
                             {
                                 if rc > 0 {
-                                    canon_insertions.push((h.clone(), d.clone()));
+                                    canon_insertions.push((*h, d.clone()));
                                     //TODO: optimize this to avoid data copy
                                 }
                             }
@@ -855,7 +857,7 @@ mod tests {
             let mut jdb = OverlayRecentDB::new(shared_db.clone(), None);
             // history is 1
             let foo = jdb.insert(b"foo");
-            jdb.emplace(bar.clone(), DBValue::from_slice(b"bar"));
+            jdb.emplace(bar, DBValue::from_slice(b"bar"));
             jdb.commit_batch(0, &keccak(b"0"), None).unwrap();
             assert!(jdb.can_reconstruct_refs());
             foo

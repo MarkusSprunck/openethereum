@@ -293,14 +293,13 @@ fn rpc_parity_pending_transactions() {
 fn assert_txs_filtered(io: &IoHandler<Metadata>, filter: &str, expected: Vec<u8>) {
     let request = format!(
         r#"{{"jsonrpc": "2.0", "method": "parity_pendingTransactions",
-        "params":[10, {}], "id": 1}}"#,
-        filter
+        "params":[10, {filter}], "id": 1}}"#
     );
     let response_str = io.handle_request_sync(&request).unwrap();
     let response = serde_json::Value::from_str(&response_str).unwrap();
     assert_eq!(response["result"].as_array().unwrap().len(), expected.len());
     for n in expected {
-        let expected_sender = format!("0x000000000000000000000000000000000000005{}", n);
+        let expected_sender = format!("0x000000000000000000000000000000000000005{n}");
         assert!(response_str.contains(&expected_sender));
     }
 }
@@ -419,7 +418,7 @@ fn rpc_parity_next_nonce() {
 		"method": "parity_nextNonce",
 		"params": [""#
         .to_owned()
-        + &format!("0x{:x}", address)
+        + &format!("0x{address:x}")
         + r#""],
 		"id": 1
 	}"#;

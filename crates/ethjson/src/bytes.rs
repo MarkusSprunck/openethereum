@@ -34,9 +34,9 @@ impl Bytes {
     }
 }
 
-impl Into<Vec<u8>> for Bytes {
-    fn into(self) -> Vec<u8> {
-        self.0
+impl From<Bytes> for Vec<u8> {
+    fn from(val: Bytes) -> Self {
+        val.0
     }
 }
 
@@ -57,10 +57,10 @@ impl FromStr for Bytes {
             2 if value.starts_with("0x") => vec![],
             _ if value.starts_with("0x") && value.len() % 2 == 1 => {
                 let v = "0".to_owned() + &value[2..];
-                FromHex::from_hex(v.as_str()).unwrap_or(vec![])
+                FromHex::from_hex(v.as_str()).unwrap_or_default()
             }
-            _ if value.starts_with("0x") => FromHex::from_hex(&value[2..]).unwrap_or(vec![]),
-            _ => FromHex::from_hex(value).unwrap_or(vec![]),
+            _ if value.starts_with("0x") => FromHex::from_hex(&value[2..]).unwrap_or_default(),
+            _ => FromHex::from_hex(value).unwrap_or_default(),
         };
 
         Ok(Bytes(v))

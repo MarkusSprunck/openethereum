@@ -31,7 +31,7 @@ impl TraceDatabaseExtras for BlockChain {
             .block_hash(block_number)
             .and_then(|block_hash| {
                 let tx_address = TransactionAddress {
-                    block_hash: block_hash,
+                    block_hash,
                     index: tx_position,
                 };
                 self.transaction(&tx_address)

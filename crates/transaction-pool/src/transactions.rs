@@ -73,7 +73,7 @@ impl<T: fmt::Debug, S: Scoring<T>> Transactions<T, S> {
         &self,
     ) -> Option<((S::Score, Transaction<T>), (S::Score, Transaction<T>))> {
         let len = self.scores.len();
-        self.scores.get(0).cloned().map(|best| {
+        self.scores.first().cloned().map(|best| {
             let worst = self.scores[len - 1].clone();
             let best_tx = self.transactions[0].clone();
             let worst_tx = self.transactions[len - 1].clone();
@@ -84,7 +84,7 @@ impl<T: fmt::Debug, S: Scoring<T>> Transactions<T, S> {
 
     pub fn find_next(&self, tx: &T, scoring: &S) -> Option<(S::Score, Transaction<T>)> {
         self.transactions
-            .binary_search_by(|old| scoring.compare(old, &tx))
+            .binary_search_by(|old| scoring.compare(old, tx))
             .ok()
             .and_then(|index| {
                 let index = index + 1;
@@ -198,7 +198,7 @@ impl<T: fmt::Debug, S: Scoring<T>> Transactions<T, S> {
         {
             Ok(index) => index,
             Err(_) => {
-                warn!("Attempting to remove non-existent transaction {:?}", tx);
+                warn!("Attempting to remove non-existent transaction {tx:?}");
                 return false;
             }
         };
@@ -211,7 +211,7 @@ impl<T: fmt::Debug, S: Scoring<T>> Transactions<T, S> {
             &mut self.scores,
             scoring::Change::RemovedAt(index),
         );
-        return true;
+        true
     }
 
     pub fn cull<R: Ready<T>>(

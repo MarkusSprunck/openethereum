@@ -95,9 +95,9 @@ impl SubmitPayload {
         };
 
         Ok(SubmitPayload {
-            nonce: nonce,
-            pow_hash: pow_hash,
-            mix_hash: mix_hash,
+            nonce,
+            pow_hash,
+            mix_hash,
         })
     }
 }
@@ -160,7 +160,7 @@ impl JobDispatcher for StratumJobDispatcher {
             match import {
                 Ok(_) => Ok(()),
                 Err(e) => {
-                    warn!(target: "stratum", "submit_seal error: {:?}", e);
+                    warn!(target: "stratum", "submit_seal error: {e:?}");
                     Err(StratumServiceError::Dispatch(e.to_string()))
                 }
             }
@@ -173,8 +173,8 @@ impl StratumJobDispatcher {
     fn new(miner: Weak<Miner>, client: Weak<Client>) -> StratumJobDispatcher {
         StratumJobDispatcher {
             seed_compute: Mutex::new(SeedHashCompute::default()),
-            client: client,
-            miner: miner,
+            client,
+            miner,
         }
     }
 
@@ -184,10 +184,7 @@ impl StratumJobDispatcher {
         let target = ethash::difficulty_to_boundary(&difficulty);
         let seed_hash = &self.seed_compute.lock().hash_block_number(number);
         let seed_hash = H256::from_slice(&seed_hash[..]);
-        format!(
-            r#"["0x", "0x{:x}","0x{:x}","0x{:x}","0x{:x}"]"#,
-            pow_hash, seed_hash, target, number
-        )
+        format!(r#"["0x", "0x{pow_hash:x}","0x{seed_hash:x}","0x{target:x}","0x{number:x}"]"#)
     }
 
     fn with_core<F, R>(&self, f: F) -> Option<R>
@@ -261,7 +258,7 @@ impl Stratum {
         let service = StratumService::start(
             &SocketAddr::new(options.listen_addr.parse::<IpAddr>()?, options.port),
             dispatcher.clone(),
-            options.secret.clone(),
+            options.secret,
         )?;
 
         Ok(Stratum {

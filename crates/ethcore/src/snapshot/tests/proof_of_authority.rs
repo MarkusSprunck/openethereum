@@ -32,7 +32,7 @@ use test_helpers;
 
 use_contract!(test_validator_set, "res/contracts/test_validator_set.json");
 
-const PASS: &'static str = "";
+const PASS: &str = "";
 const TRANSITION_BLOCK_1: usize = 2; // block at which the contract becomes activated.
 const TRANSITION_BLOCK_2: usize = 10; // block at which the second contract activates.
 
@@ -136,7 +136,7 @@ fn make_chain(
                 value: 1.into(),
                 data: Vec::new(),
             })
-            .sign(&*RICH_SECRET, client.signing_chain_id());
+            .sign(&RICH_SECRET, client.signing_chain_id());
 
             *nonce = *nonce + 1;
             vec![transaction]
@@ -162,7 +162,7 @@ fn make_chain(
             }
 
             let pending = if manual {
-                trace!(target: "snapshot", "applying set transition at block #{}", num);
+                trace!(target: "snapshot", "applying set transition at block #{num}");
                 let address = match num >= TRANSITION_BLOCK_2 {
                     true => &CONTRACT_ADDR_2 as &Address,
                     false => &CONTRACT_ADDR_1 as &Address,
@@ -179,7 +179,7 @@ fn make_chain(
                     value: 0.into(),
                     data,
                 })
-                .sign(&*RICH_SECRET, client.signing_chain_id());
+                .sign(&RICH_SECRET, client.signing_chain_id());
 
                 *nonce = *nonce + 1;
                 vec![transaction]
@@ -241,7 +241,7 @@ fn fixed_to_contract_only() {
     // 6, 7, 8 prove finality for transition at 6.
     // 3 beyond gets us to 11.
     assert_eq!(client.chain_info().best_block_number, 11);
-    let (reader, _tempdir) = snapshot_helpers::snap(&*client);
+    let (reader, _tempdir) = snapshot_helpers::snap(&client);
 
     let new_db = test_helpers::new_db();
     let spec = spec_fixed_to_contract();
@@ -280,7 +280,7 @@ fn fixed_to_contract_to_contract() {
     );
 
     assert_eq!(client.chain_info().best_block_number, 16);
-    let (reader, _tempdir) = snapshot_helpers::snap(&*client);
+    let (reader, _tempdir) = snapshot_helpers::snap(&client);
     let new_db = test_helpers::new_db();
     let spec = spec_fixed_to_contract();
 

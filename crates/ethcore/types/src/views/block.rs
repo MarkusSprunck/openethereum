@@ -52,7 +52,7 @@ impl<'a> BlockView<'a> {
     /// }
     /// ```
     pub fn new(rlp: ViewRlp<'a>) -> BlockView<'a> {
-        BlockView { rlp: rlp }
+        BlockView { rlp }
     }
 
     /// Block header hash.
@@ -68,10 +68,7 @@ impl<'a> BlockView<'a> {
     /// Create new Header object from header rlp.
     pub fn header(&self, eip1559_transition: BlockNumber) -> Header {
         Header::decode_rlp(&self.rlp.at(0).rlp, eip1559_transition).unwrap_or_else(|e| {
-            panic!(
-                "block header, view rlp is trusted and should be valid: {:?}",
-                e
-            )
+            panic!("block header, view rlp is trusted and should be valid: {e:?}")
         })
     }
 
@@ -88,10 +85,7 @@ impl<'a> BlockView<'a> {
     /// Return List of transactions in given block.
     pub fn transactions(&self) -> Vec<UnverifiedTransaction> {
         TypedTransaction::decode_rlp_list(&self.rlp.at(1).rlp).unwrap_or_else(|e| {
-            panic!(
-                "block transactions, view rlp is trusted and should be valid: {:?}",
-                e
-            )
+            panic!("block transactions, view rlp is trusted and should be valid: {e:?}")
         })
     }
 
@@ -105,8 +99,8 @@ impl<'a> BlockView<'a> {
             .enumerate()
             .map(|(i, t)| LocalizedTransaction {
                 signed: t,
-                block_hash: block_hash.clone(),
-                block_number: block_number,
+                block_hash,
+                block_number,
                 transaction_index: i,
                 cached_sender: None,
             })
@@ -144,10 +138,7 @@ impl<'a> BlockView<'a> {
     pub fn transaction_at(&self, index: usize) -> Option<UnverifiedTransaction> {
         self.transactions_rlp().iter().nth(index).map(|rlp| {
             TypedTransaction::decode_rlp(&rlp.rlp).unwrap_or_else(|e| {
-                panic!(
-                    "block transaction_at, view rlp is trusted and should be valid.{:?}",
-                    e
-                )
+                panic!("block transaction_at, view rlp is trusted and should be valid.{e:?}")
             })
         })
     }
@@ -159,8 +150,8 @@ impl<'a> BlockView<'a> {
         let block_number = header.number();
         self.transaction_at(index).map(|t| LocalizedTransaction {
             signed: t,
-            block_hash: block_hash,
-            block_number: block_number,
+            block_hash,
+            block_number,
             transaction_index: index,
             cached_sender: None,
         })
@@ -174,10 +165,7 @@ impl<'a> BlockView<'a> {
     /// Return list of uncles of given block.
     pub fn uncles(&self, eip1559_transition: BlockNumber) -> Vec<Header> {
         Header::decode_rlp_list(&self.rlp.at(2).rlp, eip1559_transition).unwrap_or_else(|e| {
-            panic!(
-                "block uncles, view rlp is trusted and should be valid: {:?}",
-                e
-            )
+            panic!("block uncles, view rlp is trusted and should be valid: {e:?}")
         })
     }
 
@@ -203,10 +191,7 @@ impl<'a> BlockView<'a> {
     pub fn uncle_at(&self, index: usize, eip1559_transition: BlockNumber) -> Option<Header> {
         self.uncles_rlp().iter().nth(index).map(|rlp| {
             Header::decode_rlp(&rlp.rlp, eip1559_transition).unwrap_or_else(|e| {
-                panic!(
-                    "block uncle_at, view rlp is trusted and should be valid.{:?}",
-                    e
-                )
+                panic!("block uncle_at, view rlp is trusted and should be valid.{e:?}")
             })
         })
     }

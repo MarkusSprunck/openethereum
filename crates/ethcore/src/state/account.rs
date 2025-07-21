@@ -103,8 +103,8 @@ impl Account {
     /// General constructor.
     pub fn new(balance: U256, nonce: U256, storage: HashMap<H256, H256>, code: Bytes) -> Account {
         Account {
-            balance: balance,
-            nonce: nonce,
+            balance,
+            nonce,
             storage_root: KECCAK_NULL_RLP,
             storage_cache: Self::empty_storage_cache(),
             original_storage_cache: None,
@@ -130,7 +130,7 @@ impl Account {
             storage_cache: Self::empty_storage_cache(),
             original_storage_cache: None,
             storage_changes: pod.storage.into_iter().collect(),
-            code_hash: pod.code.as_ref().map_or(KECCAK_EMPTY, |c| keccak(c)),
+            code_hash: pod.code.as_ref().map_or(KECCAK_EMPTY, keccak),
             code_filth: Filth::Dirty,
             code_size: Some(pod.code.as_ref().map_or(0, |c| c.len())),
             code_cache: Arc::new(pod.code.map_or_else(
@@ -147,8 +147,8 @@ impl Account {
     /// Create a new account with the given balance.
     pub fn new_basic(balance: U256, nonce: U256) -> Account {
         Account {
-            balance: balance,
-            nonce: nonce,
+            balance,
+            nonce,
             storage_root: KECCAK_NULL_RLP,
             storage_cache: Self::empty_storage_cache(),
             original_storage_cache: None,
@@ -172,8 +172,8 @@ impl Account {
     /// NOTE: make sure you use `init_code` on this before `commit`ing.
     pub fn new_contract(balance: U256, nonce: U256, original_storage_root: H256) -> Account {
         Account {
-            balance: balance,
-            nonce: nonce,
+            balance,
+            nonce,
             storage_root: KECCAK_NULL_RLP,
             storage_cache: Self::empty_storage_cache(),
             original_storage_cache: if original_storage_root == KECCAK_NULL_RLP {
@@ -277,12 +277,12 @@ impl Account {
     ) -> TrieResult<H256> {
         let db = SecTrieDB::new(&db, storage_root)?;
         let panicky_decoder =
-            |bytes: &[u8]| ::rlp::decode(&bytes).expect("decoding db value failed");
+            |bytes: &[u8]| ::rlp::decode(bytes).expect("decoding db value failed");
         let item: U256 = db
             .get_with(key.as_bytes(), panicky_decoder)?
             .unwrap_or_else(U256::zero);
         let value: H256 = BigEndianHash::from_uint(&item);
-        storage_cache.insert(key.clone(), value.clone());
+        storage_cache.insert(*key, value);
         Ok(value)
     }
 
@@ -290,7 +290,7 @@ impl Account {
     /// key is not in the cache.
     pub fn cached_storage_at(&self, key: &H256) -> Option<H256> {
         if let Some(value) = self.storage_changes.get(key) {
-            return Some(value.clone());
+            return Some(*value);
         }
         self.cached_moved_original_storage_at(key)
     }
@@ -301,7 +301,7 @@ impl Account {
             Some((_, ref original_storage_cache)) => original_storage_cache
                 .borrow_mut()
                 .get_mut(key)
-                .map(|value| value.clone()),
+                .map(|value| *value),
             None => self.cached_moved_original_storage_at(key),
         }
     }
@@ -317,7 +317,7 @@ impl Account {
         self.storage_cache
             .borrow_mut()
             .get_mut(key)
-            .map(|value| value.clone())
+            .map(|value| *value)
     }
 
     /// return the balance associated with this account.
@@ -332,7 +332,7 @@ impl Account {
 
     /// return the code hash associated with this account.
     pub fn code_hash(&self) -> H256 {
-        self.code_hash.clone()
+        self.code_hash
     }
 
     /// return and cache `keccak(address)`, `address` must be the address of this
@@ -341,7 +341,7 @@ impl Account {
         let hash = self.address_hash.get();
         hash.unwrap_or_else(|| {
             let hash = keccak(address);
-            self.address_hash.set(Some(hash.clone()));
+            self.address_hash.set(Some(hash));
             hash
         })
     }
@@ -358,7 +358,7 @@ impl Account {
     /// returns the account's code size. If `None` then the code cache or code size cache isn't available -
     /// get someone who knows to call `note_code`.
     pub fn code_size(&self) -> Option<usize> {
-        self.code_size.clone()
+        self.code_size
     }
 
     #[cfg(test)]
@@ -524,7 +524,7 @@ impl Account {
     /// Panics if balance is less than `x`
     pub fn sub_balance(&mut self, x: &U256) {
         assert!(self.balance >= *x);
-        self.balance = self.balance - *x;
+        self.balance -= *x;
     }
 
     /// Commit the `storage_changes` to the backing DB and update `storage_root`.
@@ -562,10 +562,7 @@ impl Account {
                 self.code_filth = Filth::Clean;
             }
             (true, false) => {
-                db.emplace(
-                    self.code_hash.clone(),
-                    DBValue::from_slice(&*self.code_cache),
-                );
+                db.emplace(self.code_hash, DBValue::from_slice(&self.code_cache));
                 self.code_size = Some(self.code_cache.len());
                 self.code_filth = Filth::Clean;
             }
@@ -586,17 +583,17 @@ impl Account {
     /// Clone basic account data
     pub fn clone_basic(&self) -> Account {
         Account {
-            balance: self.balance.clone(),
-            nonce: self.nonce.clone(),
-            storage_root: self.storage_root.clone(),
+            balance: self.balance,
+            nonce: self.nonce,
+            storage_root: self.storage_root,
             storage_cache: Self::empty_storage_cache(),
             original_storage_cache: self
                 .original_storage_cache
                 .as_ref()
                 .map(|(r, _)| (*r, Self::empty_storage_cache())),
             storage_changes: HashMap::new(),
-            code_hash: self.code_hash.clone(),
-            code_size: self.code_size.clone(),
+            code_hash: self.code_hash,
+            code_size: self.code_size,
             code_cache: self.code_cache.clone(),
             code_filth: self.code_filth,
             address_hash: self.address_hash.clone(),

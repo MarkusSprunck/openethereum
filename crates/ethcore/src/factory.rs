@@ -22,7 +22,7 @@ use trie::TrieFactory;
 use vm::{ActionParams, Exec, Schedule};
 use wasm::WasmInterpreter;
 
-const WASM_MAGIC_NUMBER: &'static [u8; 4] = b"\0asm";
+const WASM_MAGIC_NUMBER: &[u8; 4] = b"\0asm";
 
 /// Virtual machine factory
 #[derive(Default, Clone)]
@@ -33,9 +33,10 @@ pub struct VmFactory {
 impl VmFactory {
     pub fn create(&self, params: ActionParams, schedule: &Schedule, depth: usize) -> Box<dyn Exec> {
         if schedule.wasm.is_some()
-            && params.code.as_ref().map_or(false, |code| {
-                code.len() > 4 && &code[0..4] == WASM_MAGIC_NUMBER
-            })
+            && params
+                .code
+                .as_ref()
+                .is_some_and(|code| code.len() > 4 && &code[0..4] == WASM_MAGIC_NUMBER)
         {
             Box::new(WasmInterpreter::new(params))
         } else {
@@ -52,7 +53,7 @@ impl VmFactory {
 
 impl From<EvmFactory> for VmFactory {
     fn from(evm: EvmFactory) -> Self {
-        VmFactory { evm: evm }
+        VmFactory { evm }
     }
 }
 

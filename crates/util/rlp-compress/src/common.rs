@@ -20,7 +20,7 @@ lazy_static! {
     pub static ref BLOCKS_SWAPPER: Swapper<'static> = Swapper::new(COMMON_RLPS, INVALID_RLPS);
 }
 
-static EMPTY_RLPS: &'static [&'static [u8]] = &[
+static EMPTY_RLPS: &[&[u8]] = &[
     // RLP of KECCAK_NULL_RLP
     &[
         160, 86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224,
@@ -33,7 +33,7 @@ static EMPTY_RLPS: &'static [&'static [u8]] = &[
     ],
 ];
 
-static COMMON_RLPS: &'static [&'static [u8]] = &[
+static COMMON_RLPS: &[&[u8]] = &[
     // RLP of KECCAK_NULL_RLP
     &[
         160, 86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224,
@@ -70,7 +70,7 @@ static COMMON_RLPS: &'static [&'static [u8]] = &[
     ],
 ];
 
-static INVALID_RLPS: &'static [&'static [u8]] = &[
+static INVALID_RLPS: &[&[u8]] = &[
     &[0x81, 0x0],
     &[0x81, 0x1],
     &[0x81, 0x2],

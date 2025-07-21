@@ -45,19 +45,14 @@ pub const SYSTEM_ADDRESS: Address = H160([
 ]);
 
 /// Transaction action type.
-#[derive(Debug, Clone, PartialEq, Eq, MallocSizeOf)]
+#[derive(Debug, Clone, PartialEq, Eq, MallocSizeOf, Default)]
 pub enum Action {
     /// Create creates new contract.
+    #[default]
     Create,
     /// Calls contract at given address.
     /// In the case of a transfer, this is the receiver's address.'
     Call(Address),
-}
-
-impl Default for Action {
-    fn default() -> Action {
-        Action::Create
-    }
 }
 
 impl rlp::Decodable for Action {
@@ -117,7 +112,7 @@ pub mod signature {
 
     pub fn extract_chain_id_from_legacy_v(v: u64) -> Option<u64> {
         if v >= 35 {
-            Some((v - 35) / 2 as u64)
+            Some((v - 35) / 2_u64)
         } else {
             None
         }
@@ -177,12 +172,10 @@ impl Transaction {
         //append signature if given. If not, try to append chainId.
         if let Some(signature) = signature {
             signature.rlp_append_with_chain_id(rlp, chain_id);
-        } else {
-            if let Some(n) = chain_id {
-                rlp.append(&n);
-                rlp.append(&0u8);
-                rlp.append(&0u8);
-            }
+        } else if let Some(n) = chain_id {
+            rlp.append(&n);
+            rlp.append(&0u8);
+            rlp.append(&0u8);
         }
     }
 
@@ -271,7 +264,7 @@ impl AccessListTx {
         //let chain_id = if chain_id == 0 { None } else { Some(chain_id) };
 
         // first part of list is same as legacy transaction and we are reusing that part.
-        let transaction = Transaction::decode_data(&tx_rlp, 1)?;
+        let transaction = Transaction::decode_data(tx_rlp, 1)?;
 
         // access list we get from here
         let accl_rlp = tx_rlp.at(7)?;
@@ -320,7 +313,7 @@ impl AccessListTx {
         stream.begin_list(list_size);
 
         // append chain_id. from EIP-2930: chainId is defined to be an integer of arbitrary size.
-        stream.append(&(if let Some(n) = chain_id { n } else { 0 }));
+        stream.append(&chain_id.unwrap_or_default());
 
         // append legacy transaction
         self.transaction.rlp_append_data_open(&mut stream);
@@ -376,7 +369,7 @@ impl EIP1559TransactionTx {
     }
 
     pub fn tx(&self) -> &Transaction {
-        &self.transaction.tx()
+        self.transaction.tx()
     }
 
     pub fn tx_mut(&mut self) -> &mut Transaction {
@@ -452,7 +445,7 @@ impl EIP1559TransactionTx {
         stream.begin_list(list_size);
 
         // append chain_id. from EIP-2930: chainId is defined to be an integer of arbitrary size.
-        stream.append(&(if let Some(n) = chain_id { n } else { 0 }));
+        stream.append(&chain_id.unwrap_or_default());
 
         stream.append(&self.tx().nonce);
         stream.append(&self.max_priority_fee_per_gas);
@@ -543,7 +536,7 @@ impl TypedTransaction {
             signature: SignatureComponents {
                 r: sig.r().into(),
                 s: sig.s().into(),
-                standard_v: sig.v().into(),
+                standard_v: sig.v(),
             },
             hash: H256::zero(),
         }
@@ -686,7 +679,7 @@ impl TypedTransaction {
         match id.unwrap() {
             TypedTxId::EIP1559Transaction => EIP1559TransactionTx::decode(&tx[1..]),
             TypedTxId::AccessList => AccessListTx::decode(&tx[1..]),
-            TypedTxId::Legacy => return Err(DecoderError::Custom("Unknown transaction legacy")),
+            TypedTxId::Legacy => Err(DecoderError::Custom("Unknown transaction legacy")),
         }
     }
 
@@ -886,7 +879,7 @@ impl UnverifiedTransaction {
     /// Checks whether the signature has a low 's' value.
     pub fn check_low_s(&self) -> Result<(), publickey::Error> {
         if !self.signature().is_low_s() {
-            Err(publickey::Error::InvalidSignature.into())
+            Err(publickey::Error::InvalidSignature)
         } else {
             Ok(())
         }
@@ -899,10 +892,10 @@ impl UnverifiedTransaction {
 
     /// Recovers the public key of the sender.
     pub fn recover_public(&self) -> Result<Public, publickey::Error> {
-        Ok(recover(
+        recover(
             &self.signature(),
             &self.unsigned.signature_hash(self.chain_id()),
-        )?)
+        )
     }
 
     /// Verify basic signature params. Does not attempt sender recovery.
@@ -1013,7 +1006,7 @@ impl LocalizedTransaction {
             return sender;
         }
         if self.is_unsigned() {
-            return UNSIGNED_SENDER.clone();
+            return UNSIGNED_SENDER;
         }
         let sender = public_to_address(&self.recover_public()
 			.expect("LocalizedTransaction is always constructed from transaction from blockchain; Blockchain only stores verified transactions; qed"));
@@ -1044,7 +1037,7 @@ impl PendingTransaction {
     pub fn new(signed: SignedTransaction, condition: Option<Condition>) -> Self {
         PendingTransaction {
             transaction: signed,
-            condition: condition,
+            condition,
         }
     }
 }
@@ -1126,7 +1119,7 @@ mod tests {
         });
 
         let hash = t.signature_hash(Some(0));
-        let sig = publickey::sign(&key.secret(), &hash).unwrap();
+        let sig = publickey::sign(key.secret(), &hash).unwrap();
         let u = t.with_signature(sig, Some(0));
 
         assert!(SignedTransaction::new(u).is_ok());
@@ -1145,7 +1138,7 @@ mod tests {
             value: U256::from(1),
             data: b"Hello!".to_vec(),
         })
-        .sign(&key.secret(), None);
+        .sign(key.secret(), None);
         assert_eq!(Address::from(keccak(key.public())), t.sender());
         assert_eq!(t.chain_id(), None);
     }
@@ -1203,7 +1196,7 @@ mod tests {
             value: U256::from(1),
             data: b"Hello!".to_vec(),
         })
-        .sign(&key.secret(), Some(69));
+        .sign(key.secret(), Some(69));
         assert_eq!(Address::from(keccak(key.public())), t.sender());
         assert_eq!(t.chain_id(), Some(69));
     }
@@ -1229,7 +1222,7 @@ mod tests {
                 (H160::from_low_u64_be(400), vec![]),
             ],
         ))
-        .sign(&key.secret(), Some(69));
+        .sign(key.secret(), Some(69));
         let encoded = t.encode();
 
         let t_new =
@@ -1263,7 +1256,7 @@ mod tests {
             ),
             max_priority_fee_per_gas: U256::from(100),
         })
-        .sign(&key.secret(), Some(69));
+        .sign(key.secret(), Some(69));
         let encoded = t.encode();
 
         let t_new =
@@ -1372,7 +1365,7 @@ mod tests {
             ),
             max_priority_fee_per_gas: gas_price,
         })
-        .sign(&key.secret(), Some(69));
+        .sign(key.secret(), Some(69));
 
         let result = t.transaction.effective_gas_price(Some(124.into()));
         assert_eq!(

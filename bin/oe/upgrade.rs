@@ -43,7 +43,7 @@ impl From<SemVerError> for Error {
     }
 }
 
-const CURRENT_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Hash, PartialEq, Eq)]
 struct UpgradeKey {
@@ -135,11 +135,11 @@ where
 }
 
 pub fn upgrade(db_path: &str) -> Result<usize, Error> {
-    with_locked_version(db_path, |ver| upgrade_from_version(ver))
+    with_locked_version(db_path, upgrade_from_version)
 }
 
 fn file_exists(path: &Path) -> bool {
-    match fs::metadata(&path) {
+    match fs::metadata(path) {
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => false,
         _ => true,
     }
@@ -147,12 +147,12 @@ fn file_exists(path: &Path) -> bool {
 
 #[cfg(any(test, feature = "accounts"))]
 pub fn upgrade_key_location(from: &PathBuf, to: &PathBuf) {
-    match fs::create_dir_all(&to).and_then(|()| fs::read_dir(from)) {
+    match fs::create_dir_all(to).and_then(|()| fs::read_dir(from)) {
         Ok(entries) => {
             let files: Vec<_> = entries
                 .filter_map(|f| {
                     f.ok().and_then(|f| {
-                        if f.file_type().ok().map_or(false, |f| f.is_file()) {
+                        if f.file_type().ok().is_some_and(|f| f.is_file()) {
                             f.file_name().to_str().map(|s| s.to_owned())
                         } else {
                             None
@@ -168,12 +168,12 @@ pub fn upgrade_key_location(from: &PathBuf, to: &PathBuf) {
                 to.push(&name);
                 if !file_exists(&to) {
                     if let Err(e) = fs::rename(&from, &to) {
-                        debug!("Error upgrading key {:?}: {:?}", from, e);
+                        debug!("Error upgrading key {from:?}: {e:?}");
                     } else {
                         num += 1;
                     }
                 } else {
-                    debug!("Skipped upgrading key {:?}", from);
+                    debug!("Skipped upgrading key {from:?}");
                 }
             }
             if num > 0 {
@@ -186,18 +186,18 @@ pub fn upgrade_key_location(from: &PathBuf, to: &PathBuf) {
             }
         }
         Err(e) => {
-            debug!("Error moving keys from {:?} to {:?}: {:?}", from, to, e);
+            debug!("Error moving keys from {from:?} to {to:?}: {e:?}");
         }
     }
 }
 
 fn upgrade_dir_location(source: &PathBuf, dest: &PathBuf) {
-    if file_exists(&source) {
-        if !file_exists(&dest) {
+    if file_exists(source) {
+        if !file_exists(dest) {
             let mut parent = dest.clone();
             parent.pop();
-            if let Err(e) = fs::create_dir_all(&parent).and_then(|()| fs::rename(&source, &dest)) {
-                debug!("Skipped path {:?} -> {:?} :{:?}", source, dest, e);
+            if let Err(e) = fs::create_dir_all(&parent).and_then(|()| fs::rename(source, dest)) {
+                debug!("Skipped path {source:?} -> {dest:?} :{e:?}");
             } else {
                 info!(
                     "Moved {} to {}",
@@ -207,8 +207,7 @@ fn upgrade_dir_location(source: &PathBuf, dest: &PathBuf) {
             }
         } else {
             debug!(
-                "Skipped upgrading directory {:?}, Destination already exists at {:?}",
-                source, dest
+                "Skipped upgrading directory {source:?}, Destination already exists at {dest:?}"
             );
         }
     }
@@ -220,13 +219,10 @@ fn upgrade_user_defaults(dirs: &DatabaseDirectories) {
     if file_exists(&source) {
         if !file_exists(&dest) {
             if let Err(e) = fs::rename(&source, &dest) {
-                debug!("Skipped upgrading user defaults {:?}:{:?}", dest, e);
+                debug!("Skipped upgrading user defaults {dest:?}:{e:?}");
             }
         } else {
-            debug!(
-                "Skipped upgrading user defaults {:?}, File exists at {:?}",
-                source, dest
-            );
+            debug!("Skipped upgrading user defaults {source:?}, File exists at {dest:?}");
         }
     }
 }
@@ -244,5 +240,5 @@ pub fn upgrade_data_paths(base_path: &str, dirs: &DatabaseDirectories, pruning: 
     upgrade_dir_location(&dirs.legacy_version_path(pruning), &dirs.db_path(pruning));
     upgrade_dir_location(&dirs.legacy_snapshot_path(), &dirs.snapshot_path());
     upgrade_dir_location(&dirs.legacy_network_path(), &dirs.network_path());
-    upgrade_user_defaults(&dirs);
+    upgrade_user_defaults(dirs);
 }

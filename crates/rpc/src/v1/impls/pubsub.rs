@@ -30,7 +30,7 @@ use tokio_timer;
 use parity_runtime::Executor;
 use v1::{helpers::GenericPollManager, metadata::Metadata, traits::PubSub};
 
-/// Parity PubSub implementation.
+/// Parity `PubSub` implementation.
 pub struct PubSubClient<S: core::Middleware<Metadata>> {
     poll_manager: Arc<RwLock<GenericPollManager<S>>>,
     executor: Executor,
@@ -50,8 +50,8 @@ impl<S: core::Middleware<Metadata>> PubSubClient<S> {
         let interval = timer.interval(Duration::from_millis(1000));
         executor.spawn(
             interval
-                .map_err(|e| warn!("Polling timer error: {:?}", e))
-                .for_each(move |_| {
+                .map_err(|e| warn!("Polling timer error: {e:?}"))
+                .for_each(move |()| {
                     if let Some(pm2) = pm2.upgrade() {
                         pm2.read().tick()
                     } else {
@@ -70,6 +70,7 @@ impl<S: core::Middleware<Metadata>> PubSubClient<S> {
 impl PubSubClient<core::NoopMiddleware> {
     /// Creates new `PubSubClient` with deterministic ids.
     #[cfg(test)]
+    #[must_use]
     pub fn new_test(
         rpc: MetaIoHandler<Metadata, core::NoopMiddleware>,
         executor: Executor,
@@ -101,12 +102,12 @@ impl<S: core::Middleware<Metadata>> PubSub for PubSubClient<S> {
                 self.executor.spawn(
                     receiver
                         .forward(sink.sink_map_err(|e| {
-                            warn!("Cannot send notification: {:?}", e);
+                            warn!("Cannot send notification: {e:?}");
                         }))
                         .map(|_| ()),
                 );
             }
-            Err(_) => {
+            Err(()) => {
                 poll_manager.unsubscribe(&id);
             }
         }

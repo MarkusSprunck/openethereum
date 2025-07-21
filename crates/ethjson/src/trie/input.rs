@@ -102,8 +102,8 @@ impl<'a> Visitor<'a> for InputVisitor {
                 return Err(V::Error::custom("Invalid key value pair."));
             }
 
-            let ref key_str: Option<String> = keyval[0];
-            let ref val_str: Option<String> = keyval[1];
+            let key_str: &Option<String> = &keyval[0];
+            let val_str: &Option<String> = &keyval[1];
 
             let key = match *key_str {
                 Some(ref k) if k.starts_with("0x") => {

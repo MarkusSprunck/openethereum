@@ -50,7 +50,7 @@ impl<T> Future for Receiver<T> {
             Ok(futures::Async::Ready(Ok(res))) => Ok(futures::Async::Ready(res)),
             Ok(futures::Async::Ready(Err(err))) => Err(err),
             Err(e) => {
-                debug!(target: "rpc", "Responding to a canceled request: {:?}", e);
+                debug!(target: "rpc", "Responding to a canceled request: {e:?}");
                 Err(errors::internal("Request was canceled by client.", e))
             }
         }

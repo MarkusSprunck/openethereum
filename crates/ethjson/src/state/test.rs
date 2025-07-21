@@ -116,17 +116,17 @@ impl MultiTransaction {
             .map(|s| Secret::import_key(s.0.as_bytes()).expect("Expect signature to be valid"));
         let to: Option<Address> = self.to.clone().into();
         let transaction = Transaction {
-            nonce: self.nonce.clone().into(),
+            nonce: self.nonce.into(),
             gas_price: match self.gas_price {
                 Some(x) => x.into(),
                 None => self.max_fee_per_gas.unwrap().into(),
             },
-            gas: self.gas_limit[indexes.gas as usize].clone().into(),
+            gas: self.gas_limit[indexes.gas as usize].into(),
             action: match to {
                 Some(to) => Action::Call(to.into()),
                 None => Action::Create,
             },
-            value: self.value[indexes.value as usize].clone().into(),
+            value: self.value[indexes.value as usize].into(),
             data: self.data[indexes.data as usize].clone().into(),
         };
 
@@ -137,12 +137,7 @@ impl MultiTransaction {
 
                     let access_list = access_list
                         .into_iter()
-                        .map(|elem| {
-                            (
-                                elem.address.into(),
-                                elem.storage_keys.into_iter().map(Into::into).collect(),
-                            )
-                        })
+                        .map(|elem| (elem.address, elem.storage_keys.into_iter().collect()))
                         .collect();
 
                     let al_tx = AccessListTx {

@@ -188,7 +188,7 @@ impl txpool::Listener<Transaction> for LocalTransactionsList {
         debug!(target: "own_tx", "Transaction rejected (hash {:?}). {}", tx.hash(), reason);
         self.insert(
             *tx.hash(),
-            Status::Rejected(tx.clone(), format!("{}", reason)),
+            Status::Rejected(tx.clone(), format!("{reason}")),
         );
         self.clear_old();
     }

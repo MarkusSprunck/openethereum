@@ -476,7 +476,7 @@ fn transaction_proof() {
     let env_info = client.latest_env_info();
     let schedule = machine.schedule(env_info.number);
     let mut state = State::from_existing(backend, root, 0.into(), factories.clone()).unwrap();
-    Executive::new(&mut state, &env_info, &machine, &schedule)
+    Executive::new(&mut state, &env_info, machine, &schedule)
         .transact(
             &transaction,
             TransactOptions::with_no_tracing().dont_check_nonce(),

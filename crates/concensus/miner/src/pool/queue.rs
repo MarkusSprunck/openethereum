@@ -352,14 +352,17 @@ impl TransactionQueue {
                 }
 
                 if let Some(err) = self.recently_rejected.get(&hash) {
-                    trace!(target: "txqueue", "[{:?}] Rejecting recently rejected: {:?}", hash, err);
+                    trace!(target: "txqueue", "[{hash:?}] Rejecting recently rejected: {err:?}");
                     return Err(err);
                 }
 
                 let imported = verifier
                     .verify_transaction(transaction)
                     .and_then(|verified| {
-                        self.pool.write().import(verified, &mut replace).map_err(convert_error)
+                        self.pool
+                            .write()
+                            .import(verified, &mut replace)
+                            .map_err(convert_error)
                     });
 
                 match imported {
@@ -367,7 +370,7 @@ impl TransactionQueue {
                     Err(err) => {
                         self.recently_rejected.insert(hash, &err);
                         Err(err)
-                    },
+                    }
                 }
             })
             .collect::<Vec<_>>();
@@ -558,7 +561,7 @@ impl TransactionQueue {
             >,
         ) -> T,
     {
-        debug!(target: "txqueue", "Re-computing pending set for block: {}", block_number);
+        debug!(target: "txqueue", "Re-computing pending set for block: {block_number}");
         trace_time!("pool::collect_pending");
         let ready = Self::ready(client, block_number, current_timestamp, nonce_cap);
         collect(self.pool.read().pending(ready, includable_boundary))

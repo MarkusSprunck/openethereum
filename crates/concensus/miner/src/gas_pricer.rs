@@ -45,7 +45,7 @@ impl GasPricer {
     /// Recalibrate current gas price.
     pub fn recalibrate<F: FnOnce(U256) + Sync + Send + 'static>(&mut self, set_price: F) {
         match *self {
-            GasPricer::Fixed(ref curr) => set_price(curr.clone()),
+            GasPricer::Fixed(ref curr) => set_price(*curr),
             #[cfg(feature = "price-info")]
             GasPricer::Calibrated(ref mut cal) => cal.recalibrate(set_price),
         }

@@ -28,9 +28,9 @@ pub enum TransactionCondition {
     Timestamp(u64),
 }
 
-impl Into<transaction::Condition> for TransactionCondition {
-    fn into(self) -> transaction::Condition {
-        match self {
+impl From<TransactionCondition> for transaction::Condition {
+    fn from(val: TransactionCondition) -> Self {
+        match val {
             TransactionCondition::Number(n) => transaction::Condition::Number(n),
             TransactionCondition::Timestamp(n) => transaction::Condition::Timestamp(n),
         }
@@ -61,7 +61,7 @@ mod tests {
                 TransactionCondition::Number(51),
                 TransactionCondition::Timestamp(10)
             ]
-        )
+        );
     }
 
     #[test]

@@ -120,15 +120,15 @@ pub fn run_transaction<T: Informant>(
     mut informant: T,
     trie_spec: TrieSpec,
 ) {
-    let spec_name = format!("{:?}", spec).to_lowercase();
+    let spec_name = format!("{spec:?}").to_lowercase();
     let spec = match EvmTestClient::spec_from_json(spec) {
         Some(spec) => {
-            informant.before_test(&format!("{}:{}:{}", name, spec_name, idx), "starting");
+            informant.before_test(&format!("{name}:{spec_name}:{idx}"), "starting");
             spec
         }
         None => {
             informant.before_test(
-                &format!("{}:{}:{}", name, spec_name, idx),
+                &format!("{name}:{spec_name}:{idx}"),
                 "skipping because of missing spec",
             );
             return;
@@ -157,8 +157,7 @@ pub fn run_transaction<T: Informant>(
                     if state_root != post_root {
                         (
                             Err(EvmTestError::PostCondition(format!(
-                                "State root mismatch (got: {:#x}, expected: {:#x})",
-                                state_root, post_root,
+                                "State root mismatch (got: {state_root:#x}, expected: {post_root:#x})",
                             ))),
                             state_root,
                             end_state,
@@ -175,8 +174,7 @@ pub fn run_transaction<T: Informant>(
                     end_state,
                 }) => (
                     Err(EvmTestError::PostCondition(format!(
-                        "Unexpected execution error: {:?}",
-                        error
+                        "Unexpected execution error: {error:?}"
                     ))),
                     state_root,
                     end_state,
@@ -299,7 +297,7 @@ pub mod tests {
         let _result = run_action(&spec, params, inf, TrieSpec::Secure);
 
         assert_eq!(
-            &String::from_utf8_lossy(&**res.lock().unwrap()),
+            &String::from_utf8_lossy(&res.lock().unwrap()),
             r#"{"depth":1,"gas":"0xffff","op":98,"opName":"PUSH3","pc":0,"stack":[],"storage":{}}
 {"depth":1,"gas":"0xfffc","op":96,"opName":"PUSH1","pc":4,"stack":["0xaaaaaa"],"storage":{}}
 {"depth":1,"gas":"0xfff9","op":96,"opName":"PUSH1","pc":6,"stack":["0xaaaaaa","0xaa"],"storage":{}}

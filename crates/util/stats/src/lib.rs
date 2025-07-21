@@ -73,8 +73,8 @@ impl PrometheusRegistry {
         let t = f();
         let elapsed = start.elapsed();
         self.register_gauge(
-            &format!("optime_{}", name),
-            &format!("Time to perform {}", name),
+            &format!("optime_{name}"),
+            &format!("Time to perform {name}"),
             elapsed.as_millis() as i64,
         );
         t
@@ -168,18 +168,12 @@ where
 {
     // Histogram of a sorted corpus if it at least spans the buckets. Bounds are left closed.
     fn create(corpus: &[T], bucket_number: usize) -> Option<Histogram<T>> {
-        if corpus.len() < 1 {
+        if corpus.is_empty() {
             return None;
         }
-        let corpus_end = corpus
-            .last()
-            .expect("there is at least 1 element; qed")
-            .clone();
-        let corpus_start = corpus
-            .first()
-            .expect("there is at least 1 element; qed")
-            .clone();
-        trace!(target: "stats", "Computing histogram from {} to {} with {} buckets.", corpus_start, corpus_end, bucket_number);
+        let corpus_end = *corpus.last().expect("there is at least 1 element; qed");
+        let corpus_start = *corpus.first().expect("there is at least 1 element; qed");
+        trace!(target: "stats", "Computing histogram from {corpus_start} to {corpus_end} with {bucket_number} buckets.");
         // Bucket needs to be at least 1 wide.
         let bucket_size = {
             // Round up to get the entire corpus included.
@@ -198,7 +192,7 @@ where
         let mut corpus_i = 0;
         // Go through the corpus adding to buckets.
         for bucket in 0..bucket_number {
-            while corpus.get(corpus_i).map_or(false, |v| v < &bucket_end) {
+            while corpus.get(corpus_i).is_some_and(|v| v < &bucket_end) {
                 // Initialized to size bucket_number above; iterates up to bucket_number; qed
                 counts[bucket] += 1;
                 corpus_i += 1;
@@ -208,8 +202,8 @@ where
             bucket_end = bucket_end + bucket_size;
         }
         Some(Histogram {
-            bucket_bounds: bucket_bounds,
-            counts: counts,
+            bucket_bounds,
+            counts,
         })
     }
 }

@@ -63,7 +63,7 @@ impl RpcHandler {
     fn new(out: Sender, auth_code: String, complete: Complete<Result<Rpc, RpcError>>) -> Self {
         RpcHandler {
             out: Some(out),
-            auth_code: auth_code,
+            auth_code,
             pending: Pending::new(),
             complete: Some(complete),
         }
@@ -76,14 +76,14 @@ impl Handler for RpcHandler {
             Ok(mut r) => {
                 let timestamp = time::UNIX_EPOCH
                     .elapsed()
-                    .map_err(|err| WsError::new(WsErrorKind::Internal, format!("{}", err)))?;
+                    .map_err(|err| WsError::new(WsErrorKind::Internal, format!("{err}")))?;
                 let secs = timestamp.as_secs();
                 let hashed = keccak(format!("{}:{}", self.auth_code, secs));
-                let proto = format!("{:x}_{}", hashed, secs);
+                let proto = format!("{hashed:x}_{secs}");
                 r.add_protocol(&proto);
                 Ok(r)
             }
-            Err(e) => Err(WsError::new(WsErrorKind::Internal, format!("{}", e))),
+            Err(e) => Err(WsError::new(WsErrorKind::Internal, format!("{e}"))),
         }
     }
     fn on_error(&mut self, err: WsError) {
@@ -92,14 +92,14 @@ impl Handler for RpcHandler {
                 Ok(_) => {}
                 Err(_) => warn!(target: "rpc-client", "Unable to notify about error."),
             },
-            None => warn!(target: "rpc-client", "unexpected error: {}", err),
+            None => warn!(target: "rpc-client", "unexpected error: {err}"),
         }
     }
     fn on_open(&mut self, _: Handshake) -> WsResult<()> {
         match (self.complete.take(), self.out.take()) {
             (Some(c), Some(out)) => {
                 let res = c.send(Ok(Rpc {
-                    out: out,
+                    out,
                     counter: AtomicUsize::new(0),
                     pending: self.pending.clone(),
                 }));
@@ -109,7 +109,7 @@ impl Handler for RpcHandler {
                 Ok(())
             }
             _ => {
-                let msg = format!("on_open called twice");
+                let msg = "on_open called twice".to_string();
                 Err(WsError::new(WsErrorKind::Internal, msg))
             }
         }
@@ -118,7 +118,7 @@ impl Handler for RpcHandler {
         let ret: Result<JsonValue, JsonRpcError>;
         let response_id;
         let string = &msg.to_string();
-        match json::from_str::<Output>(&string) {
+        match json::from_str::<Output>(string) {
             Ok(Output::Success(Success {
                 result,
                 id: Id::Num(id),
@@ -138,17 +138,14 @@ impl Handler for RpcHandler {
             Err(e) => {
                 warn!(
                     target: "rpc-client",
-                    "recieved invalid message: {}\n {:?}",
-                    string,
-                    e
+                    "recieved invalid message: {string}\n {e:?}"
                 );
                 return Ok(());
             }
             _ => {
                 warn!(
                     target: "rpc-client",
-                    "recieved invalid message: {}",
-                    string
+                    "recieved invalid message: {string}"
                 );
                 return Ok(());
             }
@@ -156,14 +153,13 @@ impl Handler for RpcHandler {
 
         match self.pending.remove(response_id) {
             Some(c) => {
-                if let Err(_) = c.send(ret.map_err(|err| RpcError::JsonRpc(err))) {
+                if let Err(_) = c.send(ret.map_err(RpcError::JsonRpc)) {
                     warn!(target: "rpc-client", "Unable to send response.")
                 }
             }
             None => warn!(
                 target: "rpc-client",
-                "warning: unexpected id: {}",
-                response_id
+                "warning: unexpected id: {response_id}"
             ),
         }
         Ok(())
@@ -210,15 +206,14 @@ pub struct Rpc {
 impl Rpc {
     /// Blocking, returns a new initialized connection or RpcError
     pub fn new(url: &str, authpath: &PathBuf) -> Result<Self, RpcError> {
-        let rpc = Self::connect(url, authpath).map(|rpc| rpc).wait()?;
-        rpc
+        Self::connect(url, authpath).map(|rpc| rpc).wait()?
     }
 
     /// Non-blocking, returns a future
     pub fn connect(url: &str, authpath: &PathBuf) -> BoxFuture<Result<Self, RpcError>, Canceled> {
         let (c, p) = oneshot::<Result<Self, RpcError>>();
         match get_authcode(authpath) {
-            Err(e) => return Box::new(done(Ok(Err(e)))),
+            Err(e) => Box::new(done(Ok(Err(e)))),
             Ok(code) => {
                 let url = String::from(url);
                 // The ws::connect takes a FnMut closure, which means c cannot
@@ -296,12 +291,12 @@ pub enum RpcError {
 impl Debug for RpcError {
     fn fmt(&self, f: &mut Formatter) -> Result<(), FmtError> {
         match *self {
-            RpcError::WrongVersion(ref s) => write!(f, "Expected version 2.0, got {}", s),
-            RpcError::ParseError(ref err) => write!(f, "ParseError: {}", err),
-            RpcError::MalformedResponse(ref s) => write!(f, "Malformed response: {}", s),
-            RpcError::JsonRpc(ref json) => write!(f, "JsonRpc error: {:?}", json),
-            RpcError::WsError(ref s) => write!(f, "Websocket error: {}", s),
-            RpcError::Canceled(ref s) => write!(f, "Futures error: {:?}", s),
+            RpcError::WrongVersion(ref s) => write!(f, "Expected version 2.0, got {s}"),
+            RpcError::ParseError(ref err) => write!(f, "ParseError: {err}"),
+            RpcError::MalformedResponse(ref s) => write!(f, "Malformed response: {s}"),
+            RpcError::JsonRpc(ref json) => write!(f, "JsonRpc error: {json:?}"),
+            RpcError::WsError(ref s) => write!(f, "Websocket error: {s}"),
+            RpcError::Canceled(ref s) => write!(f, "Futures error: {s:?}"),
             RpcError::UnexpectedId => write!(f, "Unexpected response id"),
             RpcError::NoAuthCode => write!(f, "No authcodes available"),
         }

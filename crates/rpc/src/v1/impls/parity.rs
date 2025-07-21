@@ -180,7 +180,7 @@ where
         Ok(RpcSettings {
             enabled: self.settings.rpc_enabled,
             interface: self.settings.rpc_interface.clone(),
-            port: self.settings.rpc_port as u64,
+            port: u64::from(self.settings.rpc_port),
         })
     }
 
@@ -230,8 +230,8 @@ where
 
         Ok(self
             .client
-            .list_accounts(number, after.map(Into::into).as_ref(), count)
-            .map(|a| a.into_iter().map(Into::into).collect()))
+            .list_accounts(number, after.as_ref(), count)
+            .map(|a| a.into_iter().collect()))
     }
 
     fn list_storage_keys(
@@ -252,8 +252,8 @@ where
 
         Ok(self
             .client
-            .list_storage(number, &address, after.map(Into::into).as_ref(), count)
-            .map(|a| a.into_iter().map(Into::into).collect()))
+            .list_storage(number, &address, after.as_ref(), count)
+            .map(|a| a.into_iter().collect()))
     }
 
     fn encrypt_message(&self, key: H512, phrase: Bytes) -> Result<Bytes> {

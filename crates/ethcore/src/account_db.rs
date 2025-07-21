@@ -29,7 +29,7 @@ use ethereum_types::Address;
 // leaves the first 96 bits untouched in order to support partial key lookup.
 #[inline]
 fn combine_key<'a>(address_hash: &'a H256, key: &'a H256) -> H256 {
-    let mut dst = key.clone();
+    let mut dst = *key;
     {
         let last_src: &[u8] = address_hash.as_bytes();
         let last_dst: &mut [u8] = dst.as_bytes_mut();
@@ -42,18 +42,13 @@ fn combine_key<'a>(address_hash: &'a H256, key: &'a H256) -> H256 {
 }
 
 /// A factory for different kinds of account dbs.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Factory {
     /// Mangle hashes based on address. This is the default.
+    #[default]
     Mangled,
     /// Don't mangle hashes.
     Plain,
-}
-
-impl Default for Factory {
-    fn default() -> Self {
-        Factory::Mangled
-    }
 }
 
 impl Factory {
@@ -100,10 +95,7 @@ impl<'db> AccountDB<'db> {
 
     /// Create a new AcountDB from an address' hash.
     pub fn from_hash(db: &'db dyn HashDB<KeccakHasher, DBValue>, address_hash: H256) -> Self {
-        AccountDB {
-            db: db,
-            address_hash: address_hash,
-        }
+        AccountDB { db, address_hash }
     }
 }
 
@@ -159,17 +151,14 @@ impl<'db> AccountDBMut<'db> {
 
     /// Create a new AcountDB from an address' hash.
     pub fn from_hash(db: &'db mut dyn HashDB<KeccakHasher, DBValue>, address_hash: H256) -> Self {
-        AccountDBMut {
-            db: db,
-            address_hash: address_hash,
-        }
+        AccountDBMut { db, address_hash }
     }
 
     #[cfg(test)]
     pub fn immutable(&'db self) -> AccountDB<'db> {
         AccountDB {
             db: self.db,
-            address_hash: self.address_hash.clone(),
+            address_hash: self.address_hash,
         }
     }
 }
@@ -190,8 +179,8 @@ impl<'db> HashDB<KeccakHasher, DBValue> for AccountDBMut<'db> {
     }
 
     fn insert(&mut self, value: &[u8]) -> H256 {
-        if value == &NULL_RLP {
-            return KECCAK_NULL_RLP.clone();
+        if value == NULL_RLP {
+            return KECCAK_NULL_RLP;
         }
         let k = keccak(value);
         let ak = combine_key(&self.address_hash, &k);
@@ -290,8 +279,8 @@ impl<'db> HashDB<KeccakHasher, DBValue> for WrappingMut<'db> {
     }
 
     fn insert(&mut self, value: &[u8]) -> H256 {
-        if value == &NULL_RLP {
-            return KECCAK_NULL_RLP.clone();
+        if value == NULL_RLP {
+            return KECCAK_NULL_RLP;
         }
         self.0.insert(value)
     }

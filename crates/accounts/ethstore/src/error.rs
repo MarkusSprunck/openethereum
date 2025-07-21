@@ -63,7 +63,7 @@ impl fmt::Display for Error {
             Error::InvalidCryptoMeta => "Invalid crypted metadata".into(),
             Error::InvalidAccount => "Invalid account".into(),
             Error::InvalidMessage => "Invalid message".into(),
-            Error::InvalidKeyFile(ref reason) => format!("Invalid key file: {}", reason),
+            Error::InvalidKeyFile(ref reason) => format!("Invalid key file: {reason}"),
             Error::VaultsAreNotSupported => "Vaults are not supported".into(),
             Error::UnsupportedVault => "Vault is not supported for this operation".into(),
             Error::InvalidVaultName => "Invalid vault name".into(),
@@ -71,11 +71,11 @@ impl fmt::Display for Error {
             Error::CreationFailed => "Account creation failed".into(),
             Error::EthCrypto(ref err) => err.to_string(),
             Error::EthCryptoPublicKey(ref err) => err.to_string(),
-            Error::Derivation(ref err) => format!("Derivation error: {:?}", err),
+            Error::Derivation(ref err) => format!("Derivation error: {err:?}"),
             Error::Custom(ref s) => s.clone(),
         };
 
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

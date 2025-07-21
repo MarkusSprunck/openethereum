@@ -92,7 +92,7 @@ fn simple_loop_log0(gas: U256, b: &mut Bencher) {
 
     b.iter(|| {
         let mut params = ActionParams::default();
-        params.address = address.clone();
+        params.address = address;
         params.gas = gas;
         params.code = Some(Arc::new(code.clone()));
 
@@ -128,7 +128,7 @@ fn mem_gas_calculation_same(gas: U256, b: &mut Bencher) {
         );
 
         let mut params = ActionParams::default();
-        params.address = address.clone();
+        params.address = address;
         params.gas = gas;
         params.code = Some(Arc::new(code.clone()));
 
@@ -164,7 +164,7 @@ fn mem_gas_calculation_increasing(gas: U256, b: &mut Bencher) {
         );
 
         let mut params = ActionParams::default();
-        params.address = address.clone();
+        params.address = address;
         params.gas = gas;
         params.code = Some(Arc::new(code.clone()));
 
@@ -187,7 +187,7 @@ fn blockhash_mulmod_small(b: &mut Criterion) {
 			);
 
 			let mut params = ActionParams::default();
-			params.address = address.clone();
+			params.address = address;
 			params.gas = U256::from(4_000u64);
 			params.code = Some(Arc::new(code.clone()));
 
@@ -211,7 +211,7 @@ fn blockhash_mulmod_large(b: &mut Criterion) {
 			);
 
 			let mut params = ActionParams::default();
-			params.address = address.clone();
+			params.address = address;
 			params.gas = U256::from(4_000u64);
 			params.code = Some(Arc::new(code.clone()));
 

@@ -62,7 +62,7 @@ pub struct TransactionRequest {
 }
 
 pub fn format_ether(i: U256) -> String {
-    let mut string = format!("{}", i);
+    let mut string = format!("{i}");
     let idx = string.len() as isize - 18;
     if idx <= 0 {
         let mut prefix = String::from("0.");
@@ -87,8 +87,7 @@ impl fmt::Display for TransactionRequest {
                 Colour::White.bold().paint(
                     self.from
                         .as_ref()
-                        .map(|f| format!("0x{:?}", f))
-                        .unwrap_or_else(|| "?".to_string())
+                        .map_or_else(|| "?".to_string(), |f| format!("0x{f:?}"))
                 ),
                 to
             ),
@@ -99,8 +98,7 @@ impl fmt::Display for TransactionRequest {
                 Colour::White.bold().paint(
                     self.from
                         .as_ref()
-                        .map(|f| format!("0x{:?}", f))
-                        .unwrap_or_else(|| "?".to_string())
+                        .map_or_else(|| "?".to_string(), |f| format!("0x{f:?}"))
                 ),
             ),
         }
@@ -111,17 +109,17 @@ impl From<helpers::TransactionRequest> for TransactionRequest {
     fn from(r: helpers::TransactionRequest) -> Self {
         TransactionRequest {
             transaction_type: r.transaction_type,
-            from: r.from.map(Into::into),
-            to: r.to.map(Into::into),
-            gas_price: r.gas_price.map(Into::into),
+            from: r.from,
+            to: r.to,
+            gas_price: r.gas_price,
             max_fee_per_gas: r.max_fee_per_gas,
-            gas: r.gas.map(Into::into),
-            value: r.value.map(Into::into),
+            gas: r.gas,
+            value: r.value,
             data: r.data.map(Into::into),
-            nonce: r.nonce.map(Into::into),
-            condition: r.condition.map(Into::into),
-            access_list: r.access_list.map(Into::into),
-            max_priority_fee_per_gas: r.max_priority_fee_per_gas.map(Into::into),
+            nonce: r.nonce,
+            condition: r.condition,
+            access_list: r.access_list,
+            max_priority_fee_per_gas: r.max_priority_fee_per_gas,
         }
     }
 }
@@ -139,27 +137,27 @@ impl From<helpers::FilledTransactionRequest> for TransactionRequest {
             data: Some(r.data.into()),
             nonce: r.nonce,
             condition: r.condition,
-            access_list: r.access_list.map(Into::into),
+            access_list: r.access_list,
             max_priority_fee_per_gas: r.max_priority_fee_per_gas,
         }
     }
 }
 
-impl Into<helpers::TransactionRequest> for TransactionRequest {
-    fn into(self) -> helpers::TransactionRequest {
+impl From<TransactionRequest> for helpers::TransactionRequest {
+    fn from(val: TransactionRequest) -> Self {
         helpers::TransactionRequest {
-            transaction_type: self.transaction_type,
-            from: self.from.map(Into::into),
-            to: self.to.map(Into::into),
-            gas_price: self.gas_price.map(Into::into),
-            max_fee_per_gas: self.max_fee_per_gas,
-            gas: self.gas.map(Into::into),
-            value: self.value.map(Into::into),
-            data: self.data.map(Into::into),
-            nonce: self.nonce.map(Into::into),
-            condition: self.condition.map(Into::into),
-            access_list: self.access_list.map(Into::into),
-            max_priority_fee_per_gas: self.max_priority_fee_per_gas.map(Into::into),
+            transaction_type: val.transaction_type,
+            from: val.from,
+            to: val.to,
+            gas_price: val.gas_price,
+            max_fee_per_gas: val.max_fee_per_gas,
+            gas: val.gas,
+            value: val.value,
+            data: val.data.map(Into::into),
+            nonce: val.nonce,
+            condition: val.condition,
+            access_list: val.access_list,
+            max_priority_fee_per_gas: val.max_priority_fee_per_gas,
         }
     }
 }
@@ -278,7 +276,7 @@ mod tests {
             deserialized,
             TransactionRequest {
                 transaction_type: Default::default(),
-                from: Some(H160::from_low_u64_be(1).into()),
+                from: Some(H160::from_low_u64_be(1)),
                 to: None,
                 gas_price: None,
                 max_fee_per_gas: None,

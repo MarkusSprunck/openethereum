@@ -30,10 +30,12 @@ pub fn json_difficulty_test<H: FnMut(&str, HookType)>(
 ) -> Vec<String> {
     let mut ret = Vec::new();
     let _ = env_logger::try_init();
-    let tests = ethjson::test::DifficultyTest::load(json_data).expect(&format!(
-        "Could not parse JSON difficulty test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::test::DifficultyTest::load(json_data).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON difficulty test data from {}",
+            path.display()
+        )
+    });
     let engine = &spec.engine;
 
     for (name, test) in tests.into_iter() {

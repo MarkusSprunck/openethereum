@@ -82,9 +82,9 @@ fn validate_bytes(lex: &mut Lexer<Token>) -> Option<u8> {
         if let Some(byte) = slice.get(6) {
             return Some((slice[5] - b'0') * 10 + (byte - b'0'));
         }
-        return Some(slice[5] - b'0');
+        Some(slice[5] - b'0')
     } else {
-        return Some(1);
+        Some(1)
     }
 }
 
@@ -97,13 +97,13 @@ impl From<Type> for String {
             Type::String => "string".into(),
             Type::Bool => "bool".into(),
             Type::Bytes => "bytes".into(),
-            Type::Byte(len) => format!("bytes{}", len),
+            Type::Byte(len) => format!("bytes{len}"),
             Type::Custom(custom) => custom,
             Type::Array { inner, length } => {
                 let inner: String = (*inner).into();
                 match length {
-                    None => format!("{}[]", inner),
-                    Some(length) => format!("{}[{}]", inner, length),
+                    None => format!("{inner}[]"),
+                    Some(length) => format!("{inner}[{length}]"),
                 }
             }
         }
@@ -113,7 +113,7 @@ impl From<Type> for String {
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter) -> result::Result<(), fmt::Error> {
         let item: String = self.clone().into();
-        write!(f, "{}", item)
+        write!(f, "{item}")
     }
 }
 
@@ -180,12 +180,12 @@ mod tests {
     #[test]
     fn test_nested_array() {
         let source = "byte[][][7][][][][][][][][]";
-        assert_eq!(parse_type(source).is_err(), true);
+        assert!(parse_type(source).is_err());
     }
 
     #[test]
     fn test_malformed_array_type() {
         let source = "byte[7[]uint][]";
-        assert_eq!(parse_type(source).is_err(), true)
+        assert!(parse_type(source).is_err())
     }
 }

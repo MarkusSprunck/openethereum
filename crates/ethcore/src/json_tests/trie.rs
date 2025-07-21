@@ -28,10 +28,12 @@ pub fn json_trie_test<H: FnMut(&str, HookType)>(
     trie: TrieSpec,
     start_stop_hook: &mut H,
 ) -> Vec<String> {
-    let tests = ethjson::trie::Test::load(json).expect(&format!(
-        "Could not parse JSON trie test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::trie::Test::load(json).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON trie test data from {}",
+            path.display()
+        )
+    });
     let factory = TrieFactory::<_, RlpCodec>::new(trie);
     let mut failed = vec![];
 
@@ -49,17 +51,16 @@ pub fn json_trie_test<H: FnMut(&str, HookType)>(
         for (key, value) in test.input.data.into_iter() {
             let key: Vec<u8> = key.into();
             let value: Vec<u8> = value.map_or_else(Vec::new, Into::into);
-            t.insert(&key, &value).expect(&format!(
-                "Trie test '{:?}' failed due to internal error",
-                name
-            ));
+            t.insert(&key, &value).unwrap_or_else(|_| {
+                panic!("{}", "Trie test '{name:?}' failed due to internal error")
+            });
         }
 
         if *t.root() == test.root.into() {
-            println!("   - trie: {}...OK", name);
+            println!("   - trie: {name}...OK");
         } else {
-            println!("   - trie: {}...FAILED ({:?})", name, path);
-            failed.push(format!("{}", name));
+            println!("   - trie: {name}...FAILED ({path:?})");
+            failed.push(name.to_string());
         }
         start_stop_hook(&name, HookType::OnStop);
     }

@@ -128,7 +128,7 @@ impl<Trace: Writer, Out: Writer> Informant<Trace, Out> {
                 "root": root,
                 "accounts": end_state,
             });
-            writeln!(trace_sink, "{}", dump_data).expect("The sink must be writeable.");
+            writeln!(trace_sink, "{dump_data}").expect("The sink must be writeable.");
         }
     }
 }
@@ -142,17 +142,13 @@ impl<Trace: Writer, Out: Writer> vm::Informant for Informant<Trace, Out> {
             "test": name,
         });
 
-        writeln!(&mut self.out_sink, "{}", out_data).expect("The sink must be writeable.");
+        writeln!(&mut self.out_sink, "{out_data}").expect("The sink must be writeable.");
     }
 
     fn set_gas(&mut self, _gas: U256) {}
 
     fn clone_sink(&self) -> Self::Sink {
-        (
-            self.trace_sink.clone(),
-            self.out_sink.clone(),
-            self.config.clone(),
-        )
+        (self.trace_sink.clone(), self.out_sink.clone(), self.config)
     }
     fn finish(
         result: vm::RunResult<<Self as trace::VMTracer>::Output>,
@@ -161,7 +157,7 @@ impl<Trace: Writer, Out: Writer> vm::Informant for Informant<Trace, Out> {
         match result {
             Ok(success) => {
                 let trace_data = json!({"stateRoot": success.state_root});
-                writeln!(trace_sink, "{}", trace_data).expect("The sink must be writeable.");
+                writeln!(trace_sink, "{trace_data}").expect("The sink must be writeable.");
 
                 Self::dump_state_into(trace_sink, success.state_root, &success.end_state);
 
@@ -171,7 +167,7 @@ impl<Trace: Writer, Out: Writer> vm::Informant for Informant<Trace, Out> {
                     "time": display::as_micros(&success.time),
                 });
 
-                writeln!(out_sink, "{}", out_data).expect("The sink must be writeable.");
+                writeln!(out_sink, "{out_data}").expect("The sink must be writeable.");
             }
             Err(failure) => {
                 let out_data = json!({
@@ -182,7 +178,7 @@ impl<Trace: Writer, Out: Writer> vm::Informant for Informant<Trace, Out> {
 
                 Self::dump_state_into(trace_sink, failure.state_root, &failure.end_state);
 
-                writeln!(out_sink, "{}", out_data).expect("The sink must be writeable.");
+                writeln!(out_sink, "{out_data}").expect("The sink must be writeable.");
             }
         }
     }
@@ -211,7 +207,7 @@ impl<Trace: Writer, Out: Writer> trace::VMTracer for Informant<Trace, Out> {
                 "depth": informant.depth,
             });
 
-            writeln!(&mut informant.trace_sink, "{}", trace_data)
+            writeln!(&mut informant.trace_sink, "{trace_data}")
                 .expect("The sink must be writeable.");
         });
         true
@@ -243,9 +239,7 @@ impl<Trace: Writer, Out: Writer> trace::VMTracer for Informant<Trace, Out> {
 
             let len = informant.stack.len();
             let info_args = info.map(|i| i.args).unwrap_or(0);
-            informant
-                .stack
-                .truncate(if len > info_args { len - info_args } else { 0 });
+            informant.stack.truncate(len.saturating_sub(info_args));
             informant.stack.extend_from_slice(stack_push);
         });
     }
@@ -317,7 +311,7 @@ pub mod tests {
             inf,
             move |_, expected| {
                 let bytes = res.lock().unwrap();
-                assert_eq!(expected, &String::from_utf8_lossy(&**bytes))
+                assert_eq!(expected, &String::from_utf8_lossy(&bytes))
             },
             "60F8d6",
             0xffff,
@@ -331,7 +325,7 @@ pub mod tests {
             inf,
             move |_, expected| {
                 let bytes = res.lock().unwrap();
-                assert_eq!(expected, &String::from_utf8_lossy(&**bytes))
+                assert_eq!(expected, &String::from_utf8_lossy(&bytes))
             },
             "F8d6",
             0xffff,
@@ -347,7 +341,7 @@ pub mod tests {
             informant,
             move |_, expected| {
                 let bytes = res.lock().unwrap();
-                assert_eq!(expected, &String::from_utf8_lossy(&**bytes))
+                assert_eq!(expected, &String::from_utf8_lossy(&bytes))
             },
             "32343434345830f138343438323439f0",
             0xffff,
@@ -387,7 +381,7 @@ pub mod tests {
             informant,
             move |_, expected| {
                 let bytes = res.lock().unwrap();
-                assert_eq!(expected, &String::from_utf8_lossy(&**bytes))
+                assert_eq!(expected, &String::from_utf8_lossy(&bytes))
             },
             "3260D85554",
             0xffff,

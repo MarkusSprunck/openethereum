@@ -110,7 +110,7 @@ pub fn create_test_block_with_data(
     for t in transactions {
         t.rlp_append(&mut rlp);
     }
-    rlp.append_list(&uncles);
+    rlp.append_list(uncles);
     rlp.out()
 }
 
@@ -192,7 +192,7 @@ where
             db,
             &last_header,
             Arc::new(last_hashes.clone()),
-            author.clone(),
+            author,
             (3141562.into(), 31415620.into()),
             vec![],
             false,
@@ -252,8 +252,8 @@ pub fn push_blocks_to_client(
     block_number: usize,
 ) {
     let test_spec = Spec::new_test();
-    let state_root = test_spec.genesis_header().state_root().clone();
-    let genesis_gas = test_spec.genesis_header().gas_limit().clone();
+    let state_root = *test_spec.genesis_header().state_root();
+    let genesis_gas = *test_spec.genesis_header().gas_limit();
 
     let mut rolling_hash = client.chain_info().best_block_hash;
     let mut rolling_block_number = starting_number as u64;
@@ -270,8 +270,8 @@ pub fn push_blocks_to_client(
         header.set_state_root(state_root);
 
         rolling_hash = header.hash();
-        rolling_block_number = rolling_block_number + 1;
-        rolling_timestamp = rolling_timestamp + 10;
+        rolling_block_number += 1;
+        rolling_timestamp += 10;
 
         if let Err(e) = client.import_block(
             Unverified::from_rlp(
@@ -292,7 +292,7 @@ pub fn push_blocks_to_client(
 pub fn push_block_with_transactions(client: &Arc<Client>, transactions: &[SignedTransaction]) {
     let test_spec = Spec::new_test();
     let test_engine = &*test_spec.engine;
-    let block_number = client.chain_info().best_block_number as u64 + 1;
+    let block_number = client.chain_info().best_block_number + 1;
 
     let mut b = client
         .prepare_open_block(Address::default(), (0.into(), 5000000.into()), Bytes::new())
@@ -342,7 +342,7 @@ pub fn push_block_with_transactions_and_author(
     test_engine.set_signer(signer);
     let parent_header = client.best_block_header();
     let b = match client.engine().generate_seal(&b, &parent_header) {
-        Seal::Regular(seal) => b.seal(&*client.engine(), seal).unwrap(),
+        Seal::Regular(seal) => b.seal(client.engine(), seal).unwrap(),
         _ => panic!("error generating seal"),
     };
 
@@ -566,13 +566,13 @@ pub fn generate_dummy_blockchain_with_extra(block_number: u32) -> BlockChain {
 /// Returns empty dummy blockchain
 pub fn generate_dummy_empty_blockchain() -> BlockChain {
     let db = new_db();
-    let bc = BlockChain::new(
+
+    BlockChain::new(
         BlockChainConfig::default(),
         &create_unverifiable_block(0, H256::zero()),
         db.clone(),
         BlockNumber::max_value(),
-    );
-    bc
+    )
 }
 
 /// Returns temp state
@@ -613,7 +613,7 @@ pub fn get_good_dummy_block_fork_seq(
     parent_hash: &H256,
 ) -> Vec<Bytes> {
     let test_spec = Spec::new_test();
-    let genesis_gas = test_spec.genesis_header().gas_limit().clone();
+    let genesis_gas = *test_spec.genesis_header().gas_limit();
     let mut rolling_timestamp = start_number as u64 * 10;
     let mut parent = *parent_hash;
     let mut r = Vec::new();
@@ -624,10 +624,10 @@ pub fn get_good_dummy_block_fork_seq(
         block_header.set_timestamp(rolling_timestamp);
         block_header.set_number(i as u64);
         block_header.set_parent_hash(parent);
-        block_header.set_state_root(test_spec.genesis_header().state_root().clone());
+        block_header.set_state_root(*test_spec.genesis_header().state_root());
 
         parent = block_header.hash();
-        rolling_timestamp = rolling_timestamp + 10;
+        rolling_timestamp += 10;
 
         r.push(create_test_block(&block_header));
     }
@@ -638,13 +638,13 @@ pub fn get_good_dummy_block_fork_seq(
 pub fn get_good_dummy_block_hash() -> (H256, Bytes) {
     let mut block_header = Header::new();
     let test_spec = Spec::new_test();
-    let genesis_gas = test_spec.genesis_header().gas_limit().clone();
+    let genesis_gas = *test_spec.genesis_header().gas_limit();
     block_header.set_gas_limit(genesis_gas);
     block_header.set_difficulty(U256::from(0x20000));
     block_header.set_timestamp(40);
     block_header.set_number(1);
     block_header.set_parent_hash(test_spec.genesis_header().hash());
-    block_header.set_state_root(test_spec.genesis_header().state_root().clone());
+    block_header.set_state_root(*test_spec.genesis_header().state_root());
 
     (block_header.hash(), create_test_block(&block_header))
 }
@@ -659,7 +659,7 @@ pub fn get_good_dummy_block() -> Bytes {
 pub fn get_bad_state_dummy_block() -> Bytes {
     let mut block_header = Header::new();
     let test_spec = Spec::new_test();
-    let genesis_gas = test_spec.genesis_header().gas_limit().clone();
+    let genesis_gas = *test_spec.genesis_header().gas_limit();
 
     block_header.set_gas_limit(genesis_gas);
     block_header.set_difficulty(U256::from(0x20000));
@@ -680,9 +680,7 @@ pub struct TestNotify {
 
 impl ChainNotify for TestNotify {
     fn broadcast(&self, message: ChainMessageType) {
-        let data = match message {
-            ChainMessageType::Consensus(data) => data,
-        };
+        let ChainMessageType::Consensus(data) = message;
         self.messages.write().push(data);
     }
 }

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! WebSockets server tests.
+//! `WebSockets` server tests.
 
 use std::sync::Arc;
 
@@ -28,6 +28,7 @@ use tests::{
 use v1::{extractors, informant};
 
 /// Setup a mock signer for tests
+#[must_use]
 pub fn serve() -> (Server<ws::Server>, usize, GuardedAuthCodes) {
     let address = "127.0.0.1:0".parse().unwrap();
     let io = MetaIoHandler::default();
@@ -54,6 +55,7 @@ pub fn serve() -> (Server<ws::Server>, usize, GuardedAuthCodes) {
 }
 
 /// Test a single request to running server
+#[must_use]
 pub fn request(server: Server<ws::Server>, request: &str) -> http_client::Response {
     http_client::request(server.server.addr(), request)
 }
@@ -75,12 +77,11 @@ mod testing {
             &format!(
                 "\
 				GET / HTTP/1.1\r\n\
-				Host: 127.0.0.1:{}\r\n\
+				Host: 127.0.0.1:{port}\r\n\
 				Connection: close\r\n\
 				\r\n\
 				{{}}
-			",
-                port
+			"
             ),
         );
 
@@ -99,15 +100,14 @@ mod testing {
             &format!(
                 "\
 				GET / HTTP/1.1\r\n\
-				Host: 127.0.0.1:{}\r\n\
+				Host: 127.0.0.1:{port}\r\n\
 				Connection: Upgrade\r\n\
 				Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n\
 				Sec-WebSocket-Protocol: wrong\r\n\
 				Sec-WebSocket-Version: 13\r\n\
 				\r\n\
 				{{}}
-			",
-                port
+			"
             ),
         );
 
@@ -120,7 +120,7 @@ mod testing {
     fn should_allow_if_authorization_is_correct() {
         // given
         let (server, port, mut authcodes) = serve();
-        let code = authcodes.generate_new().unwrap().replace("-", "");
+        let code = authcodes.generate_new().unwrap().replace('-', "");
         authcodes.to_file(&authcodes.path).unwrap();
         let timestamp = time::UNIX_EPOCH.elapsed().unwrap().as_secs();
 
@@ -139,7 +139,7 @@ mod testing {
 				{{}}
 			",
                 port,
-                keccak(format!("{}:{}", code, timestamp)),
+                keccak(format!("{code}:{timestamp}")),
                 timestamp,
             ),
         );
@@ -174,7 +174,7 @@ mod testing {
 				{{}}
 			",
                 port,
-                keccak(format!("{}:{}", code, timestamp)),
+                keccak(format!("{code}:{timestamp}")),
                 timestamp,
             ),
         );

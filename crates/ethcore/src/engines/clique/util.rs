@@ -72,7 +72,7 @@ pub fn recover_creator(header: &Header) -> Result<Address, Error> {
     let pubkey = ec_recover(&Signature::from(signature), &msg)?;
     let creator = public_to_address(&pubkey);
 
-    cache.insert(header.hash(), creator.clone());
+    cache.insert(header.hash(), creator);
     Ok(creator)
 }
 

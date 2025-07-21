@@ -125,12 +125,12 @@ pub enum ExecutionError {
 
 impl From<Box<ethtrie::TrieError>> for ExecutionError {
     fn from(err: Box<ethtrie::TrieError>) -> Self {
-        ExecutionError::Internal(format!("{:?}", err))
+        ExecutionError::Internal(format!("{err:?}"))
     }
 }
 impl From<ethtrie::TrieError> for ExecutionError {
     fn from(err: ethtrie::TrieError) -> Self {
-        ExecutionError::Internal(format!("{:?}", err))
+        ExecutionError::Internal(format!("{err:?}"))
     }
 }
 
@@ -143,47 +143,42 @@ impl fmt::Display for ExecutionError {
                 ref required,
                 ref got,
             } => format!(
-                "Not enough base gas. {} is required, but only {} paid",
-                required, got
+                "Not enough base gas. {required} is required, but only {got} paid"
             ),
             BlockGasLimitReached {
                 ref gas_limit,
                 ref gas_used,
                 ref gas,
             } => format!(
-                "Block gas limit reached. The limit is {}, {} has \
-					already been used, and {} more is required",
-                gas_limit, gas_used, gas
+                "Block gas limit reached. The limit is {gas_limit}, {gas_used} has \
+					already been used, and {gas} more is required"
             ),
             GasPriceLowerThanBaseFee {
                 ref gas_price,
                 ref base_fee,
             } => format!(
-                "Max gas price is lowert than block base fee. Gas price is {}, while base fee is {}",
-                gas_price, base_fee
+                "Max gas price is lowert than block base fee. Gas price is {gas_price}, while base fee is {base_fee}"
             ),
             InvalidNonce {
                 ref expected,
                 ref got,
             } => format!(
-                "Invalid transaction nonce: expected {}, found {}",
-                expected, got
+                "Invalid transaction nonce: expected {expected}, found {got}"
             ),
             NotEnoughCash {
                 ref required,
                 ref got,
             } => format!(
-                "Cost of transaction exceeds sender balance. {} is required \
-					but the sender only has {}",
-                required, got
+                "Cost of transaction exceeds sender balance. {required} is required \
+					but the sender only has {got}"
             ),
             MutableCallInStaticContext => "Mutable Call in static context".to_owned(),
             SenderMustExist => "Transacting from an empty account".to_owned(),
             Internal(ref msg) => msg.clone(),
-            TransactionMalformed(ref err) => format!("Malformed transaction: {}", err),
+            TransactionMalformed(ref err) => format!("Malformed transaction: {err}"),
         };
 
-        f.write_fmt(format_args!("Transaction execution error ({}).", msg))
+        f.write_fmt(format_args!("Transaction execution error ({msg})."))
     }
 }
 
@@ -221,12 +216,12 @@ impl fmt::Display for CallError {
         let msg = match *self {
             TransactionNotFound => "Transaction couldn't be found in the chain".into(),
             StatePruned => "Couldn't find the transaction block's state in the chain".into(),
-            Exceptional(ref e) => format!("An exception ({}) happened in the execution", e),
+            Exceptional(ref e) => format!("An exception ({e}) happened in the execution"),
             StateCorrupt => "Stored state found to be corrupted.".into(),
-            Execution(ref e) => format!("{}", e),
+            Execution(ref e) => format!("{e}"),
         };
 
-        f.write_fmt(format_args!("Transaction execution error ({}).", msg))
+        f.write_fmt(format_args!("Transaction execution error ({msg})."))
     }
 }
 

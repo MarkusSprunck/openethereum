@@ -63,11 +63,11 @@ impl TestSnapshotService {
             .collect();
         let manifest = ManifestData {
             version: 2,
-            state_hashes: state_chunks.iter().map(|data| keccak(data)).collect(),
-            block_hashes: block_chunks.iter().map(|data| keccak(data)).collect(),
+            state_hashes: state_chunks.iter().map(keccak).collect(),
+            block_hashes: block_chunks.iter().map(keccak).collect(),
             state_root: H256::default(),
-            block_number: block_number,
-            block_hash: block_hash,
+            block_number,
+            block_hash,
         };
         let mut chunks: HashMap<H256, Bytes> = state_chunks
             .into_iter()
@@ -76,7 +76,7 @@ impl TestSnapshotService {
         chunks.extend(block_chunks.into_iter().map(|data| (keccak(&data), data)));
         TestSnapshotService {
             manifest: Some(manifest),
-            chunks: chunks,
+            chunks,
             restoration_manifest: Mutex::new(None),
             state_restoration_chunks: Mutex::new(HashMap::new()),
             block_restoration_chunks: Mutex::new(HashMap::new()),
@@ -158,7 +158,7 @@ impl SnapshotService for TestSnapshotService {
             .restoration_manifest
             .lock()
             .as_ref()
-            .map_or(false, |m| m.state_hashes.iter().any(|h| h == &hash))
+            .is_some_and(|m| m.state_hashes.iter().any(|h| h == &hash))
         {
             self.state_restoration_chunks.lock().insert(hash, chunk);
         }
@@ -169,7 +169,7 @@ impl SnapshotService for TestSnapshotService {
             .restoration_manifest
             .lock()
             .as_ref()
-            .map_or(false, |m| m.block_hashes.iter().any(|h| h == &hash))
+            .is_some_and(|m| m.block_hashes.iter().any(|h| h == &hash))
         {
             self.block_restoration_chunks.lock().insert(hash, chunk);
         }

@@ -38,7 +38,7 @@ impl TransientDir {
         let path = random_dir();
         let result = TransientDir {
             dir: RootDiskDirectory::create(&path)?,
-            path: path,
+            path,
         };
 
         Ok(result)
@@ -48,7 +48,7 @@ impl TransientDir {
         let path = random_dir();
         TransientDir {
             dir: RootDiskDirectory::at(&path),
-            path: path,
+            path,
         }
     }
 }

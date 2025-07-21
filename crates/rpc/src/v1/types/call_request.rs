@@ -54,20 +54,20 @@ pub struct CallRequest {
     pub max_priority_fee_per_gas: Option<U256>,
 }
 
-impl Into<Request> for CallRequest {
-    fn into(self) -> Request {
+impl From<CallRequest> for Request {
+    fn from(val: CallRequest) -> Self {
         Request {
-            transaction_type: self.transaction_type,
-            from: self.from.map(Into::into),
-            to: self.to.map(Into::into),
-            gas_price: self.gas_price.map(Into::into),
-            max_fee_per_gas: self.max_fee_per_gas,
-            gas: self.gas.map(Into::into),
-            value: self.value.map(Into::into),
-            data: self.data.map(Into::into),
-            nonce: self.nonce.map(Into::into),
-            access_list: self.access_list.map(Into::into),
-            max_priority_fee_per_gas: self.max_priority_fee_per_gas.map(Into::into),
+            transaction_type: val.transaction_type,
+            from: val.from,
+            to: val.to,
+            gas_price: val.gas_price,
+            max_fee_per_gas: val.max_fee_per_gas,
+            gas: val.gas,
+            value: val.value,
+            data: val.data.map(Into::into),
+            nonce: val.nonce,
+            access_list: val.access_list,
+            max_priority_fee_per_gas: val.max_priority_fee_per_gas,
         }
     }
 }

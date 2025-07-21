@@ -55,7 +55,7 @@ const MAX_TRANSACTION_SIZE: usize = 300 * 1024;
 
 // helper for formatting errors.
 fn fmt_err<F: ::std::fmt::Display>(f: F) -> String {
-    format!("Spec json is invalid: {}", f)
+    format!("Spec json is invalid: {f}")
 }
 
 /// Parameters common to ethereum-like blockchains.
@@ -235,7 +235,7 @@ impl CommonParams {
         schedule.have_extcodehash = block_number >= self.eip1052_transition;
         schedule.have_chain_id = block_number >= self.eip1344_transition;
         schedule.eip1283 = (block_number >= self.eip1283_transition
-            && !(block_number >= self.eip1283_disable_transition))
+            && (block_number < self.eip1283_disable_transition))
             || block_number >= self.eip1283_reenable_transition;
         schedule.eip1706 = block_number >= self.eip1706_transition;
         schedule.have_subs = block_number >= self.eip2315_transition;
@@ -581,21 +581,21 @@ impl Clone for Spec {
             engine: self.engine.clone(),
             data_dir: self.data_dir.clone(),
             nodes: self.nodes.clone(),
-            parent_hash: self.parent_hash.clone(),
-            transactions_root: self.transactions_root.clone(),
-            receipts_root: self.receipts_root.clone(),
-            author: self.author.clone(),
-            difficulty: self.difficulty.clone(),
-            gas_limit: self.gas_limit.clone(),
-            gas_used: self.gas_used.clone(),
-            timestamp: self.timestamp.clone(),
+            parent_hash: self.parent_hash,
+            transactions_root: self.transactions_root,
+            receipts_root: self.receipts_root,
+            author: self.author,
+            difficulty: self.difficulty,
+            gas_limit: self.gas_limit,
+            gas_used: self.gas_used,
+            timestamp: self.timestamp,
             extra_data: self.extra_data.clone(),
             seal_rlp: self.seal_rlp.clone(),
             hard_forks: self.hard_forks.clone(),
             constructors: self.constructors.clone(),
             state_root_memo: RwLock::new(*self.state_root_memo.read()),
             genesis_state: self.genesis_state.clone(),
-            base_fee: self.base_fee.clone(),
+            base_fee: self.base_fee,
         }
     }
 }
@@ -640,10 +640,10 @@ fn load_from(spec_params: SpecParams, s: ethjson::spec::Spec) -> Result<Spec, Er
     let (engine, hard_forks) = Spec::engine(spec_params, s.engine, params, builtins);
 
     let mut s = Spec {
-        name: s.name.clone().into(),
+        name: s.name.clone(),
         engine,
-        data_dir: s.data_dir.unwrap_or(s.name).into(),
-        nodes: s.nodes.unwrap_or_else(Vec::new),
+        data_dir: s.data_dir.unwrap_or(s.name),
+        nodes: s.nodes.unwrap_or_default(),
         parent_hash: g.parent_hash,
         transactions_root: g.transactions_root,
         receipts_root: g.receipts_root,
@@ -653,7 +653,7 @@ fn load_from(spec_params: SpecParams, s: ethjson::spec::Spec) -> Result<Spec, Er
         gas_used: g.gas_used,
         timestamp: g.timestamp,
         extra_data: g.extra_data,
-        seal_rlp: seal_rlp,
+        seal_rlp,
         base_fee: g.base_fee,
         hard_forks,
         constructors: s
@@ -863,15 +863,15 @@ impl Spec {
 
             if !self.constructors.is_empty() {
                 let from = Address::default();
-                for &(ref address, ref constructor) in self.constructors.iter() {
-                    trace!(target: "spec", "run_constructors: Creating a contract at {}.", address);
+                for (address, constructor) in self.constructors.iter() {
+                    trace!(target: "spec", "run_constructors: Creating a contract at {address}.");
                     trace!(target: "spec", "  .. root before = {}", state.root());
                     let params = ActionParams {
-                        code_address: address.clone(),
+                        code_address: *address,
                         code_hash: Some(keccak(constructor)),
-                        address: address.clone(),
-                        sender: from.clone(),
-                        origin: from.clone(),
+                        address: *address,
+                        sender: from,
+                        origin: from,
                         gas: U256::max_value(),
                         gas_price: Default::default(),
                         value: ActionValue::Transfer(Default::default()),
@@ -887,16 +887,16 @@ impl Spec {
                     {
                         let machine = self.engine.machine();
                         let schedule = machine.schedule(env_info.number);
-                        let mut exec = Executive::new(&mut state, &env_info, &machine, &schedule);
+                        let mut exec = Executive::new(&mut state, &env_info, machine, &schedule);
                         if let Err(e) =
                             exec.create(params, &mut substate, &mut NoopTracer, &mut NoopVMTracer)
                         {
-                            warn!(target: "spec", "Genesis constructor execution at {} failed: {}.", address, e);
+                            warn!(target: "spec", "Genesis constructor execution at {address} failed: {e}.");
                         }
                     }
 
                     if let Err(e) = state.commit() {
-                        warn!(target: "spec", "Genesis constructor trie commit at {} failed: {}.", address, e);
+                        warn!(target: "spec", "Genesis constructor trie commit at {address} failed: {e}.");
                     }
 
                     trace!(target: "spec", "  .. root after = {}", state.root());
@@ -914,12 +914,12 @@ impl Spec {
 
     /// Return the state root for the genesis state, memoising accordingly.
     pub fn state_root(&self) -> H256 {
-        self.state_root_memo.read().clone()
+        *self.state_root_memo.read()
     }
 
     /// Get common blockchain parameters.
     pub fn params(&self) -> &CommonParams {
-        &self.engine.params()
+        self.engine.params()
     }
 
     /// Get the known knodes of the network in enode format.
@@ -950,24 +950,24 @@ impl Spec {
     /// Get the header of the genesis block.
     pub fn genesis_header(&self) -> Header {
         let mut header: Header = Default::default();
-        header.set_parent_hash(self.parent_hash.clone());
+        header.set_parent_hash(self.parent_hash);
         header.set_timestamp(self.timestamp);
         header.set_number(0);
-        header.set_author(self.author.clone());
-        header.set_transactions_root(self.transactions_root.clone());
+        header.set_author(self.author);
+        header.set_transactions_root(self.transactions_root);
         header.set_uncles_hash(keccak(RlpStream::new_list(0).out()));
         header.set_extra_data(self.extra_data.clone());
         header.set_state_root(self.state_root());
-        header.set_receipts_root(self.receipts_root.clone());
+        header.set_receipts_root(self.receipts_root);
         header.set_log_bloom(Bloom::default());
-        header.set_gas_used(self.gas_used.clone());
-        header.set_gas_limit(self.gas_limit.clone());
-        header.set_difficulty(self.difficulty.clone());
+        header.set_gas_used(self.gas_used);
+        header.set_gas_limit(self.gas_limit);
+        header.set_difficulty(self.difficulty);
         header.set_seal({
             let r = Rlp::new(&self.seal_rlp);
             r.iter().map(|f| f.as_raw().to_vec()).collect()
         });
-        header.set_base_fee(self.base_fee.clone());
+        header.set_base_fee(self.base_fee);
         trace!(target: "spec", "Header hash is {}", header.hash());
         header
     }
@@ -1068,7 +1068,7 @@ impl Spec {
         );
 
         self.ensure_db_good(BasicBackend(db.as_hash_db_mut()), &factories)
-            .map_err(|e| format!("Unable to initialize genesis state: {}", e))?;
+            .map_err(|e| format!("Unable to initialize genesis state: {e}"))?;
 
         let call = |a, d| {
             let mut db = db.boxed_clone();

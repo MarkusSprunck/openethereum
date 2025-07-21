@@ -169,11 +169,11 @@ pub fn take_snapshot<W: SnapshotWriter + Send>(
 ) -> Result<(), Error> {
     let start_header = chain
         .block_header_data(&block_hash)
-        .ok_or_else(|| Error::InvalidStartingBlock(BlockId::Hash(block_hash)))?;
+        .ok_or(Error::InvalidStartingBlock(BlockId::Hash(block_hash)))?;
     let state_root = start_header.state_root();
     let block_number = start_header.number();
 
-    info!("Taking snapshot starting at block {}", block_number);
+    info!("Taking snapshot starting at block {block_number}");
 
     let version = chunker.current_version();
     let writer = Mutex::new(writer);
@@ -186,7 +186,7 @@ pub fn take_snapshot<W: SnapshotWriter + Send>(
 		// The number of threads must be between 1 and SNAPSHOT_SUBPARTS
 		assert!(processing_threads >= 1, "Cannot use less than 1 threads for creating snapshots");
 		let num_threads: usize = cmp::min(processing_threads, SNAPSHOT_SUBPARTS);
-		info!(target: "snapshot", "Using {} threads for Snapshot creation.", num_threads);
+		info!(target: "snapshot", "Using {num_threads} threads for Snapshot creation.");
 
 		let mut state_guards = Vec::with_capacity(num_threads as usize);
 
@@ -195,7 +195,7 @@ pub fn take_snapshot<W: SnapshotWriter + Send>(
 				let mut chunk_hashes = Vec::new();
 
 				for part in (thread_idx..SNAPSHOT_SUBPARTS).step_by(num_threads) {
-					debug!(target: "snapshot", "Chunking part {} in thread {}", part, thread_idx);
+					debug!(target: "snapshot", "Chunking part {part} in thread {thread_idx}");
 					let mut hashes = chunk_state(state_db, &state_root, writer, p, Some(part), thread_idx)?;
 					chunk_hashes.append(&mut hashes);
 				}
@@ -255,7 +255,7 @@ pub fn chunk_secondary<'a>(
         let mut chunk_sink = |raw_data: &[u8]| {
             let compressed_size = snappy::compress_into(raw_data, &mut snappy_buffer);
             let compressed = &snappy_buffer[..compressed_size];
-            let hash = keccak(&compressed);
+            let hash = keccak(compressed);
             let size = compressed.len();
 
             writer.lock().write_block_chunk(hash, compressed)?;
@@ -315,7 +315,7 @@ impl<'a> StateChunker<'a> {
 
         let compressed_size = snappy::compress_into(&raw_data, &mut self.snappy_buffer);
         let compressed = &self.snappy_buffer[..compressed_size];
-        let hash = keccak(&compressed);
+        let hash = keccak(compressed);
 
         self.writer.lock().write_state_chunk(hash, compressed)?;
         trace!(target: "snapshot", "Thread {} wrote state chunk. size: {}, uncompressed size: {}", self.thread_idx, compressed_size, raw_data.len());
@@ -354,7 +354,7 @@ pub fn chunk_state<'a>(
     part: Option<usize>,
     thread_idx: usize,
 ) -> Result<Vec<H256>, Error> {
-    let account_trie = TrieDB::new(&db, &root)?;
+    let account_trie = TrieDB::new(&db, root)?;
 
     let mut chunker = StateChunker {
         hashes: Vec::new(),
@@ -394,11 +394,11 @@ pub fn chunk_state<'a>(
         let (account_key, account_data) = item?;
         let account_key_hash = H256::from_slice(&account_key);
 
-        if seek_to.map_or(false, |seek_to| account_key[0] >= seek_to) {
+        if seek_to.is_some_and(|seek_to| account_key[0] >= seek_to) {
             break;
         }
 
-        let account = ::rlp::decode(&*account_data)?;
+        let account = ::rlp::decode(&account_data)?;
         let account_db = AccountDB::from_hash(db, account_key_hash);
 
         let fat_rlps = account::to_fat_rlps(
@@ -466,17 +466,13 @@ impl StateRebuilder {
         for (addr_hash, code_hash) in status.missing_code {
             self.missing_code
                 .entry(code_hash)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(addr_hash);
         }
 
         // patch up all missing code. must be done after collecting all new missing code entries.
         for (code_hash, code, first_with) in status.new_code {
-            for addr_hash in self
-                .missing_code
-                .remove(&code_hash)
-                .unwrap_or_else(Vec::new)
-            {
+            for addr_hash in self.missing_code.remove(&code_hash).unwrap_or_default() {
                 let mut db = AccountDBMut::from_hash(self.db.as_hash_db_mut(), addr_hash);
                 db.emplace(code_hash, DBValue::from_slice(&code));
             }
@@ -566,7 +562,7 @@ fn rebuild_accounts(
                 account::from_fat_rlp(&mut acct_db, fat_rlp, storage_root)?
             };
 
-            let code_hash = acc.code_hash.clone();
+            let code_hash = acc.code_hash;
             match maybe_code {
                 // new inline code
                 Some(code) => status.new_code.push((code_hash, code, hash)),
@@ -595,10 +591,10 @@ fn rebuild_accounts(
 
         *out = (hash, thin_rlp);
     }
-    if let Some(&(ref hash, ref rlp)) = out_chunk.iter().last() {
+    if let Some((hash, rlp)) = out_chunk.iter().last() {
         known_storage_roots.insert(*hash, ::rlp::decode::<BasicAccount>(rlp)?.storage_root);
     }
-    if let Some(&(ref hash, ref rlp)) = out_chunk.iter().next() {
+    if let Some((hash, rlp)) = out_chunk.iter().next() {
         known_storage_roots.insert(*hash, ::rlp::decode::<BasicAccount>(rlp)?.storage_root);
     }
     Ok(status)

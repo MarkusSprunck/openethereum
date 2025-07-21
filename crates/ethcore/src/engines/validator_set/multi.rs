@@ -63,7 +63,7 @@ impl Multi {
         {
             Ok((_, set)) => Some(set),
             Err(e) => {
-                debug!(target: "engine", "ValidatorSet could not be recovered: {}", e);
+                debug!(target: "engine", "ValidatorSet could not be recovered: {e}");
                 None
             }
         }
@@ -79,7 +79,7 @@ impl Multi {
 					 block 0 is less than any uint;
 					 qed");
 
-        trace!(target: "engine", "Multi ValidatorSet retrieved for block {}.", block);
+        trace!(target: "engine", "Multi ValidatorSet retrieved for block {block}.");
         (*block, &**set)
     }
 }
@@ -158,7 +158,7 @@ impl ValidatorSet for Multi {
 
     fn contains_with_caller(&self, bh: &H256, address: &Address, caller: &Call) -> bool {
         self.correct_set(BlockId::Hash(*bh))
-            .map_or(false, |set| set.contains_with_caller(bh, address, caller))
+            .is_some_and(|set| set.contains_with_caller(bh, address, caller))
     }
 
     fn get_with_caller(&self, bh: &H256, nonce: usize, caller: &Call) -> Address {

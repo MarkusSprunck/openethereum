@@ -46,7 +46,7 @@ impl<'a> TypedTransactionView<'a> {
     pub fn new(rlp: ViewRlp<'a>) -> TypedTransactionView<'a> {
         let transaction_type = Self::extract_transaction_type(&rlp.rlp);
         TypedTransactionView {
-            rlp: rlp,
+            rlp,
             transaction_type,
         }
     }

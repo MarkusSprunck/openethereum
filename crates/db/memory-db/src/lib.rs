@@ -24,7 +24,7 @@ use hash_db::{AsHashDB, AsPlainDB, HashDB, HashDBRef, Hasher as KeyHasher, Plain
 use parity_util_mem::MallocSizeOf;
 use std::{
     collections::{hash_map::Entry, HashMap},
-    hash, mem,
+    hash,
 };
 
 // Backing `HashMap` parametrized with a `Hasher` for the keys `Hasher::Out` and the `Hasher::StdHasher`
@@ -107,7 +107,7 @@ where
         if key == &self.hashed_null_node {
             return None;
         }
-        match self.data.entry(key.clone()) {
+        match self.data.entry(*key) {
             Entry::Occupied(mut entry) => {
                 if entry.get().1 == 1 {
                     Some(entry.remove().0)
@@ -189,7 +189,7 @@ where
 
     /// Return the internal map of hashes to data, clearing the current state.
     pub fn drain(&mut self) -> FastMap<H, (T, i32)> {
-        mem::replace(&mut self.data, FastMap::<H, _>::default())
+        std::mem::take(&mut self.data)
     }
 
     /// Grab the raw information associated with a key. Returns None if the key
@@ -337,11 +337,11 @@ where
 
     fn insert(&mut self, value: &[u8]) -> H::Out {
         if T::from(value) == self.null_node_data {
-            return self.hashed_null_node.clone();
+            return self.hashed_null_node;
         }
 
         let key = H::hash(value);
-        PlainDB::emplace(self, key.clone(), value.into());
+        PlainDB::emplace(self, key, value.into());
 
         key
     }

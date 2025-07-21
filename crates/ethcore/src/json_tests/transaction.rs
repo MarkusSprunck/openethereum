@@ -33,10 +33,12 @@ pub fn json_transaction_test<H: FnMut(&str, HookType)>(
     // Make sure that all the specified features are activated.
     const BLOCK_NUMBER: u64 = 0x6ffffffffffffe;
 
-    let tests = ethjson::transaction::Test::load(json_data).expect(&format!(
-        "Could not parse JSON transaction test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::transaction::Test::load(json_data).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON transaction test data from {}",
+            path.display()
+        )
+    });
     let mut failed = Vec::new();
     for (name, test) in tests.into_iter() {
         if !super::debug_include_test(&name) {
@@ -45,24 +47,21 @@ pub fn json_transaction_test<H: FnMut(&str, HookType)>(
 
         start_stop_hook(&name, HookType::OnStart);
 
-        println!("   - tx: {} ", name);
+        println!("   - tx: {name} ");
 
         for (spec_name, result) in test.post_state {
             let spec = match EvmTestClient::spec_from_json(&spec_name) {
                 Some(spec) => spec,
                 None => {
-                    failed.push(format!("{}-{:?} (missing spec)", name, spec_name));
+                    failed.push(format!("{name}-{spec_name:?} (missing spec)"));
                     continue;
                 }
             };
 
             let mut fail_unless = |cond: bool, title: &str| {
                 if !cond {
-                    failed.push(format!("{}-{:?}", name, spec_name));
-                    println!(
-                        "Transaction failed: {:?}-{:?}: {:?}",
-                        name, spec_name, title
-                    );
+                    failed.push(format!("{name}-{spec_name:?}"));
+                    println!("Transaction failed: {name:?}-{spec_name:?}: {title:?}");
                 }
             };
 
@@ -96,7 +95,7 @@ pub fn json_transaction_test<H: FnMut(&str, HookType)>(
                 }
                 (Err(_), None, None) => {}
                 data => {
-                    fail_unless(false, &format!("Validity different: {:?}", data));
+                    fail_unless(false, &format!("Validity different: {data:?}"));
                 }
             }
         }
@@ -105,7 +104,7 @@ pub fn json_transaction_test<H: FnMut(&str, HookType)>(
     }
 
     for f in &failed {
-        println!("FAILED: {:?}", f);
+        println!("FAILED: {f:?}");
     }
     failed
 }

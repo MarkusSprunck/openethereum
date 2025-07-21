@@ -33,9 +33,7 @@ pub struct SimpleList {
 impl SimpleList {
     /// Create a new `SimpleList`.
     pub fn new(validators: Vec<Address>) -> Self {
-        SimpleList {
-            validators: validators,
-        }
+        SimpleList { validators }
     }
 
     /// Convert into inner representation.
@@ -54,9 +52,7 @@ impl ::std::ops::Deref for SimpleList {
 
 impl From<Vec<Address>> for SimpleList {
     fn from(validators: Vec<Address>) -> Self {
-        SimpleList {
-            validators: validators,
-        }
+        SimpleList { validators }
     }
 }
 
@@ -115,7 +111,7 @@ impl ValidatorSet for SimpleList {
             panic!("Cannot operate with an empty validator set.");
         }
 
-        self.validators.get(nonce % validator_n).expect("There are validator_n authorities; taking number modulo validator_n gives number in validator_n range; qed").clone()
+        *self.validators.get(nonce % validator_n).expect("There are validator_n authorities; taking number modulo validator_n gives number in validator_n range; qed")
     }
 
     fn count_with_caller(&self, _bh: &H256, _: &Call) -> usize {
@@ -139,7 +135,7 @@ mod tests {
     fn simple_list() {
         let a1 = Address::from_str("cd1722f3947def4cf144679da39c4c32bdc35681").unwrap();
         let a2 = Address::from_str("0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6").unwrap();
-        let list = SimpleList::new(vec![a1.clone(), a2.clone()]);
+        let list = SimpleList::new(vec![a1, a2]);
         assert!(list.contains(&Default::default(), &a1));
         assert_eq!(list.get(&Default::default(), 0), a1);
         assert_eq!(list.get(&Default::default(), 1), a2);

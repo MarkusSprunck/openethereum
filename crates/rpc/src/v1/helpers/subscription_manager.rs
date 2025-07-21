@@ -46,7 +46,7 @@ struct Subscription {
 }
 
 /// A struct managing all subscriptions.
-/// TODO [ToDr] Depending on the method decide on poll interval.
+/// TODO [`ToDr`] Depending on the method decide on poll interval.
 /// For most of the methods it will be enough to poll on new block instead of time-interval.
 pub struct GenericPollManager<S: core::Middleware<Metadata>> {
     subscribers: Subscribers<Subscription>,
@@ -93,7 +93,7 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
     }
 
     pub fn unsubscribe(&mut self, id: &SubscriptionId) -> bool {
-        debug!(target: "pubsub", "Removing subscription: {:?}", id);
+        debug!(target: "pubsub", "Removing subscription: {id:?}");
         self.subscribers
             .remove(id)
             .map(|subscription| {
@@ -115,7 +115,7 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
                 method: subscription.method.clone(),
                 params: subscription.params.clone(),
             };
-            trace!(target: "pubsub", "Polling method: {:?}", call);
+            trace!(target: "pubsub", "Polling method: {call:?}");
             let result = self
                 .rpc
                 .handle_call(call.into(), subscription.metadata.clone());
@@ -132,7 +132,7 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
                 let mut last_result = last_result.1.lock();
                 if *last_result != response && response.is_some() {
                     let output = response.expect("Existence proved by the condition.");
-                    debug!(target: "pubsub", "Got new response, sending: {:?}", output);
+                    debug!(target: "pubsub", "Got new response, sending: {output:?}");
                     *last_result = Some(output.clone());
 
                     let send = match output {
@@ -141,12 +141,12 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
                     };
                     Either::A(sender.send(send).map(|_| ()).map_err(|_| ()))
                 } else {
-                    trace!(target: "pubsub", "Response was not changed: {:?}", response);
+                    trace!(target: "pubsub", "Response was not changed: {response:?}");
                     Either::B(future::ok(()))
                 }
             });
 
-            futures.push(result)
+            futures.push(result);
         }
 
         // return a future represeting all the polls
@@ -171,11 +171,11 @@ mod tests {
         let mut io = MetaIoHandler::default();
         let called = AtomicBool::new(false);
         io.add_method("hello", move |_| {
-            if !called.load(atomic::Ordering::SeqCst) {
+            if called.load(atomic::Ordering::SeqCst) {
+                Ok(Value::String("world".into()))
+            } else {
                 called.store(true, atomic::Ordering::SeqCst);
                 Ok(Value::String("hello".into()))
-            } else {
-                Ok(Value::String("world".into()))
             }
         });
         GenericPollManager::new_test(io)

@@ -135,7 +135,7 @@ impl Migration for AddsColumn {
     ) -> io::Result<()> {
         let mut batch = Batch::new(config, col);
 
-        for (key, value) in source.iter(col).into_iter().flat_map(|inner| inner) {
+        for (key, value) in source.iter(col).into_iter().flatten() {
             batch.insert(key.into_vec(), value.into_vec(), dest)?;
         }
 

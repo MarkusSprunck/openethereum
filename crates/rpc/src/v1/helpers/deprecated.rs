@@ -45,10 +45,8 @@ pub struct DeprecationNotice<T = fn() -> Instant> {
 impl Default for DeprecationNotice {
     fn default() -> Self {
         Self::new(Instant::now, |method, more| {
-            let more = more
-                .map(|x| format!(": {}", x))
-                .unwrap_or_else(|| ".".into());
-            warn!(target: "rpc", "{} is deprecated and will be removed in future versions{}", method, more);
+            let more = more.map_or_else(|| ".".into(), |x| format!(": {x}"));
+            warn!(target: "rpc", "{method} is deprecated and will be removed in future versions{more}");
         })
     }
 }
@@ -92,21 +90,21 @@ mod tests {
         let saved = Arc::new(RwLock::new(None));
         let s = saved.clone();
         let printer = move |method: MethodName, more: Option<&str>| {
-            *s.write() = Some((method, more.map(|s| s.to_owned())));
+            *s.write() = Some((method, more.map(std::borrow::ToOwned::to_owned)));
         };
 
         let now = Arc::new(RwLock::new(Instant::now()));
         let n = now.clone();
-        let get_now = || n.read().clone();
+        let get_now = || *n.read();
         let notice = DeprecationNotice::new(get_now, printer);
 
         let details = Some("See issue #123456");
-        notice.print("eth_test", details.clone());
+        notice.print("eth_test", details);
         // printer shouldn't be called
         notice.print("eth_test", None);
         assert_eq!(
             saved.read().clone().unwrap(),
-            ("eth_test", details.as_ref().map(|x| x.to_string()))
+            ("eth_test", details.as_ref().map(|x| (*x).to_string()))
         );
         // but calling a different method is fine
         notice.print("eth_test2", None);

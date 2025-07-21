@@ -76,7 +76,7 @@ impl From<ActionParams> for Call {
                 to: p.code_address,
                 value: p.value.value(),
                 gas: p.gas,
-                input: p.data.unwrap_or_else(Vec::new),
+                input: p.data.unwrap_or_default(),
                 call_type: p.call_type,
             },
             _ => Call {
@@ -84,7 +84,7 @@ impl From<ActionParams> for Call {
                 to: p.address,
                 value: p.value.value(),
                 gas: p.gas,
-                input: p.data.unwrap_or_else(Vec::new),
+                input: p.data.unwrap_or_default(),
                 call_type: p.call_type,
             },
         }

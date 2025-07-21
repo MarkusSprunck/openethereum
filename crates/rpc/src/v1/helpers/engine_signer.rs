@@ -20,7 +20,7 @@ use accounts::AccountProvider;
 use crypto::publickey::{self, Address, Error, Public};
 use ethkey::Password;
 
-/// An implementation of EngineSigner using internal account management.
+/// An implementation of `EngineSigner` using internal account management.
 pub struct EngineSigner {
     accounts: Arc<AccountProvider>,
     address: Address,
@@ -53,7 +53,7 @@ impl ethcore::engines::EngineSigner for EngineSigner {
         self.accounts
             .decrypt(self.address, None, auth_data, cipher)
             .map_err(|e| {
-                warn!("Unable to decrypt message: {:?}", e);
+                warn!("Unable to decrypt message: {e:?}");
                 Error::InvalidMessage
             })
     }

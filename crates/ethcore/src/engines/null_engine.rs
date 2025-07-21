@@ -54,10 +54,7 @@ pub struct NullEngine<M> {
 impl<M> NullEngine<M> {
     /// Returns new instance of NullEngine with default VM Factory
     pub fn new(params: NullEngineParams, machine: M) -> Self {
-        NullEngine {
-            params: params,
-            machine: machine,
-        }
+        NullEngine { params, machine }
     }
 }
 

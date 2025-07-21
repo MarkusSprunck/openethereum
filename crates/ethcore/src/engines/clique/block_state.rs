@@ -114,11 +114,8 @@ impl fmt::Display for CliqueBlockState {
             })
             .collect();
 
-        let recent_signers: Vec<String> = self
-            .recent_signers
-            .iter()
-            .map(|s| format!("{}", s))
-            .collect();
+        let recent_signers: Vec<String> =
+            self.recent_signers.iter().map(|s| format!("{s}")).collect();
         let num_votes = self.votes_history.len();
         let add_votes = self
             .votes_history
@@ -133,9 +130,8 @@ impl fmt::Display for CliqueBlockState {
         let reverted_votes = self.votes_history.iter().filter(|v| v.reverted).count();
 
         write!(f,
-			"Votes {{ \n signers: {:?} \n recent_signers: {:?} \n number of votes: {} \n number of add votes {}
-			\r number of remove votes {} \n number of reverted votes: {}}}",
-			signers, recent_signers, num_votes, add_votes, rm_votes, reverted_votes)
+			"Votes {{ \n signers: {signers:?} \n recent_signers: {recent_signers:?} \n number of votes: {num_votes} \n number of add votes {add_votes}
+			\r number of remove votes {rm_votes} \n number of reverted votes: {reverted_votes}}}")
     }
 }
 
@@ -150,17 +146,17 @@ impl CliqueBlockState {
 
     // see https://github.com/ethereum/go-ethereum/blob/master/consensus/clique/clique.go#L474
     fn verify(&self, header: &Header) -> Result<Address, Error> {
-        let creator = recover_creator(header)?.clone();
+        let creator = recover_creator(header)?;
 
         // The signer is not authorized
         if !self.signers.contains(&creator) {
-            trace!(target: "engine", "current state: {}", self);
+            trace!(target: "engine", "current state: {self}");
             Err(EngineError::NotAuthorized(creator))?
         }
 
         // The signer has signed a block too recently
         if self.recent_signers.contains(&creator) {
-            trace!(target: "engine", "current state: {}", self);
+            trace!(target: "engine", "current state: {self}");
             Err(EngineError::CliqueTooRecentlySigned(creator))?
         }
 
@@ -197,7 +193,7 @@ impl CliqueBlockState {
                 let invalid_signers: Vec<String> = signers
                     .into_iter()
                     .filter(|s| !self.signers.contains(s))
-                    .map(|s| format!("{}", s))
+                    .map(|s| format!("{s}"))
                     .collect();
                 Err(EngineError::CliqueFaultyRecoveredSigners(invalid_signers))?
             };
@@ -240,7 +236,7 @@ impl CliqueBlockState {
         beneficiary: Address,
         block_number: u64,
     ) -> Result<(), Error> {
-        trace!(target: "engine", "Attempt vote {:?} {:?}", kind, beneficiary);
+        trace!(target: "engine", "Attempt vote {kind:?} {beneficiary:?}");
 
         let pending_vote = PendingVote {
             signer,
@@ -272,18 +268,18 @@ impl CliqueBlockState {
         let threshold = self.signers.len() / 2;
 
         debug!(target: "engine", "{}/{} votes to have consensus", votes, threshold + 1);
-        trace!(target: "engine", "votes: {:?}", votes);
+        trace!(target: "engine", "votes: {votes:?}");
 
         if votes > threshold {
             match vote_kind {
                 VoteType::Add => {
                     if self.signers.insert(beneficiary) {
-                        debug!(target: "engine", "added new signer: {}", beneficiary);
+                        debug!(target: "engine", "added new signer: {beneficiary}");
                     }
                 }
                 VoteType::Remove => {
                     if self.signers.remove(&beneficiary) {
-                        debug!(target: "engine", "removed signer: {}", beneficiary);
+                        debug!(target: "engine", "removed signer: {beneficiary}");
                     }
                 }
             }
@@ -395,13 +391,13 @@ impl CliqueBlockState {
     }
 
     fn rotate_recent_signers(&mut self) {
-        if self.recent_signers.len() >= (self.signers.len() / 2) + 1 {
+        if self.recent_signers.len() > (self.signers.len() / 2) {
             self.recent_signers.pop_back();
         }
     }
 
     fn remove_all_votes_from(&mut self, beneficiary: Address) {
-        self.votes = std::mem::replace(&mut self.votes, HashMap::new())
+        self.votes = std::mem::take(&mut self.votes)
             .into_iter()
             .filter(|(v, _t)| v.signer != beneficiary && v.beneficiary != beneficiary)
             .collect();

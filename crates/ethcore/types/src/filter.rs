@@ -55,8 +55,8 @@ impl Clone for Filter {
         }
 
         Filter {
-            from_block: self.from_block.clone(),
-            to_block: self.to_block.clone(),
+            from_block: self.from_block,
+            to_block: self.to_block,
             address: self.address.clone(),
             topics: topics[..].to_vec(),
             limit: self.limit,
@@ -70,7 +70,7 @@ impl Filter {
         let blooms = match self.address {
             Some(ref addresses) if !addresses.is_empty() => addresses
                 .iter()
-                .map(|ref address| Bloom::from(BloomInput::Raw(address.as_bytes())))
+                .map(|address| Bloom::from(BloomInput::Raw(address.as_bytes())))
                 .collect(),
             _ => vec![Bloom::default()],
         };
@@ -81,9 +81,9 @@ impl Filter {
                 .into_iter()
                 .flat_map(|bloom| {
                     topics
-                        .into_iter()
+                        .iter()
                         .map(|topic| {
-                            let mut b = bloom.clone();
+                            let mut b = bloom;
                             b.accrue(BloomInput::Raw(topic.as_bytes()));
                             b
                         })
@@ -295,8 +295,8 @@ mod tests {
             data: vec![],
         };
 
-        assert_eq!(filter.matches(&entry0), true);
-        assert_eq!(filter.matches(&entry1), false);
-        assert_eq!(filter.matches(&entry2), false);
+        assert!(filter.matches(&entry0));
+        assert!(!filter.matches(&entry1));
+        assert!(!filter.matches(&entry2));
     }
 }

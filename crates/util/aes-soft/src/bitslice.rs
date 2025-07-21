@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "cargo-clippy", allow(unreadable_literal))]
+#![allow(clippy::unreadable_literal)]
 
 use byteorder::{ByteOrder, LE};
 use consts::U32X4_1;
@@ -909,15 +909,15 @@ impl AesBitValueOps for u16 {
     }
 
     fn ror1(self) -> u16 {
-        self >> 4 | self << 12
+        self.rotate_right(4)
     }
 
     fn ror2(self) -> u16 {
-        self >> 8 | self << 8
+        self.rotate_left(8)
     }
 
     fn ror3(self) -> u16 {
-        self >> 12 | self << 4
+        self.rotate_left(4)
     }
 }
 
@@ -962,9 +962,9 @@ impl AesBitValueOps for u32x4 {
         let u32x4(a0, a1, a2, a3) = self;
         u32x4(
             a0,
-            a1 >> 8 | a1 << 24,
-            a2 >> 16 | a2 << 16,
-            a3 >> 24 | a3 << 8,
+            a1.rotate_right(8),
+            a2.rotate_left(16),
+            a3.rotate_left(8),
         )
     }
 
@@ -972,9 +972,9 @@ impl AesBitValueOps for u32x4 {
         let u32x4(a0, a1, a2, a3) = self;
         u32x4(
             a0,
-            a1 >> 24 | a1 << 8,
-            a2 >> 16 | a2 << 16,
-            a3 >> 8 | a3 << 24,
+            a1.rotate_left(8),
+            a2.rotate_left(16),
+            a3.rotate_right(8),
         )
     }
 

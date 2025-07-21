@@ -80,7 +80,7 @@ impl ValidatorContract {
             .block_header(BlockId::Latest)
             .ok_or("No latest block!")?;
         if !self.contains(&latest.parent_hash(), address) {
-            warn!(target: "engine", "Not reporting {} on block {}: Not a validator", address, block);
+            warn!(target: "engine", "Not reporting {address} on block {block}: Not a validator");
             return Ok(());
         }
         let data =
@@ -89,7 +89,7 @@ impl ValidatorContract {
             .enqueue_report(*address, block, data.clone());
         let gas_price = self.report_gas_price(latest.number());
         self.transact(data, gas_price, &*client)?;
-        warn!(target: "engine", "Reported malicious validator {} at block {}", address, block);
+        warn!(target: "engine", "Reported malicious validator {address} at block {block}");
         Ok(())
     }
 
@@ -106,7 +106,7 @@ impl ValidatorContract {
         let data = validator_report::functions::report_benign::encode_input(*address, block);
         let gas_price = self.report_gas_price(latest.number());
         self.transact(data, gas_price, &*client)?;
-        warn!(target: "engine", "Benign report for validator {} at block {}", address, block);
+        warn!(target: "engine", "Benign report for validator {address} at block {block}");
         Ok(())
     }
 
@@ -197,13 +197,13 @@ impl ValidatorSet for ValidatorContract {
         proof: Bytes,
     ) {
         if let Err(s) = self.do_report_malicious(address, block, proof) {
-            warn!(target: "engine", "Validator {} could not be reported ({}) on block {}", address, s, block);
+            warn!(target: "engine", "Validator {address} could not be reported ({s}) on block {block}");
         }
     }
 
     fn report_benign(&self, address: &Address, _set_block: BlockNumber, block: BlockNumber) {
         if let Err(s) = self.do_report_benign(address, block) {
-            warn!(target: "engine", "Validator {} could not be reported ({}) on block {}", address, s, block);
+            warn!(target: "engine", "Validator {address} could not be reported ({s}) on block {block}");
         }
     }
 

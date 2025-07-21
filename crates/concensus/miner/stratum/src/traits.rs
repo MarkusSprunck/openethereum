@@ -16,7 +16,6 @@
 
 use ethereum_types::H256;
 use jsonrpc_tcp_server::PushMessageError;
-use std;
 
 #[derive(Debug, Clone)]
 pub enum Error {
@@ -35,7 +34,7 @@ impl From<std::io::Error> for Error {
 
 impl From<PushMessageError> for Error {
     fn from(err: PushMessageError) -> Self {
-        Error::Tcp(format!("Push message error: {:?}", err))
+        Error::Tcp(format!("Push message error: {err:?}"))
     }
 }
 

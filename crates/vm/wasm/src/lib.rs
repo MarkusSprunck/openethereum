@@ -63,8 +63,8 @@ impl From<Trap> for Error {
 impl From<Error> for vm::Error {
     fn from(e: Error) -> Self {
         match e {
-            Error::Interpreter(e) => vm::Error::Wasm(format!("Wasm runtime error: {:?}", e)),
-            Error::Trap(e) => vm::Error::Wasm(format!("Wasm contract trap: {:?}", e)),
+            Error::Interpreter(e) => vm::Error::Wasm(format!("Wasm runtime error: {e:?}")),
+            Error::Trap(e) => vm::Error::Wasm(format!("Wasm contract trap: {e:?}")),
         }
     }
 }
@@ -82,7 +82,7 @@ impl WasmInterpreter {
 
 impl From<runtime::Error> for vm::Error {
     fn from(e: runtime::Error) -> Self {
-        vm::Error::Wasm(format!("Wasm runtime error: {:?}", e))
+        vm::Error::Wasm(format!("Wasm runtime error: {e:?}"))
     }
 }
 
@@ -119,7 +119,7 @@ impl WasmInterpreter {
         let initial_memory = instantiation_resolver
             .memory_size()
             .map_err(Error::Interpreter)?;
-        trace!(target: "wasm", "Contract requested {:?} pages of initial memory", initial_memory);
+        trace!(target: "wasm", "Contract requested {initial_memory:?} pages of initial memory");
 
         let (gas_left, result) = {
             let mut runtime = Runtime::with_params(
@@ -154,11 +154,11 @@ impl WasmInterpreter {
             let mut execution_outcome = ExecutionOutcome::NotSpecial;
             if let Err(InterpreterError::Trap(ref trap)) = invoke_result {
                 if let wasmi::TrapKind::Host(ref boxed) = *trap.kind() {
-                    let ref runtime_err = boxed
+                    let runtime_err = boxed
                         .downcast_ref::<runtime::Error>()
                         .expect("Host errors other than runtime::Error never produced; qed");
 
-                    match **runtime_err {
+                    match *runtime_err {
                         runtime::Error::Suicide => {
                             execution_outcome = ExecutionOutcome::Suicide;
                         }
@@ -171,7 +171,7 @@ impl WasmInterpreter {
             }
 
             if let (ExecutionOutcome::NotSpecial, Err(e)) = (execution_outcome, invoke_result) {
-                trace!(target: "wasm", "Error executing contract: {:?}", e);
+                trace!(target: "wasm", "Error executing contract: {e:?}");
                 return Err(vm::Error::from(Error::from(e)));
             }
 
@@ -192,7 +192,7 @@ impl WasmInterpreter {
         } else {
             let len = result.len();
             Ok(GasLeft::NeedsReturn {
-                gas_left: gas_left,
+                gas_left,
                 data: ReturnData::new(result, 0, len),
                 apply_state: true,
             })

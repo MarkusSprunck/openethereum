@@ -166,8 +166,8 @@ impl EthTester {
             _runtime: runtime,
             _snapshot: snapshot_service,
             accounts: account_provider,
-            client: client,
-            handler: handler,
+            client,
+            handler,
         }
     }
 }
@@ -297,7 +297,7 @@ fn eth_get_max_priority_fee_per_gas() {
     assert_eq!(
         tester.handler.handle_request_sync(request).unwrap(),
         response
-    )
+    );
 }
 
 #[test]
@@ -316,7 +316,7 @@ fn eth_get_block_by_hash() {
 }
 
 // a frontier-like test with an expanded gas limit and balance on known account.
-const TRANSACTION_COUNT_SPEC: &'static [u8] = br#"{
+const TRANSACTION_COUNT_SPEC: &[u8] = br#"{
 	"name": "Frontier (Test)",
 	"engine": {
 		"Ethash": {
@@ -364,7 +364,7 @@ const TRANSACTION_COUNT_SPEC: &'static [u8] = br#"{
 }
 "#;
 
-const POSITIVE_NONCE_SPEC: &'static [u8] = br#"{
+const POSITIVE_NONCE_SPEC: &[u8] = br#"{
 	"name": "Frontier (Test)",
 	"engine": {
 		"Ethash": {
@@ -431,7 +431,7 @@ fn eth_transaction_count() {
 		"method": "eth_getTransactionCount",
 		"params": [""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"", "latest"],
 		"id": 15
 	}"#;
@@ -449,7 +449,7 @@ fn eth_transaction_count() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x30000",
@@ -468,7 +468,7 @@ fn eth_transaction_count() {
 		"method": "eth_getTransactionCount",
 		"params": [""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"", "latest"],
 		"id": 17
 	}"#;
@@ -489,7 +489,7 @@ fn eth_transaction_count() {
 		"method": "eth_getTransactionCount",
 		"params": [""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"", "pending"],
 		"id": 18
 	}"#;
@@ -524,18 +524,18 @@ fn verify_transaction_counts(name: String, chain: BlockChain) {
 			"params": [
 				""#
         .to_owned()
-            + format!("0x{:x}", hash).as_ref()
+            + format!("0x{hash:x}").as_ref()
             + r#""
 			],
 			"id": "# + format!("{}", *id).as_ref()
-            + r#"
-		}"#;
+            + r"
+		}";
 
         let res = r#"{"jsonrpc":"2.0","result":""#.to_owned()
-            + format!("0x{:x}", count).as_ref()
+            + format!("0x{count:x}").as_ref()
             + r#"","id":"#
             + format!("{}", *id).as_ref()
-            + r#"}"#;
+            + r"}";
         *id += 1;
         (req, res)
     }
@@ -551,14 +551,14 @@ fn verify_transaction_counts(name: String, chain: BlockChain) {
             + r#"
 			],
 			"id": "# + format!("{}", *id).as_ref()
-            + r#"
-		}"#;
+            + r"
+		}";
 
         let res = r#"{"jsonrpc":"2.0","result":""#.to_owned()
-            + format!("0x{:x}", count).as_ref()
+            + format!("0x{count:x}").as_ref()
             + r#"","id":"#
             + format!("{}", *id).as_ref()
-            + r#"}"#;
+            + r"}";
         *id += 1;
         (req, res)
     }
@@ -601,7 +601,7 @@ fn starting_nonce_test() {
 			"method": "eth_getTransactionCount",
 			"params": [""#
                 .to_owned()
-                + format!("0x{:x}", address).as_ref()
+                + format!("0x{address:x}").as_ref()
                 + r#"", "latest"],
 			"id": 15
 		}

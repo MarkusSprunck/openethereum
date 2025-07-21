@@ -186,7 +186,7 @@ impl DatabaseDirectories {
             gh,
             self.fork_name
                 .as_ref()
-                .map(|f| format!("-{}", f))
+                .map(|f| format!("-{f}"))
                 .unwrap_or_default()
         ))
     }
@@ -206,7 +206,7 @@ impl DatabaseDirectories {
     /// DB root path, named after genesis hash
     pub fn db_root_path(&self) -> PathBuf {
         let gh = H64::from_slice(&self.genesis_hash.as_bytes()[20..28]);
-        self.spec_root_path().join("db").join(format!("{:x}", gh))
+        self.spec_root_path().join("db").join(format!("{gh:x}"))
     }
 
     /// DB path
@@ -329,8 +329,8 @@ mod tests {
         let local_dir = super::default_local_path();
         let expected = Directories {
             base: replace_home(&data_dir, "$BASE"),
-            db: replace_home_and_local(&data_dir, &local_dir, { "$BASE/chains" }),
-            cache: replace_home_and_local(&data_dir, &local_dir, { "$BASE/cache" }),
+            db: replace_home_and_local(&data_dir, &local_dir, "$BASE/chains"),
+            cache: replace_home_and_local(&data_dir, &local_dir, "$BASE/cache"),
             keys: replace_home(&data_dir, "$BASE/keys"),
             signer: replace_home(&data_dir, "$BASE/signer"),
             secretstore: replace_home(&data_dir, "$BASE/secretstore"),

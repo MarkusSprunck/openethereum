@@ -51,12 +51,12 @@ impl BadBlocks {
                     unverified.uncles
                         .iter()
                         .enumerate()
-                        .map(|(index, uncle)| format!("[Uncle {}] {:?}", index, uncle))
+                        .map(|(index, uncle)| format!("[Uncle {index}] {uncle:?}"))
                         .join("\n"),
                     unverified.transactions
                         .iter()
                         .enumerate()
-                        .map(|(index, tx)| format!("[Tx {}] {:?}", index, tx))
+                        .map(|(index, tx)| format!("[Tx {index}] {tx:?}"))
                         .join("\n"),
                 );
                 self.last_blocks
@@ -64,7 +64,7 @@ impl BadBlocks {
                     .insert(unverified.header.hash(), (unverified, message));
             }
             Err(err) => {
-                error!(target: "client", "Bad undecodable block detected: {}\n{:?}", message, err);
+                error!(target: "client", "Bad undecodable block detected: {message}\n{err:?}");
             }
         }
     }

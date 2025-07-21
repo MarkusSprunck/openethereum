@@ -131,7 +131,7 @@ impl TransactionsStats {
             .filter(|(_, stats)| {
                 current_block_num.saturating_sub(stats.first_seen) > new_transactions_stats_period
             })
-            .map(|(hash, _)| hash.clone())
+            .map(|(hash, _)| *hash)
             .collect::<Vec<_>>();
 
         for hash in to_remove {

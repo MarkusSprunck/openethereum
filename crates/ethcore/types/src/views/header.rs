@@ -140,10 +140,10 @@ impl<'a> HeaderView<'a> {
     /// Returns block base fee. Should be called only for EIP1559 headers.
     /// If called for non EIP1559 header, returns garbage
     pub fn base_fee(&self) -> U256 {
-        match self.rlp.rlp.val_at::<U256>(self.rlp.item_count() - 1) {
-            Ok(base_fee) => base_fee,
-            Err(_) => Default::default(),
-        }
+        self.rlp
+            .rlp
+            .val_at::<U256>(self.rlp.item_count() - 1)
+            .unwrap_or_default()
     }
 
     /// Returns a vector of seal fields (RLP-decoded).

@@ -51,7 +51,7 @@ where
     A: Into<String>,
     B: Into<String>,
 {
-    Ok(http::ServerBuilder::with_meta_extractor(handler, extractor)
+    http::ServerBuilder::with_meta_extractor(handler, extractor)
         .keep_alive(keep_alive)
         .threads(threads)
         .cors(cors_domains)
@@ -59,7 +59,7 @@ where
         .health_api(health_api)
         .cors_allow_headers(http::cors::AccessControlAllowHeaders::Any)
         .max_request_body_size(max_payload * 1024 * 1024)
-        .start_http(addr)?)
+        .start_http(addr)
 }
 
 /// Same as `start_http`, but takes an additional `middleware` parameter that is introduced as a
@@ -84,7 +84,7 @@ where
     T: http::MetaExtractor<M>,
     R: http::RequestMiddleware,
 {
-    Ok(http::ServerBuilder::with_meta_extractor(handler, extractor)
+    http::ServerBuilder::with_meta_extractor(handler, extractor)
         .keep_alive(keep_alive)
         .threads(threads)
         .cors(cors_domains)
@@ -92,7 +92,7 @@ where
         .cors_allow_headers(http::cors::AccessControlAllowHeaders::Any)
         .max_request_body_size(max_payload * 1024 * 1024)
         .request_middleware(middleware)
-        .start_http(addr)?)
+        .start_http(addr)
 }
 
 /// Start IPC server listening on given path.

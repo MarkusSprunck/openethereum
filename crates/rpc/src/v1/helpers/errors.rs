@@ -104,7 +104,7 @@ pub fn account<T: fmt::Debug>(error: &str, details: T) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::ACCOUNT_ERROR),
         message: error.into(),
-        data: Some(Value::String(format!("{:?}", details))),
+        data: Some(Value::String(format!("{details:?}"))),
     }
 }
 
@@ -122,16 +122,16 @@ pub fn cannot_restart() -> Error {
 pub fn internal<T: fmt::Debug>(error: &str, data: T) -> Error {
     Error {
         code: ErrorCode::InternalError,
-        message: format!("Internal error occurred: {}", error),
-        data: Some(Value::String(format!("{:?}", data))),
+        message: format!("Internal error occurred: {error}"),
+        data: Some(Value::String(format!("{data:?}"))),
     }
 }
 
 pub fn invalid_params<T: fmt::Debug>(param: &str, details: T) -> Error {
     Error {
         code: ErrorCode::InvalidParams,
-        message: format!("Couldn't parse parameters: {}", param),
-        data: Some(Value::String(format!("{:?}", details))),
+        message: format!("Couldn't parse parameters: {param}"),
+        data: Some(Value::String(format!("{details:?}"))),
     }
 }
 
@@ -139,7 +139,7 @@ pub fn execution<T: fmt::Debug>(data: T) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::EXECUTION_ERROR),
         message: "Transaction execution error.".into(),
-        data: Some(Value::String(format!("{:?}", data))),
+        data: Some(Value::String(format!("{data:?}"))),
     }
 }
 
@@ -227,11 +227,11 @@ pub fn unavailable_block(no_ancient_block: bool, by_hash: bool) -> Error {
     }
 }
 
-pub fn check_block_number_existence<'a, T, C>(
-    client: &'a C,
+pub fn check_block_number_existence<T, C>(
+    client: &C,
     num: BlockNumber,
     options: EthClientOptions,
-) -> impl Fn(Option<T>) -> RpcResult<Option<T>> + 'a
+) -> impl Fn(Option<T>) -> RpcResult<Option<T>> + '_
 where
     C: BlockChainClient,
 {
@@ -251,10 +251,10 @@ where
     }
 }
 
-pub fn check_block_gap<'a, T, C>(
-    client: &'a C,
+pub fn check_block_gap<T, C>(
+    client: &C,
     options: EthClientOptions,
-) -> impl Fn(Option<T>) -> RpcResult<Option<T>> + 'a
+) -> impl Fn(Option<T>) -> RpcResult<Option<T>> + '_
 where
     C: BlockChainClient,
 {
@@ -321,7 +321,7 @@ pub fn encryption<T: fmt::Debug>(error: T) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::ENCRYPTION_ERROR),
         message: "Encryption error.".into(),
-        data: Some(Value::String(format!("{:?}", error))),
+        data: Some(Value::String(format!("{error:?}"))),
     }
 }
 
@@ -329,7 +329,7 @@ pub fn database<T: fmt::Debug>(error: T) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::DATABASE_ERROR),
         message: "Database error.".into(),
-        data: Some(Value::String(format!("{:?}", error))),
+        data: Some(Value::String(format!("{error:?}"))),
     }
 }
 
@@ -337,7 +337,7 @@ pub fn fetch<T: fmt::Debug>(error: T) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::FETCH_ERROR),
         message: "Error while fetching content.".into(),
-        data: Some(Value::String(format!("{:?}", error))),
+        data: Some(Value::String(format!("{error:?}"))),
     }
 }
 
@@ -345,7 +345,7 @@ pub fn fetch<T: fmt::Debug>(error: T) -> Error {
 pub fn invalid_call_data<T: fmt::Display>(error: T) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::ENCODING_ERROR),
-        message: format!("{}", error),
+        message: format!("{error}"),
         data: None,
     }
 }
@@ -355,7 +355,7 @@ pub fn signing(error: ::accounts::SignError) -> Error {
     Error {
 		code: ErrorCode::ServerError(codes::ACCOUNT_LOCKED),
 		message: "Your account is locked. Unlock the account via CLI, personal_unlockAccount or use Trusted Signer.".into(),
-		data: Some(Value::String(format!("{:?}", error))),
+		data: Some(Value::String(format!("{error:?}"))),
 	}
 }
 
@@ -364,41 +364,47 @@ pub fn password(error: ::accounts::SignError) -> Error {
     Error {
         code: ErrorCode::ServerError(codes::PASSWORD_INVALID),
         message: "Account password is invalid or account does not exist.".into(),
-        data: Some(Value::String(format!("{:?}", error))),
+        data: Some(Value::String(format!("{error:?}"))),
     }
 }
 
 pub fn transaction_message(error: &TransactionError) -> String {
-    use self::TransactionError::*;
+    use self::TransactionError::{
+        AlreadyImported, CodeBanned, GasLimitExceeded, GasPriceLowerThanBaseFee,
+        InsufficientBalance, InsufficientGas, InsufficientGasPrice, InvalidChainId,
+        InvalidGasLimit, InvalidRlp, InvalidSignature, LimitReached, NotAllowed, Old,
+        RecipientBanned, SenderBanned, SenderIsNotEOA, TooBig, TooCheapToReplace,
+        TransactionTypeNotEnabled,
+    };
 
     match *error {
 		AlreadyImported => "Transaction with the same hash was already imported.".into(),
 		Old => "Transaction nonce is too low. Try incrementing the nonce.".into(),
 		TooCheapToReplace { prev, new } => {
 			format!("Transaction gas price {} is too low. There is another transaction with same nonce in the queue{}. Try increasing the gas price or incrementing the nonce.",
-					new.map(|gas| format!("{}wei", gas)).unwrap_or("supplied".into()),
-					prev.map(|gas| format!(" with gas price: {}wei", gas)).unwrap_or("".into())
+					new.map_or("supplied".into(), |gas| format!("{gas}wei")),
+					prev.map_or(String::new(), |gas| format!(" with gas price: {gas}wei"))
 			)
 		}
 		LimitReached => {
 			"There are too many transactions in the queue. Your transaction was dropped due to limit. Try increasing the fee.".into()
 		}
 		InsufficientGas { minimal, got } => {
-			format!("Transaction gas is too low. There is not enough gas to cover minimal cost of the transaction (minimal: {}, got: {}). Try increasing supplied gas.", minimal, got)
+			format!("Transaction gas is too low. There is not enough gas to cover minimal cost of the transaction (minimal: {minimal}, got: {got}). Try increasing supplied gas.")
 		}
 		InsufficientGasPrice { minimal, got } => {
-			format!("Transaction gas price is too low. It does not satisfy your node's minimal gas price (minimal: {}, got: {}). Try increasing the gas price.", minimal, got)
+			format!("Transaction gas price is too low. It does not satisfy your node's minimal gas price (minimal: {minimal}, got: {got}). Try increasing the gas price.")
 		}
 		GasPriceLowerThanBaseFee { gas_price, base_fee} => {
-			format!("Transaction max gas price is lower then the required base fee (gas_price: {}, base_fee: {}). Try increasing the max gas price.", gas_price, base_fee)
+			format!("Transaction max gas price is lower then the required base fee (gas_price: {gas_price}, base_fee: {base_fee}). Try increasing the max gas price.")
 		}
 		InsufficientBalance { balance, cost } => {
-			format!("Insufficient funds. The account you tried to send transaction from does not have enough funds. Required {} and got: {}.", cost, balance)
+			format!("Insufficient funds. The account you tried to send transaction from does not have enough funds. Required {cost} and got: {balance}.")
 		}
 		GasLimitExceeded { limit, got } => {
-			format!("Transaction cost exceeds current gas limit. Limit: {}, got: {}. Try decreasing supplied gas.", limit, got)
+			format!("Transaction cost exceeds current gas limit. Limit: {limit}, got: {got}. Try decreasing supplied gas.")
 		}
-		InvalidSignature(ref sig) => format!("Invalid signature: {}", sig),
+		InvalidSignature(ref sig) => format!("Invalid signature: {sig}"),
 		InvalidChainId => "Invalid chain id.".into(),
 		InvalidGasLimit(_) => "Supplied gas is beyond limit.".into(),
 		SenderBanned => "Sender is banned in local queue.".into(),
@@ -406,8 +412,8 @@ pub fn transaction_message(error: &TransactionError) -> String {
 		CodeBanned => "Code is banned in local queue.".into(),
 		NotAllowed => "Transaction is not permitted.".into(),
 		TooBig => "Transaction is too big, see chain specification for the limit.".into(),
-        InvalidRlp(ref descr) => format!("Invalid RLP data: {}", descr),
-        TransactionTypeNotEnabled => format!("Transaction type is not enabled for current block"),
+        InvalidRlp(ref descr) => format!("Invalid RLP data: {descr}"),
+        TransactionTypeNotEnabled => "Transaction type is not enabled for current block".to_string(),
         SenderIsNotEOA => "Transaction sender is not an EOA (see EIP-3607)".into(),
 	}
 }
@@ -424,7 +430,7 @@ pub fn transaction<T: Into<EthcoreError>>(error: T) -> Error {
         Error {
             code: ErrorCode::ServerError(codes::UNKNOWN_ERROR),
             message: "Unknown error when sending transaction.".into(),
-            data: Some(Value::String(format!("{:?}", error))),
+            data: Some(Value::String(format!("{error:?}"))),
         }
     }
 }
@@ -445,7 +451,7 @@ pub fn rlp(error: DecoderError) -> Error {
     Error {
         code: ErrorCode::InvalidParams,
         message: "Invalid RLP.".into(),
-        data: Some(Value::String(format!("{:?}", error))),
+        data: Some(Value::String(format!("{error:?}"))),
     }
 }
 
@@ -467,7 +473,7 @@ pub fn vm(error: &VMError, output: &[u8]) -> Error {
 
     let data = match error {
         &VMError::Reverted => format!("{} 0x{}", VMError::Reverted, output.to_hex()),
-        error => format!("{}", error),
+        error => format!("{error}"),
     };
 
     Error {
@@ -506,8 +512,8 @@ pub fn filter_block_not_found(id: BlockId) -> Error {
 		code: ErrorCode::ServerError(codes::UNSUPPORTED_REQUEST), // Specified in EIP-234.
 		message: "One of the blocks specified in filter (fromBlock, toBlock or blockHash) cannot be found".into(),
 		data: Some(Value::String(match id {
-			BlockId::Hash(hash) => format!("0x{:x}", hash),
-			BlockId::Number(number) => format!("0x{:x}", number),
+			BlockId::Hash(hash) => format!("0x{hash:x}"),
+			BlockId::Number(number) => format!("0x{number:x}"),
 			BlockId::Earliest => "earliest".to_string(),
 			BlockId::Latest => "latest".to_string(),
 		})),
@@ -533,13 +539,13 @@ pub fn require_experimental(allow_experimental_rpcs: bool, eip: &str) -> Result<
     } else {
         Err(Error {
 			code: ErrorCode::ServerError(codes::EXPERIMENTAL_RPC),
-			message: format!("This method is not part of the official RPC API yet (EIP-{}). Run with `--jsonrpc-experimental` to enable it.", eip),
-			data: Some(Value::String(format!("See EIP: https://eips.ethereum.org/EIPS/eip-{}", eip))),
+			message: format!("This method is not part of the official RPC API yet (EIP-{eip}). Run with `--jsonrpc-experimental` to enable it."),
+			data: Some(Value::String(format!("See EIP: https://eips.ethereum.org/EIPS/eip-{eip}"))),
 		})
     }
 }
 
-/// returns an error for when require_canonical was specified in RPC for EIP-1898
+/// returns an error for when `require_canonical` was specified in RPC for EIP-1898
 pub fn invalid_input() -> Error {
     Error {
         // UNSUPPORTED_REQUEST shares the same error code for EIP-1898

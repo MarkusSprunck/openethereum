@@ -67,7 +67,7 @@ mod tests {
         let (_srv, port, _) = rpc::tests::ws::serve();
         let path = PathBuf::from("nonexist");
 
-        let connect = Rpc::connect(&format!("ws://127.0.0.1:{}", port), &path);
+        let connect = Rpc::connect(&format!("ws://127.0.0.1:{port}"), &path);
 
         let _ = connect
             .map(|conn| {
@@ -83,7 +83,7 @@ mod tests {
         let _ = authcodes.generate_new();
         authcodes.to_file(&authcodes.path).unwrap();
 
-        let connect = Rpc::connect(&format!("ws://127.0.0.1:{}", port), &authcodes.path);
+        let connect = Rpc::connect(&format!("ws://127.0.0.1:{port}"), &authcodes.path);
 
         let _ = connect.map(|conn| assert!(conn.is_ok())).wait();
     }

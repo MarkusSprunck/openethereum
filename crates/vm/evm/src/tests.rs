@@ -39,7 +39,7 @@ fn test_add(factory: super::Factory) {
     let code = "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01600055".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
+    params.address = address;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -63,7 +63,7 @@ fn test_sha3(factory: super::Factory) {
     let code = "6000600020600055".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
+    params.address = address;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -87,7 +87,7 @@ fn test_address(factory: super::Factory) {
     let code = "30600055".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
+    params.address = address;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -112,8 +112,8 @@ fn test_origin(factory: super::Factory) {
     let code = "32600055".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
-    params.origin = origin.clone();
+    params.address = address;
+    params.origin = origin;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -140,7 +140,7 @@ fn test_selfbalance(factory: super::Factory) {
     let code = hex!("47 60 ff 55").to_vec();
 
     let mut params = ActionParams::default();
-    params.address = own_addr.clone();
+    params.address = own_addr;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new_istanbul();
@@ -168,8 +168,8 @@ fn test_sender(factory: super::Factory) {
     let code = "33600055".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
-    params.sender = sender.clone();
+    params.address = address;
+    params.sender = sender;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -231,8 +231,8 @@ fn test_extcodecopy(factory: super::Factory) {
     let sender_code = "6005600055".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
-    params.sender = sender.clone();
+    params.address = address;
+    params.sender = sender;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -257,7 +257,7 @@ fn test_log_empty(factory: super::Factory) {
     let code = "60006000a0".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
+    params.address = address;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -288,8 +288,8 @@ fn test_log_sender(factory: super::Factory) {
     let code = "60ff6000533360206000a1".from_hex().unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
-    params.sender = sender.clone();
+    params.address = address;
+    params.sender = sender;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
@@ -322,11 +322,11 @@ fn test_blockhash(factory: super::Factory) {
         H256::from_str("123400000000000000000000cd1722f2947def4cf144679da39c4c32bdc35681").unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
+    params.address = address;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     let mut ext = FakeExt::new();
-    ext.blockhashes.insert(U256::zero(), blockhash.clone());
+    ext.blockhashes.insert(U256::zero(), blockhash);
 
     let gas_left = {
         let vm = factory.create(params, ext.schedule(), ext.depth());
@@ -346,7 +346,7 @@ fn test_calldataload(factory: super::Factory) {
         .unwrap();
 
     let mut params = ActionParams::default();
-    params.address = address.clone();
+    params.address = address;
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
     params.data = Some(data);
@@ -1241,11 +1241,11 @@ fn test_calls(factory: super::Factory) {
     let mut params = ActionParams::default();
     params.gas = U256::from(150_000);
     params.code = Some(Arc::new(code));
-    params.address = address.clone();
+    params.address = address;
     let mut ext = FakeExt::new();
     ext.balances = {
         let mut s = HashMap::new();
-        s.insert(params.address.clone(), params.gas);
+        s.insert(params.address, params.gas);
         s
     };
 
@@ -1260,11 +1260,11 @@ fn test_calls(factory: super::Factory) {
             call_type: FakeCallType::Call,
             create_scheme: None,
             gas: U256::from(2556),
-            sender_address: Some(address.clone()),
-            receive_address: Some(code_address.clone()),
+            sender_address: Some(address),
+            receive_address: Some(code_address),
             value: Some(U256::from(0x50)),
             data: vec![],
-            code_address: Some(code_address.clone()),
+            code_address: Some(code_address),
         },
     );
     assert_set_contains(
@@ -1273,11 +1273,11 @@ fn test_calls(factory: super::Factory) {
             call_type: FakeCallType::Call,
             create_scheme: None,
             gas: U256::from(2556),
-            sender_address: Some(address.clone()),
-            receive_address: Some(address.clone()),
+            sender_address: Some(address),
+            receive_address: Some(address),
             value: Some(U256::from(0x50)),
             data: vec![],
-            code_address: Some(code_address.clone()),
+            code_address: Some(code_address),
         },
     );
     assert_eq!(gas_left, U256::from(91_405));
@@ -1292,7 +1292,7 @@ fn test_create_in_staticcall(factory: super::Factory) {
     let mut params = ActionParams::default();
     params.gas = U256::from(100_000);
     params.code = Some(Arc::new(code));
-    params.address = address.clone();
+    params.address = address;
     let mut ext = FakeExt::new_byzantium();
     ext.is_static = true;
 
@@ -1754,8 +1754,8 @@ fn push_two_pop_one_constantinople_test(
 ) {
     let mut push1 = push1.from_hex().unwrap();
     let mut push2 = push2.from_hex().unwrap();
-    assert!(push1.len() <= 32 && push1.len() != 0);
-    assert!(push2.len() <= 32 && push2.len() != 0);
+    assert!(push1.len() <= 32 && !push1.is_empty());
+    assert!(push2.len() <= 32 && !push2.is_empty());
 
     let mut code = Vec::new();
     code.push(0x60 + ((push1.len() - 1) as u8));
@@ -1781,8 +1781,8 @@ fn push_two_pop_one_constantinople_test(
 fn assert_set_contains<T: Debug + Eq + PartialEq + Hash>(set: &HashSet<T>, val: &T) {
     let contains = set.contains(val);
     if !contains {
-        println!("Set: {:?}", set);
-        println!("Elem: {:?}", val);
+        println!("Set: {set:?}");
+        println!("Elem: {val:?}");
     }
     assert!(contains, "Element not found in HashSet");
 }

@@ -74,7 +74,7 @@ pub struct GenericConnection<Socket: GenericSocket> {
 
 impl<Socket: GenericSocket> GenericConnection<Socket> {
     pub fn expect(&mut self, size: usize) {
-        trace!(target:"network", "Expect to read {} bytes", size);
+        trace!(target:"network", "Expect to read {size} bytes");
         if self.rec_size != self.rec_buf.len() {
             warn!(target:"network", "Unexpected connection read start");
         }
@@ -100,10 +100,10 @@ impl<Socket: GenericSocket> GenericConnection<Socket> {
                     trace!(target:"network", "{}: Read {} of {} bytes", self.token, self.rec_buf.len(), self.rec_size);
                     if self.rec_size != 0 && self.rec_buf.len() == self.rec_size {
                         self.rec_size = 0;
-                        return Ok(Some(::std::mem::replace(&mut self.rec_buf, Bytes::new())));
+                        return Ok(Some(std::mem::take(&mut self.rec_buf)));
                     } else if self.rec_buf.len() > self.rec_size {
                         warn!(target:"network", "Read past buffer {} bytes", self.rec_buf.len() - self.rec_size);
-                        return Ok(Some(::std::mem::replace(&mut self.rec_buf, Bytes::new())));
+                        return Ok(Some(std::mem::take(&mut self.rec_buf)));
                     }
                 }
                 Ok(_) => return Ok(None),
@@ -147,7 +147,7 @@ impl<Socket: GenericSocket> GenericConnection<Socket> {
             };
             let send_size = buf.get_ref().len();
             let pos = buf.position() as usize;
-            if (pos as usize) >= send_size {
+            if pos >= send_size {
                 warn!(target:"net", "Unexpected connection data");
                 return Ok(WriteStatus::Complete);
             }
@@ -246,7 +246,7 @@ impl Connection {
         if self.registered.load(AtomicOrdering::SeqCst) {
             return Ok(());
         }
-        trace!(target: "network", "connection register; token={:?}", reg);
+        trace!(target: "network", "connection register; token={reg:?}");
         if let Err(e) = event_loop.register(
             &self.socket,
             reg,
@@ -254,7 +254,7 @@ impl Connection {
             PollOpt::edge(), /* | PollOpt::oneshot() */
         ) {
             // TODO: oneshot is broken on windows
-            trace!(target: "network", "Failed to register {:?}, {:?}", reg, e);
+            trace!(target: "network", "Failed to register {reg:?}, {e:?}");
         }
         self.registered.store(true, AtomicOrdering::SeqCst);
         Ok(())
@@ -266,7 +266,7 @@ impl Connection {
         reg: Token,
         event_loop: &mut EventLoop<Host>,
     ) -> io::Result<()> {
-        trace!(target: "network", "connection reregister; token={:?}", reg);
+        trace!(target: "network", "connection reregister; token={reg:?}");
         if !self.registered.load(AtomicOrdering::SeqCst) {
             self.register_socket(reg, event_loop)
         } else {
@@ -279,7 +279,7 @@ impl Connection {
                 )
                 .unwrap_or_else(|e| {
                     // TODO: oneshot is broken on windows
-                    trace!(target: "network", "Failed to reregister {:?}, {:?}", reg, e);
+                    trace!(target: "network", "Failed to reregister {reg:?}, {e:?}");
                 });
             Ok(())
         }
@@ -352,19 +352,19 @@ impl EncryptedConnection {
         )?;
         let mut nonce_material = H512::default();
         if handshake.originated {
-            (&mut nonce_material[0..32]).copy_from_slice(handshake.remote_nonce.as_bytes());
-            (&mut nonce_material[32..64]).copy_from_slice(handshake.nonce.as_bytes());
+            nonce_material[0..32].copy_from_slice(handshake.remote_nonce.as_bytes());
+            nonce_material[32..64].copy_from_slice(handshake.nonce.as_bytes());
         } else {
-            (&mut nonce_material[0..32]).copy_from_slice(handshake.nonce.as_bytes());
-            (&mut nonce_material[32..64]).copy_from_slice(handshake.remote_nonce.as_bytes());
+            nonce_material[0..32].copy_from_slice(handshake.nonce.as_bytes());
+            nonce_material[32..64].copy_from_slice(handshake.remote_nonce.as_bytes());
         }
         let mut key_material = H512::default();
-        (&mut key_material[0..32]).copy_from_slice(shared.as_bytes());
-        write_keccak(&nonce_material, &mut key_material[32..64]);
-        let key_material_keccak = keccak(&key_material);
-        (&mut key_material[32..64]).copy_from_slice(key_material_keccak.as_bytes());
-        let key_material_keccak = keccak(&key_material);
-        (&mut key_material[32..64]).copy_from_slice(key_material_keccak.as_bytes());
+        key_material[0..32].copy_from_slice(shared.as_bytes());
+        write_keccak(nonce_material, &mut key_material[32..64]);
+        let key_material_keccak = keccak(key_material);
+        key_material[32..64].copy_from_slice(key_material_keccak.as_bytes());
+        let key_material_keccak = keccak(key_material);
+        key_material[32..64].copy_from_slice(key_material_keccak.as_bytes());
 
         // Using a 0 IV with CTR is fine as long as the same IV is never reused with the same key.
         // This is the case here: ecdh creates a new secret which will be the symmetric key used
@@ -373,8 +373,8 @@ impl EncryptedConnection {
         let encoder = AesCtr256::new(&key_material[32..64], &NULL_IV)?;
         let decoder = AesCtr256::new(&key_material[32..64], &NULL_IV)?;
 
-        let key_material_keccak = keccak(&key_material);
-        (&mut key_material[32..64]).copy_from_slice(key_material_keccak.as_bytes());
+        let key_material_keccak = keccak(key_material);
+        key_material[32..64].copy_from_slice(key_material_keccak.as_bytes());
 
         let mac_encoder_key: Secret = Secret::copy_from_slice(&key_material[32..64])
             .expect("can create Secret from 32 bytes; qed");
@@ -533,12 +533,11 @@ impl EncryptedConnection {
         let mac_encoder = AesEcb256::new(mac_encoder_key.as_bytes())?;
         mac_encoder.encrypt(enc.as_bytes_mut())?;
 
-        enc = enc
-            ^ if seed.is_empty() {
-                prev
-            } else {
-                H128::from_slice(seed)
-            };
+        enc ^= if seed.is_empty() {
+            prev
+        } else {
+            H128::from_slice(seed)
+        };
         mac.update(enc.as_bytes());
         Ok(())
     }
@@ -584,7 +583,7 @@ mod tests {
     use std::{
         cmp,
         collections::VecDeque,
-        io::{Cursor, Error, ErrorKind, Read, Result, Write},
+        io::{Cursor, Error, Read, Result, Write},
         sync::atomic::AtomicBool,
     };
 
@@ -671,13 +670,13 @@ mod tests {
 
     impl Read for TestBrokenSocket {
         fn read(&mut self, _: &mut [u8]) -> Result<usize> {
-            Err(Error::new(ErrorKind::Other, self.error.clone()))
+            Err(Error::other(self.error.clone()))
         }
     }
 
     impl Write for TestBrokenSocket {
         fn write(&mut self, _: &[u8]) -> Result<usize> {
-            Err(Error::new(ErrorKind::Other, self.error.clone()))
+            Err(Error::other(self.error.clone()))
         }
 
         fn flush(&mut self) -> Result<()> {
@@ -758,7 +757,7 @@ mod tests {
 
         let encoder = AesEcb256::new(key.as_bytes()).unwrap();
         got = H128::default();
-        got.as_bytes_mut().copy_from_slice(&before2.as_bytes());
+        got.as_bytes_mut().copy_from_slice(before2.as_bytes());
         encoder.encrypt(got.as_bytes_mut()).unwrap();
         assert_eq!(got, after2);
     }
@@ -812,7 +811,7 @@ mod tests {
 
         let status = connection.writable(&test_io());
 
-        assert!(!status.is_ok());
+        assert!(status.is_err());
         assert_eq!(1, connection.send_queue.len());
     }
 
@@ -835,7 +834,7 @@ mod tests {
         connection.rec_size = 2048;
 
         let status = connection.readable();
-        assert!(!status.is_ok());
+        assert!(status.is_err());
         assert_eq!(0, connection.rec_buf.len());
     }
 

@@ -169,7 +169,10 @@ impl MinerService for TestMinerService {
             .lock()
             .extend_from_slice(&transactions);
 
-        for sender in transactions.iter().map(|tx| tx.sender()) {
+        for sender in transactions
+            .iter()
+            .map(types::transaction::SignedTransaction::sender)
+        {
             let nonce = self.next_nonce(chain, &sender);
             self.next_nonces.write().insert(sender, nonce);
         }
@@ -303,12 +306,7 @@ impl MinerService for TestMinerService {
     }
 
     fn queued_transaction_hashes(&self) -> Vec<H256> {
-        self.pending_transactions
-            .lock()
-            .keys()
-            .cloned()
-            .map(|hash| hash)
-            .collect()
+        self.pending_transactions.lock().keys().copied().collect()
     }
 
     fn pending_receipts(&self, _best_block: BlockNumber) -> Option<Vec<RichReceipt>> {
@@ -319,7 +317,7 @@ impl MinerService for TestMinerService {
         self.next_nonces
             .read()
             .get(address)
-            .cloned()
+            .copied()
             .unwrap_or_default()
     }
 
@@ -370,16 +368,13 @@ impl MinerService for TestMinerService {
 
     fn set_minimal_gas_price(&self, gas_price: U256) -> Result<bool, &str> {
         let mut new_price = self.min_gas_price.write();
-        match *new_price {
-            Some(ref mut v) => {
-                *v = gas_price;
-                Ok(true)
-            }
-            None => {
-                let error_msg =
-                    "Can't update fixed gas price while automatic gas calibration is enabled.";
-                Err(error_msg)
-            }
+        if let Some(ref mut v) = *new_price {
+            *v = gas_price;
+            Ok(true)
+        } else {
+            let error_msg =
+                "Can't update fixed gas price while automatic gas calibration is enabled.";
+            Err(error_msg)
         }
     }
 }

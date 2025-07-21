@@ -29,20 +29,15 @@ pub use std::time::Duration;
 pub use trace::Config as TraceConfig;
 
 /// Client state db compaction profile
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum DatabaseCompactionProfile {
     /// Try to determine compaction profile automatically
+    #[default]
     Auto,
     /// SSD compaction profile
     SSD,
     /// HDD or other slow storage io compaction profile
     HDD,
-}
-
-impl Default for DatabaseCompactionProfile {
-    fn default() -> Self {
-        DatabaseCompactionProfile::Auto
-    }
 }
 
 impl FromStr for DatabaseCompactionProfile {
@@ -145,8 +140,8 @@ impl Default for ClientConfig {
             mode: Mode::Active,
             spec_name: "".into(),
             verifier_type: VerifierType::Canon,
-            state_cache_size: 1 * mb,
-            jump_table_size: 1 * mb,
+            state_cache_size: mb,
+            jump_table_size: mb,
             history: 64,
             history_mem: 32 * mb,
             check_seal: true,

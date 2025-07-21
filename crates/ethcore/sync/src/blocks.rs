@@ -189,7 +189,7 @@ impl BlockCollection {
     pub fn insert_headers(&mut self, headers: Vec<SyncHeader>) {
         for h in headers {
             if let Err(e) = self.insert_header(h) {
-                trace!(target: "sync", "Ignored invalid header: {:?}", e);
+                trace!(target: "sync", "Ignored invalid header: {e:?}");
             }
         }
         self.update_heads();
@@ -201,7 +201,7 @@ impl BlockCollection {
             .into_iter()
             .filter_map(|b| {
                 self.insert_body(b)
-                    .map_err(|e| trace!(target: "sync", "Ignored invalid body: {:?}", e))
+                    .map_err(|e| trace!(target: "sync", "Ignored invalid body: {e:?}"))
                     .ok()
             })
             .collect()
@@ -216,7 +216,7 @@ impl BlockCollection {
             .into_iter()
             .filter_map(|r| {
                 self.insert_receipt(r)
-                    .map_err(|e| trace!(target: "sync", "Ignored invalid receipt: {:?}", e))
+                    .map_err(|e| trace!(target: "sync", "Ignored invalid receipt: {e:?}"))
                     .ok()
             })
             .collect()
@@ -236,8 +236,8 @@ impl BlockCollection {
                     Some(block)
                         if block.body.is_none() && !self.downloading_bodies.contains(&head) =>
                     {
-                        self.downloading_bodies.insert(head.clone());
-                        needed_bodies.push(head.clone());
+                        self.downloading_bodies.insert(head);
+                        needed_bodies.push(head);
                     }
                     _ => (),
                 }
@@ -248,8 +248,8 @@ impl BlockCollection {
                 break;
             }
             if !self.downloading_bodies.contains(h) {
-                needed_bodies.push(h.clone());
-                self.downloading_bodies.insert(h.clone());
+                needed_bodies.push(*h);
+                self.downloading_bodies.insert(*h);
             }
         }
         needed_bodies
@@ -265,16 +265,13 @@ impl BlockCollection {
         while head.is_some() && needed_receipts.len() < count {
             head = self.parents.get(&head.unwrap()).cloned();
             if let Some(head) = head {
-                match self.blocks.get(&head) {
-                    Some(block) => {
-                        if block.receipts.is_none()
-                            && !self.downloading_receipts.contains(&block.receipts_root)
-                        {
-                            self.downloading_receipts.insert(block.receipts_root);
-                            needed_receipts.push(head.clone());
-                        }
+                if let Some(block) = self.blocks.get(&head) {
+                    if block.receipts.is_none()
+                        && !self.downloading_receipts.contains(&block.receipts_root)
+                    {
+                        self.downloading_receipts.insert(block.receipts_root);
+                        needed_receipts.push(head);
                     }
-                    _ => (),
                 }
             }
         }
@@ -288,7 +285,7 @@ impl BlockCollection {
                 break;
             }
             if !self.downloading_receipts.contains(root) {
-                needed_receipts.push(h.clone());
+                needed_receipts.push(h);
                 self.downloading_receipts.insert(*root);
             }
         }
@@ -306,8 +303,8 @@ impl BlockCollection {
         {
             for h in &self.heads {
                 if ignore_downloading || !self.downloading_headers.contains(h) {
-                    self.downloading_headers.insert(h.clone());
-                    download = Some(h.clone());
+                    self.downloading_headers.insert(*h);
+                    download = Some(*h);
                     break;
                 }
             }
@@ -330,7 +327,7 @@ impl BlockCollection {
     /// Unmark block receipt as being downloaded.
     pub fn clear_receipt_download(&mut self, hashes: &[H256]) {
         for h in hashes {
-            if let Some(ref block) = self.blocks.get(h) {
+            if let Some(block) = self.blocks.get(h) {
                 self.downloading_receipts.remove(&block.receipts_root);
             }
         }
@@ -387,7 +384,7 @@ impl BlockCollection {
     /// there is no block data left and only a single or none head pointer remains.
     pub fn is_empty(&self) -> bool {
         self.heads.len() == 0
-            || (self.heads.len() == 1 && self.head.map_or(false, |h| h == self.heads[0]))
+            || (self.heads.len() == 1 && self.head.is_some_and(|h| h == self.heads[0]))
     }
 
     /// Check if collection contains a block header.
@@ -451,7 +448,7 @@ impl BlockCollection {
             let uncles = keccak(&body.uncles_bytes);
             HeaderId {
                 transactions_root: tx_root,
-                uncles: uncles,
+                uncles,
             }
         };
 
@@ -460,12 +457,12 @@ impl BlockCollection {
                 self.downloading_bodies.remove(&h);
                 match self.blocks.get_mut(&h) {
                     Some(ref mut block) => {
-                        trace!(target: "sync", "Got body {}", h);
+                        trace!(target: "sync", "Got body {h}");
                         block.body = Some(body);
                         Ok(h)
                     }
                     None => {
-                        warn!("Got body with no header {}", h);
+                        warn!("Got body with no header {h}");
                         Err(network::ErrorKind::BadProtocol.into())
                     }
                 }
@@ -486,11 +483,7 @@ impl BlockCollection {
                 if receipt_byte.is_list() {
                     temp_receipts.push(receipt_byte.as_raw())
                 } else {
-                    temp_receipts.push(
-                        receipt_byte
-                            .data()
-                            .map_err(|e| network::ErrorKind::Rlp(e))?,
-                    );
+                    temp_receipts.push(receipt_byte.data().map_err(network::ErrorKind::Rlp)?);
                 }
             }
 
@@ -502,13 +495,13 @@ impl BlockCollection {
             hash_map::Entry::Occupied(entry) => {
                 let block_hashes = entry.remove();
                 for h in block_hashes.iter() {
-                    match self.blocks.get_mut(&h) {
+                    match self.blocks.get_mut(h) {
                         Some(ref mut block) => {
-                            trace!(target: "sync", "Got receipt {}", h);
+                            trace!(target: "sync", "Got receipt {h}");
                             block.receipts = Some(r.clone());
                         }
                         None => {
-                            warn!("Got receipt with no header {}", h);
+                            warn!("Got receipt with no header {h}");
                             return Err(network::ErrorKind::BadProtocol.into());
                         }
                     }
@@ -516,7 +509,7 @@ impl BlockCollection {
                 Ok(block_hashes)
             }
             hash_map::Entry::Vacant(_) => {
-                trace!(target: "sync", "Ignored unknown/stale block receipt {:?}", receipt_root);
+                trace!(target: "sync", "Ignored unknown/stale block receipt {receipt_root:?}");
                 Err(network::ErrorKind::BadProtocol.into())
             }
         }
@@ -530,8 +523,8 @@ impl BlockCollection {
 
         match self.head {
             None if hash == self.heads[0] => {
-                trace!(target: "sync", "New head {}", hash);
-                self.head = Some(info.header.parent_hash().clone());
+                trace!(target: "sync", "New head {hash}");
+                self.head = Some(*info.header.parent_hash());
             }
             _ => (),
         }
@@ -564,10 +557,7 @@ impl BlockCollection {
                 let receipts_stream = RlpStream::new_list(0);
                 (Some(receipts_stream.out()), receipt_root)
             } else {
-                self.receipt_ids
-                    .entry(receipt_root)
-                    .or_insert_with(Vec::new)
-                    .push(hash);
+                self.receipt_ids.entry(receipt_root).or_default().push(hash);
                 (None, receipt_root)
             }
         } else {
@@ -584,7 +574,7 @@ impl BlockCollection {
         };
 
         self.blocks.insert(hash, block);
-        trace!(target: "sync", "New header: {:x}", hash);
+        trace!(target: "sync", "New header: {hash:x}");
         Ok(hash)
     }
 
@@ -593,7 +583,7 @@ impl BlockCollection {
         let mut new_heads = Vec::new();
         let old_subchains: HashSet<_> = { self.heads.iter().cloned().collect() };
         for s in self.heads.drain(..) {
-            let mut h = s.clone();
+            let mut h = s;
             if !self.blocks.contains_key(&h) {
                 new_heads.push(h);
                 continue;
@@ -601,9 +591,9 @@ impl BlockCollection {
             loop {
                 match self.parents.get(&h) {
                     Some(next) => {
-                        h = next.clone();
+                        h = *next;
                         if old_subchains.contains(&h) {
-                            trace!(target: "sync", "Completed subchain {:?}", s);
+                            trace!(target: "sync", "Completed subchain {s:?}");
                             break; // reached head of the other subchain, merge by not adding
                         }
                     }
@@ -702,7 +692,7 @@ mod test {
         assert_eq!(bc.downloading_headers.len(), 1);
         assert!(bc.drain().is_empty());
 
-        bc.insert_headers(headers[0..6].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[0..6].iter().map(Clone::clone).collect());
         assert_eq!(hashes[5], bc.heads[0]);
         for h in &hashes[0..6] {
             bc.clear_header_download(h)
@@ -728,9 +718,9 @@ mod test {
         assert_eq!(hashes[5], h);
         let (h, _) = bc.needed_headers(6, false).unwrap();
         assert_eq!(hashes[20], h);
-        bc.insert_headers(headers[10..16].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[10..16].iter().map(Clone::clone).collect());
         assert!(bc.drain().is_empty());
-        bc.insert_headers(headers[5..10].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[5..10].iter().map(Clone::clone).collect());
         assert_eq!(
             bc.drain().into_iter().map(|b| b.block).collect::<Vec<_>>(),
             blocks[6..16]
@@ -744,7 +734,7 @@ mod test {
 
         assert_eq!(hashes[15], bc.heads[0]);
 
-        bc.insert_headers(headers[15..].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[15..].iter().map(Clone::clone).collect());
         bc.drain();
         assert!(bc.is_empty());
     }
@@ -782,11 +772,11 @@ mod test {
             .collect();
         bc.reset_to(heads);
 
-        bc.insert_headers(headers[2..22].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[2..22].iter().map(Clone::clone).collect());
         assert_eq!(hashes[0], bc.heads[0]);
         assert_eq!(hashes[21], bc.heads[1]);
         assert!(bc.head.is_none());
-        bc.insert_headers(headers[0..2].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[0..2].iter().map(Clone::clone).collect());
         assert!(bc.head.is_some());
         assert_eq!(hashes[21], bc.heads[0]);
     }
@@ -824,9 +814,9 @@ mod test {
             .collect();
         bc.reset_to(heads);
 
-        bc.insert_headers(headers[1..2].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[1..2].iter().map(Clone::clone).collect());
         assert!(bc.drain().is_empty());
-        bc.insert_headers(headers[0..1].into_iter().map(Clone::clone).collect());
+        bc.insert_headers(headers[0..1].iter().map(Clone::clone).collect());
         assert_eq!(bc.drain().len(), 2);
     }
 }

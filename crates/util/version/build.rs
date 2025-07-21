@@ -21,7 +21,7 @@ extern crate vergen;
 use std::{env, fs::File, io::Write, path::Path};
 use vergen::{vergen, ConstantsFlags};
 
-const ERROR_MSG: &'static str = "Failed to generate metadata files";
+const ERROR_MSG: &str = "Failed to generate metadata files";
 
 fn main() {
     vergen(ConstantsFlags::all()).expect(ERROR_MSG);
@@ -37,7 +37,6 @@ fn main() {
 				\"{version}\"
 			}}
 		",
-            version = version,
         ),
     );
 }

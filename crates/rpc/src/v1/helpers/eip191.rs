@@ -55,6 +55,6 @@ pub fn hash_message(version: EIP191Version, message: Value) -> Result<H256, Erro
 
 fn map_serde_err<T: Display>(struct_name: &'static str) -> impl Fn(T) -> Error {
     move |error: T| {
-        errors::invalid_call_data(format!("Error deserializing '{}': {}", struct_name, error))
+        errors::invalid_call_data(format!("Error deserializing '{struct_name}': {error}"))
     }
 }

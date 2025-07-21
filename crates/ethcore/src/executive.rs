@@ -108,8 +108,8 @@ pub fn into_contract_create_result(
             apply_state: true,
             ..
         }) => {
-            substate.contracts_created.push(address.clone());
-            vm::ContractCreateResult::Created(address.clone(), gas_left)
+            substate.contracts_created.push(*address);
+            vm::ContractCreateResult::Created(*address, gas_left)
         }
         Ok(FinalizationResult {
             gas_left,
@@ -258,10 +258,7 @@ impl<'a> CallCreateExecutive<'a> {
         parent_static_flag: bool,
     ) -> Self {
         trace!(
-            "Executive::call(params={:?}) self.env_info={:?}, parent_static={}",
-            params,
-            info,
-            parent_static_flag
+            "Executive::call(params={params:?}) self.env_info={info:?}, parent_static={parent_static_flag}"
         );
 
         let gas = params.gas;
@@ -279,13 +276,11 @@ impl<'a> CallCreateExecutive<'a> {
             }
 
             CallCreateExecutiveKind::CallBuiltin(params)
+        } else if params.code.is_some() {
+            let substate = Self::new_substate(&params, schedule);
+            CallCreateExecutiveKind::ExecCall(params, substate)
         } else {
-            if params.code.is_some() {
-                let substate = Self::new_substate(&params, schedule);
-                CallCreateExecutiveKind::ExecCall(params, substate)
-            } else {
-                CallCreateExecutiveKind::Transfer(params)
-            }
+            CallCreateExecutiveKind::Transfer(params)
         };
 
         Self {
@@ -313,12 +308,7 @@ impl<'a> CallCreateExecutive<'a> {
         stack_depth: usize,
         static_flag: bool,
     ) -> Self {
-        trace!(
-            "Executive::create(params={:?}) self.env_info={:?}, static={}",
-            params,
-            info,
-            static_flag
-        );
+        trace!("Executive::create(params={params:?}) self.env_info={info:?}, static={static_flag}");
 
         let gas = params.gas;
 
@@ -361,13 +351,11 @@ impl<'a> CallCreateExecutive<'a> {
             if static_flag {
                 return Err(vm::Error::MutableCallInStaticContext);
             }
-        } else {
-            if (static_flag
-                && (params.call_type == CallType::StaticCall || params.call_type == CallType::Call))
-                && params.value.value() > U256::zero()
-            {
-                return Err(vm::Error::MutableCallInStaticContext);
-            }
+        } else if (static_flag
+            && (params.call_type == CallType::StaticCall || params.call_type == CallType::Call))
+            && params.value.value() > U256::zero()
+        {
+            return Err(vm::Error::MutableCallInStaticContext);
         }
 
         Ok(())
@@ -395,7 +383,7 @@ impl<'a> CallCreateExecutive<'a> {
                 &params.sender,
                 &params.address,
                 &val,
-                substate.to_cleanup_mode(&schedule),
+                substate.to_cleanup_mode(schedule),
             )?;
         }
 
@@ -414,7 +402,7 @@ impl<'a> CallCreateExecutive<'a> {
             state.sub_balance(
                 &params.sender,
                 &val,
-                &mut substate.to_cleanup_mode(&schedule),
+                &mut substate.to_cleanup_mode(schedule),
             )?;
             state.new_contract(&params.address, val.saturating_add(prev_bal), nonce_offset)?;
         } else {
@@ -532,9 +520,9 @@ impl<'a> CallCreateExecutive<'a> {
                 let mut inner = || {
                     let builtin = self.machine.builtin(&params.code_address, self.info.number).expect("Builtin is_some is checked when creating this kind in new_call_raw; qed");
 
-                    Self::check_static_flag(&params, self.static_flag, self.is_create)?;
+                    Self::check_static_flag(params, self.static_flag, self.is_create)?;
                     state.checkpoint();
-                    Self::transfer_exec_balance(&params, self.schedule, state, substate)?;
+                    Self::transfer_exec_balance(params, self.schedule, state, substate)?;
 
                     let default = [];
                     let data = if let Some(ref d) = params.data {
@@ -976,7 +964,7 @@ impl<'a> CallCreateExecutive<'a> {
 				},
 				Some((_, _, Err(TrapError::Call(subparams, resume)))) => {
 					tracer.prepare_trace_call(&subparams, resume.depth + 1, resume.machine.builtin(&subparams.address, resume.info.number).is_some());
-					vm_tracer.prepare_subtrace(subparams.code.as_ref().map_or_else(|| &[] as &[u8], |d| &*d as &[u8]));
+					vm_tracer.prepare_subtrace(subparams.code.as_ref().map_or_else(|| &[] as &[u8], |d| d as &[u8]));
 
 					let sub_exec = CallCreateExecutive::new_call_raw(
 						subparams,
@@ -995,7 +983,7 @@ impl<'a> CallCreateExecutive<'a> {
 				},
 				Some((_, _, Err(TrapError::Create(subparams, address, resume)))) => {
 					tracer.prepare_trace_create(&subparams);
-					vm_tracer.prepare_subtrace(subparams.code.as_ref().map_or_else(|| &[] as &[u8], |d| &*d as &[u8]));
+					vm_tracer.prepare_subtrace(subparams.code.as_ref().map_or_else(|| &[] as &[u8], |d| d as &[u8]));
 
 					let sub_exec = CallCreateExecutive::new_create_raw(
 						subparams,
@@ -1036,10 +1024,10 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         schedule: &'a Schedule,
     ) -> Self {
         Executive {
-            state: state,
-            info: info,
-            machine: machine,
-            schedule: schedule,
+            state,
+            info,
+            machine,
+            schedule,
             depth: 0,
             static_flag: false,
         }
@@ -1055,12 +1043,12 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         static_flag: bool,
     ) -> Self {
         Executive {
-            state: state,
-            info: info,
-            machine: machine,
-            schedule: schedule,
+            state,
+            info,
+            machine,
+            schedule,
             depth: parent_depth + 1,
-            static_flag: static_flag,
+            static_flag,
         }
     }
 
@@ -1147,7 +1135,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         let sender = t.sender();
         let nonce = self.state.nonce(&sender)?;
 
-        let mut base_gas_required = U256::from(t.tx().gas_required(&schedule));
+        let mut base_gas_required = U256::from(t.tx().gas_required(schedule));
 
         let mut access_list = AccessList::new(schedule.eip2929);
 
@@ -1248,7 +1236,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         self.state.sub_balance(
             &sender,
             &U256::try_from(gas_cost_effective).expect("Total cost (value + gas_cost_effective) is lower than max allowed balance (U256); gas_cost has to fit U256; qed"),
-            &mut substate.to_cleanup_mode(&schedule),
+            &mut substate.to_cleanup_mode(schedule),
         )?;
 
         let (result, output) = match t.tx().action {
@@ -1261,11 +1249,11 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
                 );
                 access_list.insert_address(new_address);
                 let params = ActionParams {
-                    code_address: new_address.clone(),
-                    code_hash: code_hash,
+                    code_address: new_address,
+                    code_hash,
                     address: new_address,
-                    sender: sender.clone(),
-                    origin: sender.clone(),
+                    sender,
+                    origin: sender,
                     gas: init_gas,
                     gas_price: t.effective_gas_price(self.info.base_fee),
                     value: ActionValue::Transfer(t.tx().value),
@@ -1273,7 +1261,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
                     data: None,
                     call_type: CallType::None,
                     params_type: vm::ParamsType::Embedded,
-                    access_list: access_list,
+                    access_list,
                 };
                 let res = self.create(params, &mut substate, &mut tracer, &mut vm_tracer);
                 let out = match &res {
@@ -1283,12 +1271,12 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
                 (res, out)
             }
             Action::Call(ref address) => {
-                access_list.insert_address(address.clone());
+                access_list.insert_address(*address);
                 let params = ActionParams {
-                    code_address: address.clone(),
-                    address: address.clone(),
-                    sender: sender.clone(),
-                    origin: sender.clone(),
+                    code_address: *address,
+                    address: *address,
+                    sender,
+                    origin: sender,
                     gas: init_gas,
                     gas_price: t.effective_gas_price(self.info.base_fee),
                     value: ActionValue::Transfer(t.tx().value),
@@ -1297,7 +1285,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
                     data: Some(t.tx().data.clone()),
                     call_type: CallType::Call,
                     params_type: vm::ParamsType::Separate,
-                    access_list: access_list,
+                    access_list,
                 };
                 let res = self.call(params, &mut substate, &mut tracer, &mut vm_tracer);
                 let out = match &res {
@@ -1309,14 +1297,14 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         };
 
         // finalize here!
-        Ok(self.finalize(
+        self.finalize(
             t,
             substate,
             result,
             output,
             tracer.drain(),
             vm_tracer.drain(),
-        )?)
+        )
     }
 
     /// Calls contract function with given contract params and stack depth.
@@ -1346,7 +1334,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             params
                 .code
                 .as_ref()
-                .map_or_else(|| &[] as &[u8], |d| &*d as &[u8]),
+                .map_or_else(|| &[] as &[u8], |d| d as &[u8]),
         );
 
         let gas = params.gas;
@@ -1415,7 +1403,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             params
                 .code
                 .as_ref()
-                .map_or_else(|| &[] as &[u8], |d| &*d as &[u8]),
+                .map_or_else(|| &[] as &[u8], |d| d as &[u8]),
         );
 
         let address = params.address;
@@ -1535,11 +1523,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
 			t.tx().gas, sstore_refunds, suicide_refunds, refunds_bound, gas_left_prerefund, refunded, gas_left, gas_used, refund_value, fees_value);
 
         let sender = t.sender();
-        trace!(
-            "exec::finalize: Refunding refund_value={}, sender={}\n",
-            refund_value,
-            sender
-        );
+        trace!("exec::finalize: Refunding refund_value={refund_value}, sender={sender}\n");
         // Below: NoEmpty is safe since the sender must already be non-null to have sent this transaction
         self.state
             .add_balance(&sender, &refund_value, CleanupMode::NoEmpty)?;
@@ -1551,7 +1535,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
         self.state.add_balance(
             &self.info.author,
             &fees_value,
-            substate.to_cleanup_mode(&schedule),
+            substate.to_cleanup_mode(schedule),
         )?;
 
         if burnt_fee > U256::from(0)
@@ -1561,7 +1545,7 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
             self.state.add_balance(
                 &self.machine.params().eip1559_fee_collector.unwrap(),
                 &burnt_fee,
-                substate.to_cleanup_mode(&schedule),
+                substate.to_cleanup_mode(schedule),
             )?;
         };
 
@@ -1597,9 +1581,9 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
                 cumulative_gas_used: self.info.gas_used + t.tx().gas,
                 logs: vec![],
                 contracts_created: vec![],
-                output: output,
-                trace: trace,
-                vm_trace: vm_trace,
+                output,
+                trace,
+                vm_trace,
                 state_diff: None,
             }),
             Ok(r) => Ok(Executed {
@@ -1609,14 +1593,14 @@ impl<'a, B: 'a + StateBackend> Executive<'a, B> {
                     Some(vm::Error::Reverted)
                 },
                 gas: t.tx().gas,
-                gas_used: gas_used,
-                refunded: refunded,
+                gas_used,
+                refunded,
                 cumulative_gas_used: self.info.gas_used + gas_used,
                 logs: substate.logs,
                 contracts_created: substate.contracts_created,
-                output: output,
-                trace: trace,
-                vm_trace: vm_trace,
+                output,
+                trace,
+                vm_trace,
                 state_diff: None,
             }),
         }
@@ -1692,8 +1676,8 @@ mod tests {
         )
         .0;
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.sender = sender.clone();
+        params.address = address;
+        params.sender = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new("3331600055".from_hex().unwrap()));
         params.value = ActionValue::Transfer(U256::from(0x7));
@@ -1761,9 +1745,9 @@ mod tests {
         // TODO: add tests for 'callcreate'
         //let next_address = contract_address(&address, &U256::zero());
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from(100));
@@ -1805,10 +1789,10 @@ mod tests {
         let address = Address::from_str("5555555555555555555555555555555555555555").unwrap();
 
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.code_address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.code_address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from(100));
@@ -1908,10 +1892,10 @@ mod tests {
         // TODO: add tests for 'callcreate'
         //let next_address = contract_address(&address, &U256::zero());
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.code_address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.code_address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from(100));
@@ -2039,10 +2023,10 @@ mod tests {
         )
         .0;
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.code_address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.code_address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from(100));
@@ -2127,9 +2111,9 @@ mod tests {
         // TODO: add tests for 'callcreate'
         //let next_address = contract_address(&address, &U256::zero());
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(100.into());
@@ -2303,9 +2287,9 @@ mod tests {
         // TODO: add tests for 'callcreate'
         //let next_address = contract_address(&address, &U256::zero());
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from(100));
@@ -2373,9 +2357,9 @@ mod tests {
         )
         .0;
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from(100));
@@ -2439,8 +2423,8 @@ mod tests {
         let sender = Address::from_str("cd1722f3947def4cf144679da39c4c32bdc35681").unwrap();
 
         let mut params = ActionParams::default();
-        params.address = address_a.clone();
-        params.sender = sender.clone();
+        params.address = address_a;
+        params.sender = sender;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code_a.clone()));
         params.value = ActionValue::Transfer(U256::from(100_000));
@@ -2506,7 +2490,7 @@ mod tests {
         )
         .0;
         let mut params = ActionParams::default();
-        params.address = address.clone();
+        params.address = address;
         params.gas = U256::from(100_000);
         params.code = Some(Arc::new(code.clone()));
         let mut state = get_temp_state_with_factory(factory);
@@ -2621,10 +2605,7 @@ mod tests {
 
         match res {
             Err(ExecutionError::InvalidNonce { expected, got })
-                if expected == U256::zero() && got == U256::one() =>
-            {
-                ()
-            }
+                if expected == U256::zero() && got == U256::one() => {}
             _ => assert!(false, "Expected invalid nonce error."),
         }
     }
@@ -2666,10 +2647,7 @@ mod tests {
                 gas,
             }) if gas_limit == U256::from(100_000)
                 && gas_used == U256::from(20_000)
-                && gas == U256::from(80_001) =>
-            {
-                ()
-            }
+                && gas == U256::from(80_001) => {}
             _ => assert!(false, "Expected block gas limit error."),
         }
     }
@@ -2752,10 +2730,7 @@ mod tests {
 
         match res {
             Err(ExecutionError::NotEnoughCash { required, got })
-                if required == U512::from(100_018) && got == U512::from(100_017) =>
-            {
-                ()
-            }
+                if required == U512::from(100_018) && got == U512::from(100_017) => {}
             _ => assert!(false, "Expected not enough cash error. {:?}", res),
         }
     }
@@ -2812,10 +2787,7 @@ mod tests {
                 if required
                     == U512::from(max_priority_fee_per_gas) * U512::from(100_000)
                         + U512::from(17)
-                    && got == U512::from(15000017) =>
-            {
-                ()
-            }
+                    && got == U512::from(15000017) => {}
             _ => assert!(false, "Expected not enough cash error. {:?}", res),
         }
     }
@@ -2869,10 +2841,7 @@ mod tests {
 
         match res {
             Err(ExecutionError::TransactionMalformed(err))
-                if err.contains("maxPriorityFeePerGas higher than maxFeePerGas") =>
-            {
-                ()
-            }
+                if err.contains("maxPriorityFeePerGas higher than maxFeePerGas") => {}
             _ => assert!(
                 false,
                 "Expected maxPriorityFeePerGas higher than maxFeePerGas error. {:?}",
@@ -2896,9 +2865,9 @@ mod tests {
         // TODO: add tests for 'callcreate'
         //let next_address = contract_address(&address, &U256::zero());
         let mut params = ActionParams::default();
-        params.address = address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(0x0186a0);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::from_str("0de0b6b3a7640000").unwrap());
@@ -2945,9 +2914,9 @@ mod tests {
         state.commit().unwrap();
 
         let mut params = ActionParams::default();
-        params.address = contract_address.clone();
-        params.sender = sender.clone();
-        params.origin = sender.clone();
+        params.address = contract_address;
+        params.sender = sender;
+        params.origin = sender;
         params.gas = U256::from(20025);
         params.code = Some(Arc::new(code));
         params.value = ActionValue::Transfer(U256::zero());
@@ -2966,7 +2935,7 @@ mod tests {
             ex.call(params, &mut substate, &mut NoopTracer, &mut NoopVMTracer)
                 .unwrap()
         };
-        (&mut output).copy_from_slice(&return_data[..(cmp::min(14, return_data.len()))]);
+        output.copy_from_slice(&return_data[..(cmp::min(14, return_data.len()))]);
 
         assert_eq!(result, U256::from(1));
         assert_eq!(output[..], returns[..]);
@@ -3093,9 +3062,9 @@ mod tests {
         state.commit().unwrap();
 
         let mut params = ActionParams::default();
-        params.origin = sender.clone();
-        params.sender = sender.clone();
-        params.address = contract_address.clone();
+        params.origin = sender;
+        params.sender = sender;
+        params.address = contract_address;
         params.gas = U256::from(20025);
         params.code = Some(wasm_sample_code());
 
@@ -3123,7 +3092,7 @@ mod tests {
             )
             .unwrap()
         };
-        (&mut output).copy_from_slice(&return_data[..(cmp::min(20, return_data.len()))]);
+        output.copy_from_slice(&return_data[..(cmp::min(20, return_data.len()))]);
 
         assert_eq!(result, U256::from(18433));
         // Transaction successfully returned sender
@@ -3148,7 +3117,7 @@ mod tests {
             )
             .unwrap()
         };
-        (&mut output[..(cmp::min(20, return_data.len()))])
+        output[..(cmp::min(20, return_data.len()))]
             .copy_from_slice(&return_data[..(cmp::min(20, return_data.len()))]);
 
         assert_eq!(result, U256::from(20025));
@@ -3174,7 +3143,7 @@ mod tests {
             )
             .unwrap()
         };
-        (&mut output[..(cmp::min(20, return_data.len()))])
+        output[..(cmp::min(20, return_data.len()))]
             .copy_from_slice(&return_data[..(cmp::min(20, return_data.len()))]);
 
         assert_eq!(result, U256::from(20025));

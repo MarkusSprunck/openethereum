@@ -67,7 +67,7 @@ impl ClientService {
         let pruning = config.pruning;
         let client = Client::new(
             config,
-            &spec,
+            spec,
             blockchain_db.clone(),
             miner.clone(),
             io_service.channel(),
@@ -78,8 +78,8 @@ impl ClientService {
         let snapshot_params = SnapServiceParams {
             engine: spec.engine.clone(),
             genesis_block: spec.genesis_block(),
-            restoration_db_handler: restoration_db_handler,
-            pruning: pruning,
+            restoration_db_handler,
+            pruning,
             channel: io_service.channel(),
             snapshot_root: snapshot_path.into(),
             client: client.clone(),
@@ -98,8 +98,8 @@ impl ClientService {
 
         Ok(ClientService {
             io_service: Arc::new(io_service),
-            client: client,
-            snapshot: snapshot,
+            client,
+            snapshot,
             database: blockchain_db,
             _stop_guard: stop_guard,
         })
@@ -180,7 +180,7 @@ impl IoHandler<ClientIoMessage> for ClientIoHandler {
                 self.client.tick(snapshot_restoration)
             }
             SNAPSHOT_TICK_TIMER => self.snapshot.tick(),
-            _ => warn!("IO service triggered unregistered timer '{}'", timer),
+            _ => warn!("IO service triggered unregistered timer '{timer}'"),
         }
     }
 
@@ -194,7 +194,7 @@ impl IoHandler<ClientIoMessage> for ClientIoHandler {
             }
             ClientIoMessage::BeginRestoration(ref manifest) => {
                 if let Err(e) = self.snapshot.init_restore(manifest.clone(), true) {
-                    warn!("Failed to initialize snapshot restoration: {}", e);
+                    warn!("Failed to initialize snapshot restoration: {e}");
                 }
             }
             ClientIoMessage::FeedStateChunk(ref hash, ref chunk) => {
@@ -210,19 +210,19 @@ impl IoHandler<ClientIoMessage> for ClientIoHandler {
                 let res = thread::Builder::new()
                     .name("Periodic Snapshot".into())
                     .spawn(move || {
-                        if let Err(e) = snapshot.take_snapshot(&*client, num) {
+                        if let Err(e) = snapshot.take_snapshot(&client, num) {
                             match e {
                                 EthcoreError(
                                     ErrorKind::Snapshot(SnapshotError::SnapshotAborted),
                                     _,
                                 ) => info!("Snapshot aborted"),
-                                _ => warn!("Failed to take snapshot at block #{}: {}", num, e),
+                                _ => warn!("Failed to take snapshot at block #{num}: {e}"),
                             }
                         }
                     });
 
                 if let Err(e) = res {
-                    debug!(target: "snapshot", "Failed to initialize periodic snapshot thread: {:?}", e);
+                    debug!(target: "snapshot", "Failed to initialize periodic snapshot thread: {e:?}");
                 }
             }
             ClientIoMessage::Execute(ref exec) => {

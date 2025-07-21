@@ -18,7 +18,7 @@
 //! block reward contract.
 
 use ethabi::{self, ParamType};
-use ethereum_types::{Address, H160, U256};
+use ethereum_types::{Address, U256};
 
 use super::{SystemOrCodeCall, SystemOrCodeCallKind};
 use block::ExecutedBlock;
@@ -71,9 +71,9 @@ impl From<RewardKind> for u16 {
     }
 }
 
-impl Into<trace::RewardType> for RewardKind {
-    fn into(self) -> trace::RewardType {
-        match self {
+impl From<RewardKind> for trace::RewardType {
+    fn from(val: RewardKind) -> Self {
+        match val {
             RewardKind::Author => trace::RewardType::Block,
             RewardKind::Uncle(_) => trace::RewardType::Uncle,
             RewardKind::EmptyStep => trace::RewardType::EmptyStep,
@@ -116,17 +116,14 @@ impl BlockRewardContract {
         caller: &mut SystemOrCodeCall,
     ) -> Result<Vec<(Address, U256)>, Error> {
         let input = block_reward_contract::functions::reward::encode_input(
+            beneficiaries.iter().map(|&(address, _)| address),
             beneficiaries
                 .iter()
-                .map(|&(address, _)| H160::from(address)),
-            beneficiaries
-                .iter()
-                .map(|&(_, ref reward_kind)| u16::from(*reward_kind)),
+                .map(|(_, reward_kind)| u16::from(*reward_kind)),
         );
 
-        let output = caller(self.kind.clone(), input)
-            .map_err(Into::into)
-            .map_err(::engines::EngineError::FailedSystemCall)?;
+        let output =
+            caller(self.kind.clone(), input).map_err(::engines::EngineError::FailedSystemCall)?;
 
         // since this is a non-constant call we can't use ethabi's function output
         // deserialization, sadness ensues.
@@ -176,7 +173,7 @@ pub fn apply_block_rewards<M: Machine>(
     block: &mut ExecutedBlock,
     machine: &M,
 ) -> Result<(), M::Error> {
-    for &(ref author, _, ref block_reward) in rewards {
+    for (author, _, block_reward) in rewards {
         machine.add_balance(block, author, block_reward)?;
     }
 
@@ -233,12 +230,12 @@ mod test {
                 ),
             };
 
-            result.map_err(|e| format!("{}", e))
+            result.map_err(|e| format!("{e}"))
         };
 
         // if no beneficiaries are given no rewards are attributed
         assert!(block_reward_contract
-            .reward(&vec![], &mut call)
+            .reward(&[], &mut call)
             .unwrap()
             .is_empty());
 

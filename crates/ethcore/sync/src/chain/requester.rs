@@ -90,7 +90,7 @@ impl SyncRequester {
         peer_id: PeerId,
         n: BlockNumber,
     ) {
-        trace!(target: "sync", "{} <- GetForkHeader: at {}", peer_id, n);
+        trace!(target: "sync", "{peer_id} <- GetForkHeader: at {n}");
         let mut rlp = RlpStream::new_list(4);
         rlp.append(&n);
         rlp.append(&1u32);
@@ -113,7 +113,7 @@ impl SyncRequester {
         peer_id: PeerId,
         hashes: &[H256],
     ) {
-        trace!(target: "sync", "{} <- GetPooledTransactions: {:?}", peer_id, hashes);
+        trace!(target: "sync", "{peer_id} <- GetPooledTransactions: {hashes:?}");
         let mut rlp = RlpStream::new_list(hashes.len());
         for h in hashes {
             rlp.append(h);
@@ -134,7 +134,7 @@ impl SyncRequester {
         // find chunk data to download
         if let Some(hash) = sync.snapshot.needed_chunk() {
             if let Some(ref mut peer) = sync.peers.get_mut(&peer_id) {
-                peer.asking_snapshot_data = Some(hash.clone());
+                peer.asking_snapshot_data = Some(hash);
             }
             SyncRequester::request_snapshot_chunk(sync, io, peer_id, &hash);
         }
@@ -142,7 +142,7 @@ impl SyncRequester {
 
     /// Request snapshot manifest from a peer.
     pub fn request_snapshot_manifest(sync: &mut ChainSync, io: &mut dyn SyncIo, peer_id: PeerId) {
-        trace!(target: "sync", "{} <- GetSnapshotManifest", peer_id);
+        trace!(target: "sync", "{peer_id} <- GetSnapshotManifest");
         let rlp = RlpStream::new_list(0);
         SyncRequester::send_request(
             sync,
@@ -165,7 +165,7 @@ impl SyncRequester {
         reverse: bool,
         set: BlockSet,
     ) {
-        trace!(target: "sync", "{} <- GetBlockHeaders: {} entries starting from {}, set = {:?}", peer_id, count, h, set);
+        trace!(target: "sync", "{peer_id} <- GetBlockHeaders: {count} entries starting from {h}, set = {set:?}");
         let mut rlp = RlpStream::new_list(4);
         rlp.append(h);
         rlp.append(&count);
@@ -180,7 +180,7 @@ impl SyncRequester {
             rlp.out(),
         );
         let peer = sync.peers.get_mut(&peer_id).expect("peer_id may originate either from on_packet, where it is already validated or from enumerating self.peers. qed");
-        peer.asking_hash = Some(h.clone());
+        peer.asking_hash = Some(*h);
         peer.block_set = Some(set);
     }
 
@@ -217,7 +217,7 @@ impl SyncRequester {
         peer_id: PeerId,
         chunk: &H256,
     ) {
-        trace!(target: "sync", "{} <- GetSnapshotData {:?}", peer_id, chunk);
+        trace!(target: "sync", "{peer_id} <- GetSnapshotData {chunk:?}");
         let mut rlp = RlpStream::new_list(1);
         rlp.append(chunk);
         SyncRequester::send_request(
@@ -251,7 +251,7 @@ impl SyncRequester {
             let result = io.send(peer_id, packet_id, packet);
 
             if let Err(e) = result {
-                debug!(target:"sync", "Error sending request: {:?}", e);
+                debug!(target:"sync", "Error sending request: {e:?}");
                 io.disconnect_peer(peer_id);
             }
         }

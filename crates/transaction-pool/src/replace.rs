@@ -42,7 +42,7 @@ impl<'a, T> ReplaceTransaction<'a, T> {
 impl<'a, T> ::std::ops::Deref for ReplaceTransaction<'a, T> {
     type Target = Transaction<T>;
     fn deref(&self) -> &Self::Target {
-        &self.transaction
+        self.transaction
     }
 }
 

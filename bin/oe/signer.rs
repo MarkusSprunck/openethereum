@@ -25,9 +25,8 @@ use std::{
 use crate::{path::restrict_permissions_owner, rpc, rpc_apis};
 use ansi_term::Colour::White;
 use ethcore_logger::Config as LogConfig;
-use parity_rpc;
 
-pub const CODES_FILENAME: &'static str = "authcodes";
+pub const CODES_FILENAME: &str = "authcodes";
 
 pub struct NewToken {
     pub token: String,
@@ -43,9 +42,7 @@ pub fn new_service(
     let signer_enabled = ws_conf.support_token_api;
 
     rpc_apis::SignerService::new(
-        move || {
-            generate_new_token(&signer_path, logger_config_color).map_err(|e| format!("{:?}", e))
-        },
+        move || generate_new_token(&signer_path, logger_config_color).map_err(|e| format!("{e:?}")),
         signer_enabled,
     )
 }
@@ -66,7 +63,7 @@ pub fn generate_token_and_url(
     logger_config: &LogConfig,
 ) -> Result<NewToken, String> {
     let code = generate_new_token(&ws_conf.signer_path, logger_config.color)
-        .map_err(|err| format!("Error generating token: {:?}", err))?;
+        .map_err(|err| format!("Error generating token: {err:?}"))?;
     let colored = |s: String| match logger_config.color {
         true => format!("{}", White.bold().paint(s)),
         false => s,
@@ -94,7 +91,7 @@ fn generate_new_token(path: &Path, logger_config_color: bool) -> io::Result<Stri
         "New key code created: {}",
         match logger_config_color {
             true => format!("{}", White.bold().paint(&code[..])),
-            false => format!("{}", &code[..]),
+            false => code[..].to_string(),
         }
     );
     Ok(code)

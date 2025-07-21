@@ -40,7 +40,7 @@ use ethstore::{
 
 mod crack;
 
-pub const USAGE: &'static str = r#"
+pub const USAGE: &str = r#"
 Parity Ethereum key management tool.
   Copyright 2015-2019 Parity Technologies (UK) Ltd.
 
@@ -155,10 +155,10 @@ fn main() {
     env_logger::try_init().expect("Logger initialized only once.");
 
     match execute(env::args()) {
-        Ok(result) => println!("{}", result),
+        Ok(result) => println!("{result}"),
         Err(Error::Docopt(ref e)) => e.exit(),
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("{err}");
             process::exit(1);
         }
     }
@@ -204,7 +204,7 @@ fn format_accounts(accounts: &[Address]) -> String {
     accounts
         .iter()
         .enumerate()
-        .map(|(i, a)| format!("{:2}: 0x{:x}", i, a))
+        .map(|(i, a)| format!("{i:2}: 0x{a:x}"))
         .collect::<Vec<String>>()
         .join("\n")
 }
@@ -215,11 +215,11 @@ fn format_vaults(vaults: &[String]) -> String {
 
 fn load_password(path: &str) -> Result<Password, Error> {
     let mut file = fs::File::open(path).map_err(|e| {
-        ethstore::Error::Custom(format!("Error opening password file '{}': {}", path, e))
+        ethstore::Error::Custom(format!("Error opening password file '{path}': {e}"))
     })?;
     let mut password = String::new();
     file.read_to_string(&mut password).map_err(|e| {
-        ethstore::Error::Custom(format!("Error reading password file '{}': {}", path, e))
+        ethstore::Error::Custom(format!("Error reading password file '{path}': {e}"))
     })?;
     // drop EOF
     let _ = password.pop();
@@ -235,7 +235,7 @@ where
 
     let store = EthStore::open(key_dir(&args.flag_dir, None)?)?;
 
-    return if args.cmd_insert {
+    if args.cmd_insert {
         let secret = args
             .arg_secret
             .parse()
@@ -255,13 +255,13 @@ where
         let ok = store
             .change_password(&account_ref, &old_pwd, &new_pwd)
             .is_ok();
-        Ok(format!("{}", ok))
+        Ok(format!("{ok}"))
     } else if args.cmd_list {
         let vault_ref = open_args_vault(&store, &args)?;
         let accounts = store.accounts()?;
         let accounts: Vec<_> = accounts
             .into_iter()
-            .filter(|a| &a.vault == &vault_ref)
+            .filter(|a| a.vault == vault_ref)
             .map(|a| a.address)
             .collect();
         Ok(format_accounts(&accounts))
@@ -290,7 +290,7 @@ where
             .map(|line| str::to_owned(line).into())
             .collect::<VecDeque<_>>();
         crack::run(passwords, &args.arg_path)?;
-        Ok(format!("Password not found."))
+        Ok("Password not found.".to_string())
     } else if args.cmd_remove {
         let address = args
             .arg_address
@@ -299,7 +299,7 @@ where
         let password = load_password(&args.arg_password)?;
         let account_ref = open_args_vault_account(&store, address, &args)?;
         let ok = store.remove_account(&account_ref, &password).is_ok();
-        Ok(format!("{}", ok))
+        Ok(format!("{ok}"))
     } else if args.cmd_sign {
         let address = args
             .arg_address
@@ -312,7 +312,7 @@ where
         let password = load_password(&args.arg_password)?;
         let account_ref = open_args_vault_account(&store, address, &args)?;
         let signature = store.sign(&account_ref, &password, &message)?;
-        Ok(format!("0x{}", signature))
+        Ok(format!("0x{signature}"))
     } else if args.cmd_public {
         let address = args
             .arg_address
@@ -321,7 +321,7 @@ where
         let password = load_password(&args.arg_password)?;
         let account_ref = open_args_vault_account(&store, address, &args)?;
         let public = store.public(&account_ref, &password)?;
-        Ok(format!("0x{:x}", public))
+        Ok(format!("0x{public:x}"))
     } else if args.cmd_list_vaults {
         let vaults = store.list_vaults()?;
         Ok(format_vaults(&vaults))
@@ -358,6 +358,6 @@ where
         )?;
         Ok("OK".to_owned())
     } else {
-        Ok(format!("{}", USAGE))
-    };
+        Ok(USAGE.to_string())
+    }
 }

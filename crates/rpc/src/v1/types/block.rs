@@ -232,7 +232,7 @@ mod tests {
             r#"[{"hash":"0x0000000000000000000000000000000000000000000000000000000000000000","nonce":"0x0","blockHash":null,"blockNumber":null,"transactionIndex":null,"from":"0x0000000000000000000000000000000000000000","to":null,"value":"0x0","gasPrice":"0x0","gas":"0x0","input":"0x","creates":null,"raw":"0x","publicKey":null,"chainId":null,"v":"0x0","r":"0x0","s":"0x0","condition":null}]"#
         );
 
-        let t = BlockTransactions::Hashes(vec![H256::default().into()]);
+        let t = BlockTransactions::Hashes(vec![H256::default()]);
         let serialized = serde_json::to_string(&t).unwrap();
         assert_eq!(
             serialized,
@@ -262,7 +262,7 @@ mod tests {
             seal_fields: vec![Bytes::default(), Bytes::default()],
             base_fee_per_gas: None,
             uncles: vec![],
-            transactions: BlockTransactions::Hashes(vec![].into()),
+            transactions: BlockTransactions::Hashes(vec![]),
             size: Some(69.into()),
         };
         let serialized_block = serde_json::to_string(&block).unwrap();
@@ -307,7 +307,7 @@ mod tests {
             seal_fields: vec![Bytes::default(), Bytes::default()],
             base_fee_per_gas: None,
             uncles: vec![],
-            transactions: BlockTransactions::Hashes(vec![].into()),
+            transactions: BlockTransactions::Hashes(vec![]),
             size: None,
         };
         let serialized_block = serde_json::to_string(&block).unwrap();

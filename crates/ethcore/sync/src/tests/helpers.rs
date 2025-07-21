@@ -84,10 +84,10 @@ where
         sender: Option<PeerId>,
     ) -> TestIo<'p, C> {
         TestIo {
-            chain: chain,
+            chain,
             snapshot_service: ss,
-            queue: queue,
-            sender: sender,
+            queue,
+            sender,
             to_disconnect: HashSet::new(),
             overlay: RwLock::new(HashMap::new()),
             packets: Vec::new(),
@@ -125,8 +125,8 @@ where
 
     fn respond(&mut self, packet_id: PacketId, data: Vec<u8>) -> Result<(), network::Error> {
         self.packets.push(TestPacket {
-            data: data,
-            packet_id: packet_id,
+            data,
+            packet_id,
             recipient: self.sender.unwrap(),
         });
         Ok(())
@@ -139,7 +139,7 @@ where
         data: Vec<u8>,
     ) -> Result<(), network::Error> {
         self.packets.push(TestPacket {
-            data: data,
+            data,
             packet_id: packet_id.id(),
             recipient: peer_id,
         });
@@ -147,7 +147,7 @@ where
     }
 
     fn chain(&self) -> &dyn BlockChainClient {
-        &*self.chain
+        self.chain
     }
 
     fn peer_version(&self, peer_id: PeerId) -> ClientVersion {
@@ -400,7 +400,7 @@ impl TestNet<EthPeer<TestBlockChainClient>> {
             let ss = Arc::new(TestSnapshotService::new());
             let (_, transaction_hashes_rx) = crossbeam_channel::unbounded();
             let sync = ChainSync::new(
-                config.clone(),
+                config,
                 &chain,
                 ForkFilterApi::new_dummy(&chain),
                 transaction_hashes_rx,
@@ -435,7 +435,7 @@ impl TestNet<EthPeer<EthcoreClient>> {
             disconnect_events: Vec::new(),
         };
         for _ in 0..n {
-            net.add_peer_with_private_config(config.clone(), spec_factory());
+            net.add_peer_with_private_config(config, spec_factory());
         }
         net
     }
@@ -503,7 +503,7 @@ where
             if let Some(packet) = packet {
                 let disconnecting = {
                     let recipient = packet.recipient();
-                    trace!("--- {} -> {} ---", peer, recipient);
+                    trace!("--- {peer} -> {recipient} ---");
                     let to_disconnect =
                         self.peers[recipient].receive_message(peer as PeerId, packet);
                     for d in &to_disconnect {

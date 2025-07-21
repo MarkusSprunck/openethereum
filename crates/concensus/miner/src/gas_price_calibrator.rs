@@ -49,7 +49,7 @@ impl GasPriceCalibrator {
         api_endpoint: String,
     ) -> GasPriceCalibrator {
         GasPriceCalibrator {
-            options: options,
+            options,
             next_calibration: Instant::now(),
             price_info: PriceInfoClient::new(fetch, p, api_endpoint),
         }
@@ -62,12 +62,12 @@ impl GasPriceCalibrator {
             trace!(target: "miner", "Getting price info");
 
             self.price_info.get(move |price: PriceInfo| {
-				trace!(target: "miner", "Price info arrived: {:?}", price);
+				trace!(target: "miner", "Price info arrived: {price:?}");
 				let usd_per_eth = price.ethusd;
 				let wei_per_usd: f32 = 1.0e18 / usd_per_eth;
 				let gas_per_tx: f32 = 21000.0;
 				let wei_per_gas: f32 = wei_per_usd * usd_per_tx / gas_per_tx;
-				info!(target: "miner", "Updated conversion rate to Ξ1 = {} ({} wei/gas)", Colour::White.bold().paint(format!("US${:.2}", usd_per_eth)), Colour::Yellow.bold().paint(format!("{}", wei_per_gas)));
+				info!(target: "miner", "Updated conversion rate to Ξ1 = {} ({} wei/gas)", Colour::White.bold().paint(format!("US${usd_per_eth:.2}")), Colour::Yellow.bold().paint(format!("{wei_per_gas}")));
 				set_price(U256::from(wei_per_gas as u64));
 			});
 

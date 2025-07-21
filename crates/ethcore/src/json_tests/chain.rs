@@ -47,8 +47,7 @@ fn check_poststate(
                 )
                 .unwrap();
             if expected_balance != current_balance {
-                warn!(target: "json-tests", "{} – Poststate {:?} balance mismatch current={} expected={}",
-					test_name, address, current_balance, expected_balance);
+                warn!(target: "json-tests", "{test_name} – Poststate {address:?} balance mismatch current={current_balance} expected={expected_balance}");
                 success = false;
             }
         }
@@ -59,8 +58,7 @@ fn check_poststate(
                 .nonce(&address.clone().into(), BlockId::Latest)
                 .unwrap();
             if expected_nonce != current_nonce {
-                warn!(target: "json-tests", "{} – Poststate {:?} nonce mismatch current={} expected={}",
-					test_name, address, current_nonce, expected_nonce);
+                warn!(target: "json-tests", "{test_name} – Poststate {address:?} nonce mismatch current={current_nonce} expected={expected_nonce}");
                 success = false;
             }
         }
@@ -75,8 +73,7 @@ fn check_poststate(
                 _ => "".to_string(),
             };
             if current_code != expected_code {
-                warn!(target: "json-tests", "{} – Poststate {:?} code mismatch current={} expected={}",
-					test_name, address, current_code, expected_code);
+                warn!(target: "json-tests", "{test_name} – Poststate {address:?} code mismatch current={current_code} expected={expected_code}");
                 success = false;
             }
         }
@@ -110,11 +107,11 @@ fn check_poststate(
         }
 
         if expected.builtin.is_some() {
-            warn!(target: "json-tests", "{} – Poststate {:?} builtin not supported", test_name, address);
+            warn!(target: "json-tests", "{test_name} – Poststate {address:?} builtin not supported");
             success = false;
         }
         if expected.constructor.is_some() {
-            warn!(target: "json-tests", "{} – Poststate {:?} constructor not supported", test_name, address);
+            warn!(target: "json-tests", "{test_name} – Poststate {address:?} constructor not supported");
             success = false;
         }
     }
@@ -128,10 +125,12 @@ pub fn json_chain_test<H: FnMut(&str, HookType)>(
     start_stop_hook: &mut H,
 ) -> Vec<String> {
     let _ = ::env_logger::try_init();
-    let tests = ethjson::blockchain::Test::load(json_data).expect(&format!(
-        "Could not parse JSON chain test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::blockchain::Test::load(json_data).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON chain test data from {}",
+            path.display()
+        )
+    });
     let mut failed = Vec::new();
 
     for (name, blockchain) in tests.into_iter() {
@@ -208,16 +207,16 @@ pub fn json_chain_test<H: FnMut(&str, HookType)>(
                     match block {
                         Ok(block) => {
                             let num = block.header.number();
-                            debug!(target: "json-tests", "{} – Importing {} bytes. Block #{}", name, bytes_len, num);
+                            debug!(target: "json-tests", "{name} – Importing {bytes_len} bytes. Block #{num}");
                             let res = client.import_block(block);
                             if let Err(e) = res {
-                                warn!(target: "json-tests", "{} – Error importing block #{}: {:?}", name, num, e);
+                                warn!(target: "json-tests", "{name} – Error importing block #{num}: {e:?}");
                             }
                             client.flush_queue();
                             client.import_verified_blocks();
                         }
                         Err(decoder_err) => {
-                            warn!(target: "json-tests", "Error decoding test block: {:?} ({} bytes)", decoder_err, bytes_len);
+                            warn!(target: "json-tests", "Error decoding test block: {decoder_err:?} ({bytes_len} bytes)");
                         }
                     }
                 }

@@ -126,7 +126,7 @@ impl<'s> NetworkContext<'s> {
             session_id: id,
             session,
             sessions,
-            reserved_peers: reserved_peers,
+            reserved_peers,
         }
     }
 
@@ -154,7 +154,7 @@ impl<'s> NetworkContextTrait for NetworkContext<'s> {
         if let Some(session) = session {
             session
                 .lock()
-                .send_packet(self.io, Some(protocol), packet_id as u8, &data)?;
+                .send_packet(self.io, Some(protocol), packet_id, &data)?;
         } else {
             trace!(target: "network", "Send: Peer no longer exist")
         }
@@ -175,17 +175,17 @@ impl<'s> NetworkContextTrait for NetworkContext<'s> {
     fn disable_peer(&self, peer: PeerId) {
         self.io
             .message(NetworkIoMessage::DisablePeer(peer))
-            .unwrap_or_else(|e| warn!("Error sending network IO message: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error sending network IO message: {e:?}"));
     }
 
     fn disconnect_peer(&self, peer: PeerId) {
         self.io
             .message(NetworkIoMessage::Disconnect(peer))
-            .unwrap_or_else(|e| warn!("Error sending network IO message: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error sending network IO message: {e:?}"));
     }
 
     fn is_expired(&self) -> bool {
-        self.session.as_ref().map_or(false, |s| s.lock().expired())
+        self.session.as_ref().is_some_and(|s| s.lock().expired())
     }
 
     fn register_timer(&self, token: TimerToken, delay: Duration) -> Result<(), Error> {
@@ -195,7 +195,7 @@ impl<'s> NetworkContextTrait for NetworkContext<'s> {
                 delay,
                 protocol: self.protocol,
             })
-            .unwrap_or_else(|e| warn!("Error sending network IO message: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error sending network IO message: {e:?}"));
         Ok(())
     }
 
@@ -247,7 +247,7 @@ pub struct HostInfo {
 
 impl HostInfo {
     fn next_nonce(&mut self) -> H256 {
-        self.nonce = keccak(&self.nonce);
+        self.nonce = keccak(self.nonce);
         self.nonce
     }
 
@@ -323,7 +323,7 @@ impl Host {
         // Setup the server socket
         let tcp_listener = TcpListener::bind(&listen_address)?;
         listen_address = SocketAddr::new(listen_address.ip(), tcp_listener.local_addr()?.port());
-        debug!(target: "network", "Listening at {:?}", listen_address);
+        debug!(target: "network", "Listening at {listen_address:?}");
         let udp_port = config.udp_port.unwrap_or_else(|| listen_address.port());
         let local_endpoint = NodeEndpoint {
             address: listen_address,
@@ -366,7 +366,7 @@ impl Host {
 
         for n in reserved_nodes {
             if let Err(e) = host.add_reserved_node(&n) {
-                debug!(target: "network", "Error parsing node id: {}: {:?}", n, e);
+                debug!(target: "network", "Error parsing node id: {n}: {e:?}");
             }
         }
         Ok(host)
@@ -375,7 +375,7 @@ impl Host {
     pub fn add_node(&mut self, id: &str) {
         match Node::from_str(id) {
             Err(e) => {
-                debug!(target: "network", "Could not add node {}: {:?}", id, e);
+                debug!(target: "network", "Could not add node {id}: {e:?}");
             }
             Ok(n) => {
                 let entry = NodeEntry {
@@ -428,7 +428,7 @@ impl Host {
                     let mut s = e.lock();
                     {
                         let id = s.id();
-                        if id.map_or(false, |id| reserved.contains(id)) {
+                        if id.is_some_and(|id| reserved.contains(id)) {
                             continue;
                         }
                     }
@@ -437,7 +437,7 @@ impl Host {
                     to_kill.push(s.token());
                 }
                 for p in to_kill {
-                    trace!(target: "network", "Disconnecting on reserved-only mode: {}", p);
+                    trace!(target: "network", "Disconnecting on reserved-only mode: {p}");
                     self.kill_connection(p, io, false);
                 }
             }
@@ -472,7 +472,7 @@ impl Host {
             to_kill.push(s.token());
         }
         for p in to_kill {
-            trace!(target: "network", "Disconnecting on shutdown: {}", p);
+            trace!(target: "network", "Disconnecting on shutdown: {p}");
             self.kill_connection(p, io, true);
         }
         io.unregister_handler();
@@ -528,7 +528,7 @@ impl Host {
 
         if let Some(url) = self.external_url() {
             io.message(NetworkIoMessage::NetworkStarted(url))
-                .unwrap_or_else(|e| warn!("Error sending IO notification: {:?}", e));
+                .unwrap_or_else(|e| warn!("Error sending IO notification: {e:?}"));
         }
 
         // Initialize discovery.
@@ -605,7 +605,7 @@ impl Host {
             }
         }
         for p in to_kill {
-            trace!(target: "network", "Ping timeout: {}", p);
+            trace!(target: "network", "Ping timeout: {p}");
             self.kill_connection(p, io, true);
         }
     }
@@ -619,7 +619,7 @@ impl Host {
         };
         let (_, egress_count, ingress_count) = self.session_count();
 
-        return egress_count + ingress_count >= min_peers as usize;
+        egress_count + ingress_count >= min_peers as usize
     }
 
     fn connect_peers(&self, io: &IoContext<NetworkIoMessage>) {
@@ -674,8 +674,8 @@ impl Host {
                 !self.have_session(id)
                     && !self.connecting_to(id)
                     && *id != self_id
-                    && self.filter.as_ref().map_or(true, |f| {
-                        f.connection_allowed(&self_id, &id, ConnectionDirection::Outbound)
+                    && self.filter.as_ref().is_none_or(|f| {
+                        f.connection_allowed(&self_id, id, ConnectionDirection::Outbound)
                     })
             })
             .take(min(
@@ -711,19 +711,19 @@ impl Host {
             };
             match TcpStream::connect(&address) {
                 Ok(socket) => {
-                    trace!(target: "network", "{}: Connecting to {:?}", id, address);
+                    trace!(target: "network", "{id}: Connecting to {address:?}");
                     socket
                 }
                 Err(e) => {
-                    debug!(target: "network", "{}: Can't connect to address {:?}: {:?}", id, address, e);
-                    self.nodes.write().note_failure(&id);
+                    debug!(target: "network", "{id}: Can't connect to address {address:?}: {e:?}");
+                    self.nodes.write().note_failure(id);
                     return;
                 }
             }
         };
 
         if let Err(e) = self.create_connection(socket, Some(id), io) {
-            debug!(target: "network", "Can't create connection: {:?}", e);
+            debug!(target: "network", "Can't create connection: {e:?}");
         }
     }
 
@@ -737,11 +737,11 @@ impl Host {
         let mut sessions = self.sessions.write();
 
         let token = sessions.insert_with_opt(|token| {
-            trace!(target: "network", "{}: Initiating session {:?}", token, id);
+            trace!(target: "network", "{token}: Initiating session {id:?}");
             match Session::new(io, socket, token, id, &nonce, &self.info.read()) {
                 Ok(s) => Some(Arc::new(Mutex::new(s))),
                 Err(e) => {
-                    debug!(target: "network", "Session create error: {:?}", e);
+                    debug!(target: "network", "Session create error: {e:?}");
                     None
                 }
             }
@@ -763,13 +763,13 @@ impl Host {
                 Ok((sock, _addr)) => sock,
                 Err(e) => {
                     if e.kind() != io::ErrorKind::WouldBlock {
-                        debug!(target: "network", "Error accepting connection: {:?}", e);
+                        debug!(target: "network", "Error accepting connection: {e:?}");
                     }
                     break;
                 }
             };
             if let Err(e) = self.create_connection(socket, None, io) {
-                debug!(target: "network", "Can't accept connection: {:?}", e);
+                debug!(target: "network", "Can't accept connection: {e:?}");
             }
         }
     }
@@ -780,17 +780,17 @@ impl Host {
         if let Some(session) = session {
             let mut s = session.lock();
             if let Err(e) = s.writable(io, &self.info.read()) {
-                trace!(target: "network", "Session write error: {}: {:?}", token, e);
+                trace!(target: "network", "Session write error: {token}: {e:?}");
             }
             if s.done() {
                 io.deregister_stream(token)
-                    .unwrap_or_else(|e| debug!("Error deregistering stream: {:?}", e));
+                    .unwrap_or_else(|e| debug!("Error deregistering stream: {e:?}"));
             }
         }
     }
 
     fn connection_closed(&self, token: StreamToken, io: &IoContext<NetworkIoMessage>) {
-        trace!(target: "network", "Connection closed: {}", token);
+        trace!(target: "network", "Connection closed: {token}");
         self.kill_connection(token, io, true);
     }
 
@@ -815,7 +815,7 @@ impl Host {
                                     if let Some(id) = s.id() {
                                         if !reserved_nodes.contains(id) {
                                             let mut nodes = self.nodes.write();
-                                            nodes.note_failure(&id);
+                                            nodes.note_failure(id);
                                             nodes.mark_as_useless(id);
                                         }
                                     }
@@ -856,23 +856,22 @@ impl Host {
                             // Outgoing connections are allowed as long as their count is <= min_peers
                             // Incoming connections are allowed to take all of the max_peers reserve, or at most half of the slots.
                             let max_ingress = max(max_peers - min_peers, min_peers / 2);
-                            if reserved_only
+                            if (reserved_only
                                 || (s.info.originated && egress_count > min_peers)
-                                || (!s.info.originated && ingress_count > max_ingress)
+                                || (!s.info.originated && ingress_count > max_ingress))
+                                && !reserved_nodes.contains(&id)
                             {
-                                if !reserved_nodes.contains(&id) {
-                                    // only proceed if the connecting peer is reserved.
-                                    trace!(target: "network", "Disconnecting non-reserved peer {:?}", id);
-                                    s.disconnect(io, DisconnectReason::TooManyPeers);
-                                    kill = true;
-                                    break;
-                                }
+                                // only proceed if the connecting peer is reserved.
+                                trace!(target: "network", "Disconnecting non-reserved peer {id:?}");
+                                s.disconnect(io, DisconnectReason::TooManyPeers);
+                                kill = true;
+                                break;
                             }
 
-                            if !self.filter.as_ref().map_or(true, |f| {
+                            if !self.filter.as_ref().is_none_or(|f| {
                                 f.connection_allowed(&self_id, &id, ConnectionDirection::Inbound)
                             }) {
-                                trace!(target: "network", "Inbound connection not allowed for {:?}", id);
+                                trace!(target: "network", "Inbound connection not allowed for {id:?}");
                                 s.disconnect(io, DisconnectReason::UnexpectedIdentity);
                                 kill = true;
                                 break;
@@ -915,7 +914,7 @@ impl Host {
                             packet_id,
                         }) => match self.handlers.read().get(&protocol) {
                             None => {
-                                warn!(target: "network", "No handler found for protocol: {:?}", protocol)
+                                warn!(target: "network", "No handler found for protocol: {protocol:?}")
                             }
                             Some(_) => packet_data.push((protocol, packet_id, data)),
                         },
@@ -936,7 +935,7 @@ impl Host {
                     session.token() != token && session.info.id == ready_id
                 });
                 if duplicate {
-                    trace!(target: "network", "Rejected duplicate connection: {}", token);
+                    trace!(target: "network", "Rejected duplicate connection: {token}");
                     session
                         .lock()
                         .disconnect(io, DisconnectReason::DuplicatePeer);
@@ -996,12 +995,12 @@ impl Host {
                     Ok(Some((len, address))) => discovery
                         .on_packet(&buf[0..len], address)
                         .unwrap_or_else(|e| {
-                            debug!(target: "network", "Error processing UDP packet: {:?}", e);
+                            debug!(target: "network", "Error processing UDP packet: {e:?}");
                             None
                         }),
                     Ok(_) => None,
                     Err(e) => {
-                        debug!(target: "network", "Error reading UPD socket: {:?}", e);
+                        debug!(target: "network", "Error reading UPD socket: {e:?}");
                         None
                     }
                 };
@@ -1009,7 +1008,7 @@ impl Host {
                 if writable != new_writable {
                     io.update_registration(DISCOVERY)
 						.unwrap_or_else(|e| {
-							debug!(target: "network" ,"Error updating discovery registration: {:?}", e)
+							debug!(target: "network" ,"Error updating discovery registration: {e:?}")
 						});
                 }
                 res
@@ -1043,13 +1042,13 @@ impl Host {
                 }
             }
             io.update_registration(DISCOVERY).unwrap_or_else(
-                |e| debug!(target: "network", "Error updating discovery registration: {:?}", e),
+                |e| debug!(target: "network", "Error updating discovery registration: {e:?}"),
             );
         }
     }
 
     fn connection_timeout(&self, token: StreamToken, io: &IoContext<NetworkIoMessage>) {
-        trace!(target: "network", "Connection timeout: {}", token);
+        trace!(target: "network", "Connection timeout: {token}");
         self.kill_connection(token, io, true)
     }
 
@@ -1099,7 +1098,7 @@ impl Host {
         }
         if deregister {
             io.deregister_stream(token)
-                .unwrap_or_else(|e| debug!("Error deregistering stream: {:?}", e));
+                .unwrap_or_else(|e| debug!("Error deregistering stream: {e:?}"));
         }
     }
 
@@ -1117,10 +1116,10 @@ impl Host {
             }
         }
         for i in to_remove {
-            trace!(target: "network", "Removed from node table: {}", i);
+            trace!(target: "network", "Removed from node table: {i}");
         }
         let reserved_nodes = self.reserved_nodes.read();
-        self.nodes.write().update(node_changes, &*reserved_nodes);
+        self.nodes.write().update(node_changes, &reserved_nodes);
     }
 
     pub fn with_context<F>(&self, protocol: ProtocolId, io: &IoContext<NetworkIoMessage>, action: F)
@@ -1155,12 +1154,12 @@ impl IoHandler<NetworkIoMessage> for Host {
         io.register_timer(IDLE, MAINTENANCE_TIMEOUT)
             .expect("Error registering Network idle timer");
         io.message(NetworkIoMessage::InitPublicInterface)
-            .unwrap_or_else(|e| warn!("Error sending IO notification: {:?}", e));
+            .unwrap_or_else(|e| warn!("Error sending IO notification: {e:?}"));
         self.maintain_network(io)
     }
 
     fn stream_hup(&self, io: &IoContext<NetworkIoMessage>, stream: StreamToken) {
-        trace!(target: "network", "Hup: {}", stream);
+        trace!(target: "network", "Hup: {stream}");
         match stream {
             FIRST_SESSION..=LAST_SESSION => self.connection_closed(stream, io),
             _ => warn!(target: "network", "Unexpected hup"),
@@ -1202,23 +1201,29 @@ impl IoHandler<NetworkIoMessage> for Host {
                 if !self.has_enough_peers() {
                     return;
                 }
-                self.discovery.lock().as_mut().map(|d| d.refresh());
+                if let Some(d) = self.discovery.lock().as_mut() {
+                    d.refresh()
+                }
                 io.update_registration(DISCOVERY)
-                    .unwrap_or_else(|e| debug!("Error updating discovery registration: {:?}", e));
+                    .unwrap_or_else(|e| debug!("Error updating discovery registration: {e:?}"));
             }
             FAST_DISCOVERY_REFRESH => {
                 // Run the fast discovery if not enough peers are connected
                 if self.has_enough_peers() {
                     return;
                 }
-                self.discovery.lock().as_mut().map(|d| d.refresh());
+                if let Some(d) = self.discovery.lock().as_mut() {
+                    d.refresh()
+                }
                 io.update_registration(DISCOVERY)
-                    .unwrap_or_else(|e| debug!("Error updating discovery registration: {:?}", e));
+                    .unwrap_or_else(|e| debug!("Error updating discovery registration: {e:?}"));
             }
             DISCOVERY_ROUND => {
-                self.discovery.lock().as_mut().map(|d| d.round());
+                if let Some(d) = self.discovery.lock().as_mut() {
+                    d.round()
+                }
                 io.update_registration(DISCOVERY)
-                    .unwrap_or_else(|e| debug!("Error updating discovery registration: {:?}", e));
+                    .unwrap_or_else(|e| debug!("Error updating discovery registration: {e:?}"));
             }
             NODE_TABLE => {
                 trace!(target: "network", "Refreshing node table");
@@ -1246,7 +1251,7 @@ impl IoHandler<NetworkIoMessage> for Host {
                     }
                 },
                 None => {
-                    warn!("Unknown timer token: {}", token);
+                    warn!("Unknown timer token: {token}");
                 } // timer is not registerd through us
             },
         }
@@ -1301,7 +1306,7 @@ impl IoHandler<NetworkIoMessage> for Host {
                     },
                 );
                 io.register_timer(handler_token, *delay)
-                    .unwrap_or_else(|e| debug!("Error registering timer {}: {:?}", token, e));
+                    .unwrap_or_else(|e| debug!("Error registering timer {token}: {e:?}"));
             }
             NetworkIoMessage::Disconnect(ref peer) => {
                 let session = { self.sessions.read().get(*peer).cloned() };
@@ -1310,7 +1315,7 @@ impl IoHandler<NetworkIoMessage> for Host {
                         .lock()
                         .disconnect(io, DisconnectReason::DisconnectRequested);
                 }
-                trace!(target: "network", "Disconnect requested {}", peer);
+                trace!(target: "network", "Disconnect requested {peer}");
                 self.kill_connection(*peer, io, false);
             }
             NetworkIoMessage::DisablePeer(ref peer) => {
@@ -1321,16 +1326,16 @@ impl IoHandler<NetworkIoMessage> for Host {
                         .disconnect(io, DisconnectReason::DisconnectRequested);
                     if let Some(id) = session.lock().id() {
                         let mut nodes = self.nodes.write();
-                        nodes.note_failure(&id);
+                        nodes.note_failure(id);
                         nodes.mark_as_useless(id);
                     }
                 }
-                trace!(target: "network", "Disabling peer {}", peer);
+                trace!(target: "network", "Disabling peer {peer}");
                 self.kill_connection(*peer, io, false);
             }
             NetworkIoMessage::InitPublicInterface => self
                 .init_public_interface(io)
-                .unwrap_or_else(|e| warn!("Error initializing public interface: {:?}", e)),
+                .unwrap_or_else(|e| warn!("Error initializing public interface: {e:?}")),
             _ => {} // ignore others.
         }
     }
@@ -1442,23 +1447,23 @@ impl IoHandler<NetworkIoMessage> for Host {
 fn save_key(path: &Path, key: &Secret) {
     let mut path_buf = PathBuf::from(path);
     if let Err(e) = fs::create_dir_all(path_buf.as_path()) {
-        warn!("Error creating key directory: {:?}", e);
+        warn!("Error creating key directory: {e:?}");
         return;
     };
     path_buf.push("key");
     let path = path_buf.as_path();
-    let mut file = match fs::File::create(&path) {
+    let mut file = match fs::File::create(path) {
         Ok(file) => file,
         Err(e) => {
-            warn!("Error creating key file: {:?}", e);
+            warn!("Error creating key file: {e:?}");
             return;
         }
     };
     if let Err(e) = restrict_permissions_owner(path, true, false) {
-        warn!(target: "network", "Failed to modify permissions of the file ({})", e);
+        warn!(target: "network", "Failed to modify permissions of the file ({e})");
     }
     if let Err(e) = file.write(&key.to_hex().into_bytes()) {
-        warn!("Error writing key file: {:?}", e);
+        warn!("Error writing key file: {e:?}");
     }
 }
 
@@ -1468,7 +1473,7 @@ fn load_key(path: &Path) -> Option<Secret> {
     let mut file = match fs::File::open(path_buf.as_path()) {
         Ok(file) => file,
         Err(e) => {
-            debug!("Error opening key file: {:?}", e);
+            debug!("Error opening key file: {e:?}");
             return None;
         }
     };
@@ -1476,14 +1481,14 @@ fn load_key(path: &Path) -> Option<Secret> {
     match file.read_to_string(&mut buf) {
         Ok(_) => {}
         Err(e) => {
-            warn!("Error reading key file: {:?}", e);
+            warn!("Error reading key file: {e:?}");
             return None;
         }
     }
     match Secret::from_str(&buf) {
         Ok(key) => Some(key),
         Err(e) => {
-            warn!("Error parsing key file: {:?}", e);
+            warn!("Error parsing key file: {e:?}");
             None
         }
     }

@@ -96,7 +96,7 @@ pub struct Header {
 
 impl PartialEq for Header {
     fn eq(&self, c: &Header) -> bool {
-        if let (&Some(ref h1), &Some(ref h2)) = (&self.hash, &c.hash) {
+        if let (Some(h1), Some(h2)) = (&self.hash, &c.hash) {
             if h1 == h2 {
                 return true;
             }

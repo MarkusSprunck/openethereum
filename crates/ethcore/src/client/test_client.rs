@@ -178,9 +178,9 @@ impl TestBlockChainClient {
             blocks: RwLock::new(HashMap::new()),
             numbers: RwLock::new(HashMap::new()),
             genesis_hash: H256::default(),
-            extra_data: extra_data,
+            extra_data,
             last_hash: RwLock::new(H256::default()),
-            difficulty: RwLock::new(spec.genesis_header().difficulty().clone()),
+            difficulty: RwLock::new(*spec.genesis_header().difficulty()),
             balances: RwLock::new(HashMap::new()),
             nonces: RwLock::new(HashMap::new()),
             storage: RwLock::new(HashMap::new()),
@@ -190,7 +190,7 @@ impl TestBlockChainClient {
             logs: RwLock::new(Vec::new()),
             queue_size: AtomicUsize::new(0),
             miner: Arc::new(Miner::new_for_tests(&spec, None)),
-            spec: spec,
+            spec,
             latest_block_timestamp: RwLock::new(10_000_000),
             ancient_block: RwLock::new(None),
             first_block: RwLock::new(None),
@@ -268,7 +268,7 @@ impl TestBlockChainClient {
 
         let mut header = Header::new();
         header.set_difficulty(From::from(n));
-        header.set_parent_hash(self.last_hash.read().clone());
+        header.set_parent_hash(*self.last_hash.read());
         header.set_number(n as BlockNumber);
         header.set_gas_limit(U256::from(1_000_000));
         header.set_extra_data(self.extra_data.clone());
@@ -280,7 +280,7 @@ impl TestBlockChainClient {
                 let mut uncles = RlpStream::new_list(1);
                 let mut uncle_header = Header::new();
                 uncle_header.set_difficulty(From::from(n));
-                uncle_header.set_parent_hash(self.last_hash.read().clone());
+                uncle_header.set_parent_hash(*self.last_hash.read());
                 uncle_header.set_number(n as BlockNumber);
                 uncles.append(&uncle_header);
                 header.set_uncles_hash(keccak(uncles.as_raw()));
@@ -308,7 +308,7 @@ impl TestBlockChainClient {
                         data: "3331600055".from_hex().unwrap(),
                         gas: U256::from(100_000),
                         gas_price: U256::from(200_000_000_000u64),
-                        nonce: nonce,
+                        nonce,
                     });
                     let signed_tx = tx.sign(keypair.secret(), None);
                     signed_tx.rlp_append(&mut txs);
@@ -356,7 +356,7 @@ impl TestBlockChainClient {
     pub fn block_hash_delta_minus(&mut self, delta: usize) -> H256 {
         let blocks_read = self.numbers.read();
         let index = blocks_read.len() - delta;
-        blocks_read[&index].clone()
+        blocks_read[&index]
     }
 
     fn block_hash(&self, id: BlockId) -> Option<H256> {
@@ -380,7 +380,7 @@ impl TestBlockChainClient {
             value: U256::from(100),
             data: "3331600055".from_hex().unwrap(),
             gas: U256::from(100_000),
-            gas_price: gas_price,
+            gas_price,
             nonce: U256::zero(),
         });
         let signed_tx = tx.sign(keypair.secret(), None);
@@ -397,7 +397,7 @@ impl TestBlockChainClient {
             .new_transaction_hashes
             .write()
             .as_ref()
-            .and_then(|tx| Some(tx.send(hash)));
+            .map(|tx| tx.send(hash));
 
         hash
     }
@@ -542,8 +542,8 @@ impl ChainInfo for TestBlockChainClient {
         BlockChainInfo {
             total_difficulty: *self.difficulty.read(),
             pending_total_difficulty: *self.difficulty.read(),
-            genesis_hash: self.genesis_hash.clone(),
-            best_block_hash: self.last_hash.read().clone(),
+            genesis_hash: self.genesis_hash,
+            best_block_hash: *self.last_hash.read(),
             best_block_number: number,
             best_block_timestamp: number,
             first_block_hash: self.first_block.read().as_ref().map(|x| x.0),
@@ -581,7 +581,7 @@ impl BlockInfo for TestBlockChainClient {
 
     fn code_hash(&self, address: &Address, id: BlockId) -> Option<H256> {
         match id {
-            BlockId::Latest => self.code.read().get(address).map(|c| keccak(&c)),
+            BlockId::Latest => self.code.read().get(address).map(keccak),
             _ => None,
         }
     }
@@ -645,25 +645,24 @@ impl ImportBlock for TestBlockChainClient {
         if number == len {
             {
                 let mut difficulty = self.difficulty.write();
-                *difficulty = *difficulty + header.difficulty().clone();
+                *difficulty += *header.difficulty();
             }
-            *self.last_hash.write() = h.clone();
-            self.blocks.write().insert(h.clone(), unverified.bytes);
-            self.numbers.write().insert(number, h.clone());
-            let mut parent_hash = header.parent_hash().clone();
+            *self.last_hash.write() = h;
+            self.blocks.write().insert(h, unverified.bytes);
+            self.numbers.write().insert(number, h);
+            let mut parent_hash = *header.parent_hash();
             if number > 0 {
                 let mut n = number - 1;
                 while n > 0 && self.numbers.read()[&n] != parent_hash {
-                    *self.numbers.write().get_mut(&n).unwrap() = parent_hash.clone();
+                    *self.numbers.write().get_mut(&n).unwrap() = parent_hash;
                     n -= 1;
-                    parent_hash = view!(BlockView, &self.blocks.read()[&parent_hash])
+                    parent_hash = *view!(BlockView, &self.blocks.read()[&parent_hash])
                         .header(BlockNumber::max_value())
-                        .parent_hash()
-                        .clone();
+                        .parent_hash();
                 }
             }
         } else {
-            self.blocks.write().insert(h.clone(), unverified.bytes);
+            self.blocks.write().insert(h, unverified.bytes);
         }
         Ok(h)
     }
@@ -773,8 +772,8 @@ impl BlockChainClient for TestBlockChainClient {
                 .clone()
                 .unwrap()
                 .into_iter()
-                .map(|t| t.transaction_hash.unwrap_or(H256::default()))
-                .zip(self.execution_result.read().clone().unwrap().into_iter()),
+                .map(|t| t.transaction_hash.unwrap_or_default())
+                .zip(self.execution_result.read().clone().unwrap()),
         ))
     }
 
@@ -802,7 +801,7 @@ impl BlockChainClient for TestBlockChainClient {
             StateOrBlock::Block(BlockId::Latest) => Some(
                 self.storage
                     .read()
-                    .get(&(address.clone(), position.clone()))
+                    .get(&(*address, *position))
                     .cloned()
                     .unwrap_or_else(H256::default),
             ),
@@ -852,9 +851,8 @@ impl BlockChainClient for TestBlockChainClient {
     }
 
     fn logs(&self, filter: Filter) -> Result<Vec<LocalizedLogEntry>, BlockId> {
-        match self.error_on_logs.read().as_ref() {
-            Some(id) => return Err(id.clone()),
-            None => (),
+        if let Some(id) = self.error_on_logs.read().as_ref() {
+            return Err(*id);
         }
 
         let mut logs = self.logs.read().clone();
@@ -938,7 +936,7 @@ impl BlockChainClient for TestBlockChainClient {
                 {
                     if hash == to {
                         if adding {
-                            blocks.push(hash.clone());
+                            blocks.push(*hash);
                         }
                         adding = false;
                         break;
@@ -947,7 +945,7 @@ impl BlockChainClient for TestBlockChainClient {
                         adding = true;
                     }
                     if adding {
-                        blocks.push(hash.clone());
+                        blocks.push(*hash);
                     }
                 }
                 if adding {
@@ -1078,7 +1076,7 @@ impl BlockChainClient for TestBlockChainClient {
             gas: gas.unwrap_or(self.spec.gas_limit),
             gas_price: gas_price.unwrap_or_else(U256::zero),
             value: U256::default(),
-            data: data,
+            data,
         });
         let chain_id = Some(self.spec.chain_id());
         let sig = self
@@ -1178,7 +1176,7 @@ impl super::traits::EngineClient for TestBlockChainClient {
             .submit_seal(block_hash, seal)
             .and_then(|block| self.import_sealed_block(block));
         if let Err(err) = import {
-            warn!(target: "poa", "Wrong internal seal submission! {:?}", err);
+            warn!(target: "poa", "Wrong internal seal submission! {err:?}");
         }
     }
 

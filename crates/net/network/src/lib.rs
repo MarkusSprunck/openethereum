@@ -315,7 +315,7 @@ pub trait NetworkContext {
     fn is_reserved_peer(&self, peer: PeerId) -> bool;
 }
 
-impl<'a, T> NetworkContext for &'a T
+impl<T> NetworkContext for &T
 where
     T: ?Sized + NetworkContext,
 {

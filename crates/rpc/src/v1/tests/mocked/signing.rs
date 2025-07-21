@@ -77,11 +77,11 @@ impl Default for SigningTester {
 
         SigningTester {
             runtime,
-            signer: signer,
-            client: client,
-            miner: miner,
-            accounts: accounts,
-            io: io,
+            signer,
+            client,
+            miner,
+            accounts,
+            io,
         }
     }
 }
@@ -114,7 +114,7 @@ fn rpc_eth_sign() {
 		"params": [
 			""#
     .to_owned()
-        + &format!("0x{:x}", account)
+        + &format!("0x{account:x}")
         + r#"",
 			"0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f"
 		],
@@ -139,7 +139,7 @@ fn should_add_sign_to_queue() {
 		"params": [
 			""#
     .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"0x0000000000000000000000000000000000000000000000000000000000000005"
 		],
@@ -162,7 +162,7 @@ fn should_add_sign_to_queue() {
             );
             break;
         }
-        ::std::thread::sleep(Duration::from_millis(100))
+        ::std::thread::sleep(Duration::from_millis(100));
     });
 
     let res = promise.wait().unwrap();
@@ -183,7 +183,7 @@ fn should_post_sign_to_queue() {
 		"params": [
 			""#
     .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"0x0000000000000000000000000000000000000000000000000000000000000005"
 		],
@@ -210,7 +210,7 @@ fn should_check_status_of_request() {
 		"params": [
 			""#
     .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"0x0000000000000000000000000000000000000000000000000000000000000005"
 		],
@@ -229,7 +229,7 @@ fn should_check_status_of_request() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
 }
@@ -245,7 +245,7 @@ fn should_check_status_of_request_when_its_resolved() {
 		"params": [
 			""#
     .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"0x0000000000000000000000000000000000000000000000000000000000000005"
 		],
@@ -272,7 +272,7 @@ fn should_check_status_of_request_when_its_resolved() {
 
     // then
     assert_eq!(
-        tester.io.handle_request_sync(&request),
+        tester.io.handle_request_sync(request),
         Some(response.to_owned())
     );
 }
@@ -298,7 +298,7 @@ fn should_sign_if_account_is_unlocked() {
 		"params": [
 			""#
     .to_owned()
-        + format!("0x{:x}", acc).as_ref()
+        + format!("0x{acc:x}").as_ref()
         + r#"",
 			""# + format!("0x{}", data.to_hex()).as_ref()
         + r#""
@@ -327,7 +327,7 @@ fn should_add_transaction_to_queue() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -355,7 +355,7 @@ fn should_add_transaction_to_queue() {
             );
             break;
         }
-        ::std::thread::sleep(Duration::from_millis(100))
+        ::std::thread::sleep(Duration::from_millis(100));
     });
 
     let res = promise.wait().unwrap();
@@ -377,7 +377,7 @@ fn should_add_sign_transaction_to_the_queue() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", address).as_ref()
+        + format!("0x{address:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -414,7 +414,7 @@ fn should_add_sign_transaction_to_the_queue() {
         + r#""blockHash":null,"blockNumber":null,"#
         + &format!(
             "\"chainId\":{},",
-            t.chain_id().map_or("null".to_owned(), |n| format!("{}", n))
+            t.chain_id().map_or("null".to_owned(), |n| format!("{n}"))
         )
         + r#""condition":null,"creates":null,"#
         + &format!("\"from\":\"0x{:x}\",", &address)
@@ -446,16 +446,16 @@ fn should_add_sign_transaction_to_the_queue() {
             signer.request_confirmed(
                 sender,
                 Ok(ConfirmationResponse::SignTransaction(
-                    RichRawTransaction::from_signed(t.into()),
+                    RichRawTransaction::from_signed(t),
                 )),
             );
             break;
         }
-        ::std::thread::sleep(Duration::from_millis(100))
+        ::std::thread::sleep(Duration::from_millis(100));
     });
 
     let res = promise.wait().unwrap();
-    assert_eq!(res, Some(response.to_owned()));
+    assert_eq!(res, Some(response.clone()));
 }
 
 #[test]
@@ -491,7 +491,7 @@ fn should_dispatch_transaction_if_account_is_unlock() {
 		"params": [{
 			"from": ""#
         .to_owned()
-        + format!("0x{:x}", acc).as_ref()
+        + format!("0x{acc:x}").as_ref()
         + r#"",
 			"to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
 			"gas": "0x76c0",
@@ -507,7 +507,7 @@ fn should_dispatch_transaction_if_account_is_unlock() {
     // then
     assert_eq!(
         tester.io.handle_request_sync(&request),
-        Some(response.to_owned())
+        Some(response.clone())
     );
 }
 
@@ -545,7 +545,7 @@ fn should_decrypt_message_if_account_is_unlocked() {
         encrypted.result,
         r#"], "id": 1}"#
     );
-    println!("Request: {:?}", request);
+    println!("Request: {request:?}");
     let response = r#"{"jsonrpc":"2.0","result":"0x01020304","id":1}"#;
 
     // then
@@ -590,7 +590,7 @@ fn should_add_decryption_to_the_queue() {
             );
             break;
         }
-        ::std::thread::sleep(Duration::from_millis(10))
+        ::std::thread::sleep(Duration::from_millis(10));
     });
 
     // check response: will deadlock if unsuccessful.
@@ -624,5 +624,5 @@ fn should_compose_transaction() {
 
     // then
     let res = tester.io.handle_request(&request).wait().unwrap();
-    assert_eq!(res, Some(response.to_owned()));
+    assert_eq!(res, Some(response.clone()));
 }

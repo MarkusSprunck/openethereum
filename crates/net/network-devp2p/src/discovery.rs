@@ -241,7 +241,7 @@ impl<'a> Discovery<'a> {
         let dist = match Discovery::distance(&self.id_hash, &id_hash) {
             Some(dist) => dist,
             None => {
-                debug!(target: "discovery", "Attempted to update own entry: {:?}", e);
+                debug!(target: "discovery", "Attempted to update own entry: {e:?}");
                 return Err(BucketError::Ourselves);
             }
         };
@@ -254,8 +254,7 @@ impl<'a> Discovery<'a> {
                 Err(BucketError::NotInTheBucket {
                     node_entry: e.clone(),
                     bucket_distance: dist,
-                }
-                .into()),
+                }),
                 |entry| {
                     entry.address = e;
                     entry.last_seen = Instant::now();
@@ -377,23 +376,23 @@ impl<'a> Discovery<'a> {
 
     fn try_ping(&mut self, node: NodeEntry, reason: PingReason) {
         if !self.is_allowed(&node) {
-            trace!(target: "discovery", "Node {:?} not allowed", node);
+            trace!(target: "discovery", "Node {node:?} not allowed");
             return;
         }
         if self.in_flight_pings.contains_key(&node.id)
             || self.in_flight_find_nodes.contains_key(&node.id)
         {
-            trace!(target: "discovery", "Node {:?} in flight requests", node);
+            trace!(target: "discovery", "Node {node:?} in flight requests");
             return;
         }
         if self.adding_nodes.iter().any(|n| n.id == node.id) {
-            trace!(target: "discovery", "Node {:?} in adding nodes", node);
+            trace!(target: "discovery", "Node {node:?} in adding nodes");
             return;
         }
 
         if self.in_flight_pings.len() < MAX_NODES_PING {
             self.ping(&node, reason).unwrap_or_else(|e| {
-                warn!(target: "discovery", "Error sending Ping packet: {:?}", e);
+                warn!(target: "discovery", "Error sending Ping packet: {e:?}");
             });
         } else {
             self.adding_nodes.push(node);
@@ -416,7 +415,7 @@ impl<'a> Discovery<'a> {
                 node: node.clone(),
                 echo_hash: hash,
                 deprecated_echo_hash: old_parity_hash,
-                reason: reason,
+                reason,
             },
         );
 
@@ -451,7 +450,7 @@ impl<'a> Discovery<'a> {
     ) -> Result<H256, Error> {
         let packet = assemble_packet(packet_id, payload, &self.secret)?;
         let hash = H256::from_slice(&packet[0..32]);
-        self.send_to(packet, address.clone());
+        self.send_to(packet, *address);
         Ok(hash)
     }
 
@@ -536,7 +535,7 @@ impl<'a> Discovery<'a> {
             PACKET_FIND_NODE => self.on_find_node(&rlp, &node_id, &from),
             PACKET_NEIGHBOURS => self.on_neighbours(&rlp, &node_id, &from),
             _ => {
-                debug!(target: "discovery", "Unknown UDP packet: {}", packet_id);
+                debug!(target: "discovery", "Unknown UDP packet: {packet_id}");
                 Ok(None)
             }
         }
@@ -570,7 +569,7 @@ impl<'a> Discovery<'a> {
         let ping_from = if let Ok(node_endpoint) = NodeEndpoint::from_rlp(&rlp.at(1)?) {
             node_endpoint
         } else {
-            let mut address = from.clone();
+            let mut address = *from;
             // address here is the node's tcp port. If we are unable to get the `NodeEndpoint` from the `ping_from`
             // rlp field then this is most likely a BootNode, set the tcp port to 0 because it can not be used for syncing.
             address.set_port(0);
@@ -584,7 +583,7 @@ impl<'a> Discovery<'a> {
         self.check_timestamp(timestamp)?;
         let mut response = RlpStream::new_list(3);
         let pong_to = NodeEndpoint {
-            address: from.clone(),
+            address: *from,
             udp_port: ping_from.udp_port,
         };
         // Here the PONG's `To` field should be the node we are
@@ -604,9 +603,9 @@ impl<'a> Discovery<'a> {
             endpoint: pong_to.clone(),
         };
         if !entry.endpoint.is_valid_discovery_node() {
-            debug!(target: "discovery", "Got bad address: {:?}", entry);
+            debug!(target: "discovery", "Got bad address: {entry:?}");
         } else if !self.is_allowed(&entry) {
-            debug!(target: "discovery", "Address not allowed: {:?}", entry);
+            debug!(target: "discovery", "Address not allowed: {entry:?}");
         } else {
             self.add_node(entry.clone());
         }
@@ -636,7 +635,7 @@ impl<'a> Discovery<'a> {
                         if request.deprecated_echo_hash == echo_hash {
                             trace!(target: "discovery", "Got Pong from an old parity-ethereum version.");
                         }
-                        Some((request.node.clone(), request.reason.clone()))
+                        Some((request.node.clone(), request.reason))
                     }
                 };
 
@@ -693,7 +692,7 @@ impl<'a> Discovery<'a> {
         self.check_timestamp(timestamp)?;
 
         let node = NodeEntry {
-            id: node_id.clone(),
+            id: *node_id,
             endpoint: NodeEndpoint {
                 address: *from,
                 udp_port: from.port(),
@@ -717,14 +716,14 @@ impl<'a> Discovery<'a> {
         let dist = match Discovery::distance(&self.id_hash, &id_hash) {
             Some(dist) => dist,
             None => {
-                debug!(target: "discovery", "Got an incoming discovery request from self: {:?}", node);
+                debug!(target: "discovery", "Got an incoming discovery request from self: {node:?}");
                 return NodeValidity::Ourselves;
             }
         };
 
         let bucket = &self.node_buckets[dist];
         if let Some(known_node) = bucket.nodes.iter().find(|n| n.address.id == node.id) {
-            debug!(target: "discovery", "Found a known node in a bucket when processing discovery: {:?}/{:?}", known_node, node);
+            debug!(target: "discovery", "Found a known node in a bucket when processing discovery: {known_node:?}/{node:?}");
             match (
                 (known_node.address.endpoint == node.endpoint),
                 (known_node.last_seen.elapsed() < NODE_LAST_SEEN_TIMEOUT),
@@ -819,7 +818,7 @@ impl<'a> Discovery<'a> {
         for r in rlp.at(0)?.iter() {
             let endpoint = NodeEndpoint::from_rlp(&r)?;
             if !endpoint.is_valid_discovery_node() {
-                debug!(target: "discovery", "Bad address: {:?}", endpoint);
+                debug!(target: "discovery", "Bad address: {endpoint:?}");
                 continue;
             }
             let node_id: NodeId = r.val_at(3)?;
@@ -831,7 +830,7 @@ impl<'a> Discovery<'a> {
                 endpoint,
             };
             if !self.is_allowed(&entry) {
-                debug!(target: "discovery", "Address not allowed: {:?}", entry);
+                debug!(target: "discovery", "Address not allowed: {entry:?}");
                 continue;
             }
             self.add_node(entry);
@@ -843,7 +842,7 @@ impl<'a> Discovery<'a> {
         let mut nodes_to_expire = Vec::new();
         self.in_flight_pings.retain(|node_id, ping_request| {
 			if time.duration_since(ping_request.sent_at) > PING_TIMEOUT {
-				debug!(target: "discovery", "Removing expired PING request for node_id={:#x}", node_id);
+				debug!(target: "discovery", "Removing expired PING request for node_id={node_id:#x}");
 				nodes_to_expire.push(*node_id);
 				false
 			} else {
@@ -853,7 +852,7 @@ impl<'a> Discovery<'a> {
         self.in_flight_find_nodes.retain(|node_id, find_node_request| {
 			if time.duration_since(find_node_request.sent_at) > FIND_NODE_TIMEOUT {
 				if !find_node_request.answered {
-					debug!(target: "discovery", "Removing expired FIND NODE request for node_id={:#x}", node_id);
+					debug!(target: "discovery", "Removing expired FIND NODE request for node_id={node_id:#x}");
 					nodes_to_expire.push(*node_id);
 				}
 				false
@@ -868,7 +867,7 @@ impl<'a> Discovery<'a> {
 
     fn expire_node_request(&mut self, node_id: NodeId) {
         // Attempt to remove from bucket if in one.
-        let id_hash = keccak(&node_id);
+        let id_hash = keccak(node_id);
         let dist = Discovery::distance(&self.id_hash, &id_hash).expect(
             "distance is None only if id hashes are equal; will never send request to self; qed",
         );
@@ -900,7 +899,7 @@ impl<'a> Discovery<'a> {
         if self.discovery_round.is_some() {
             self.discover();
         // Start discovering if the first pings have been sent (or timed out)
-        } else if self.in_flight_pings.len() == 0 && !self.discovery_initiated {
+        } else if self.in_flight_pings.is_empty() && !self.discovery_initiated {
             self.discovery_initiated = true;
             self.refresh();
         }
@@ -992,7 +991,7 @@ mod tests {
         let node = Node::from_str("enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@127.0.0.1:7770").unwrap();
         for _ in 0..1000 {
             nearest.push(NodeEntry {
-                id: node.id.clone(),
+                id: node.id,
                 endpoint: node.endpoint.clone(),
             });
         }
@@ -1003,7 +1002,7 @@ mod tests {
             assert!(p.len() > 1280 / 2);
             assert!(p.len() <= 1280);
         }
-        assert!(packets.last().unwrap().len() > 0);
+        assert!(!packets.last().unwrap().is_empty());
     }
 
     #[test]
@@ -1070,7 +1069,7 @@ mod tests {
 
                 // Process all queued messages.
                 for i in 0..20 {
-                    let src = discovery_handlers[i % 5].public_endpoint.address.clone();
+                    let src = discovery_handlers[i % 5].public_endpoint.address;
                     while let Some(datagram) = discovery_handlers[i % 5].dequeue_send() {
                         let dest = discovery_handlers
                             .iter_mut()
@@ -1135,7 +1134,7 @@ mod tests {
                 endpoint: ep.clone(),
             });
         }
-        assert!(discovery.in_flight_pings.len() > 0);
+        assert!(!discovery.in_flight_pings.is_empty());
 
         // Expire pings to nodes that are not in buckets.
         let num_nodes = total_bucket_nodes(&discovery.node_buckets);
@@ -1152,8 +1151,8 @@ mod tests {
             .send_find_node(&node_entries[100], key.public())
             .unwrap();
         for payload in Discovery::prepare_neighbours_packets(&node_entries[101..116]) {
-            let packet = assemble_packet(PACKET_NEIGHBOURS, &payload, &key.secret()).unwrap();
-            discovery.on_packet(&packet, from.clone()).unwrap();
+            let packet = assemble_packet(PACKET_NEIGHBOURS, &payload, key.secret()).unwrap();
+            discovery.on_packet(&packet, from).unwrap();
         }
 
         let num_nodes = total_bucket_nodes(&discovery.node_buckets);
@@ -1166,8 +1165,8 @@ mod tests {
             .send_find_node(&node_entries[100], key.public())
             .unwrap();
         for payload in Discovery::prepare_neighbours_packets(&node_entries[101..117]) {
-            let packet = assemble_packet(PACKET_NEIGHBOURS, &payload, &key.secret()).unwrap();
-            discovery.on_packet(&packet, from.clone()).unwrap();
+            let packet = assemble_packet(PACKET_NEIGHBOURS, &payload, key.secret()).unwrap();
+            discovery.on_packet(&packet, from).unwrap();
         }
 
         let num_nodes = total_bucket_nodes(&discovery.node_buckets);
@@ -1275,7 +1274,7 @@ mod tests {
 
         let secret_hex = "6c71d1b8930d29e6371be1081f2c909c64b46440a1716314c3c9df995cb3aed1";
         let key = Secret::from_str(secret_hex)
-            .and_then(|secret| KeyPair::from_secret(secret))
+            .and_then(KeyPair::from_secret)
             .unwrap();
         let mut discovery = Discovery::new(&key, ep.clone(), IpFilter::default());
 
@@ -1295,7 +1294,7 @@ mod tests {
         let actual_bucket_sizes = discovery
             .node_buckets
             .iter()
-            .map(|ref bucket| bucket.nodes.len())
+            .map(|bucket| bucket.nodes.len())
             .collect::<Vec<_>>();
         assert_eq!(actual_bucket_sizes, expected_bucket_sizes);
 
@@ -1332,9 +1331,7 @@ mod tests {
 		"
         .from_hex()
         .unwrap();
-        let _ = discovery
-            .on_packet(&packet, from.clone())
-            .expect("packet to be ok");
+        let _ = discovery.on_packet(&packet, from).expect("packet to be ok");
 
         let packet = "\
 		577be4349c4dd26768081f58de4c6f375a7a22f3f7adda654d1428637412c3d7fe917cadc56d4e5e\
@@ -1348,9 +1345,7 @@ mod tests {
 		"
         .from_hex()
         .unwrap();
-        let _ = discovery
-            .on_packet(&packet, from.clone())
-            .expect("packet to be ok");
+        let _ = discovery.on_packet(&packet, from).expect("packet to be ok");
 
         let packet = "\
 		09b2428d83348d27cdf7064ad9024f526cebc19e4958f0fdad87c15eb598dd61d08423e0bf66b206\
@@ -1362,9 +1357,7 @@ mod tests {
 		"
         .from_hex()
         .unwrap();
-        let _ = discovery
-            .on_packet(&packet, from.clone())
-            .expect("packet to be ok");
+        let _ = discovery.on_packet(&packet, from).expect("packet to be ok");
 
         let packet = "\
 		c7c44041b9f7c7e41934417ebac9a8e1a4c6298f74553f2fcfdcae6ed6fe53163eb3d2b52e39fe91\
@@ -1376,9 +1369,7 @@ mod tests {
 		"
         .from_hex()
         .unwrap();
-        let _ = discovery
-            .on_packet(&packet, from.clone())
-            .expect("packet to be ok");
+        let _ = discovery.on_packet(&packet, from).expect("packet to be ok");
 
         let packet = "\
 		c679fc8fe0b8b12f06577f2e802d34f6fa257e6137a995f6f4cbfc9ee50ed3710faf6e66f932c4c8\
@@ -1396,9 +1387,7 @@ mod tests {
 		"
         .from_hex()
         .unwrap();
-        let _ = discovery
-            .on_packet(&packet, from.clone())
-            .expect("packet to be ok");
+        let _ = discovery.on_packet(&packet, from).expect("packet to be ok");
     }
 
     #[test]
@@ -1439,9 +1428,10 @@ mod tests {
         assert_eq!(ep2, NodeEndpoint::from_rlp(&rlp.at(2).unwrap()).unwrap());
 
         // `discovery1` should be added to node table on ping received
-        if let Some(_) = discovery2
-            .on_packet(&ping_data.payload, ep1.address.clone())
+        if discovery2
+            .on_packet(&ping_data.payload, ep1.address)
             .unwrap()
+            .is_some()
         {
             panic!("Expected no changes to discovery2's table");
         }
@@ -1462,16 +1452,17 @@ mod tests {
         append_expiration(&mut incorrect_pong_rlp);
         let incorrect_pong_data =
             assemble_packet(PACKET_PONG, &incorrect_pong_rlp.drain(), &discovery2.secret).unwrap();
-        if let Some(_) = discovery1
-            .on_packet(&incorrect_pong_data, ep2.address.clone())
+        if discovery1
+            .on_packet(&incorrect_pong_data, ep2.address)
             .unwrap()
+            .is_some()
         {
             panic!("Expected no changes to discovery1's table because pong hash is incorrect");
         }
 
         // Delivery of valid pong response should add to routing table.
         if let Some(table_updates) = discovery1
-            .on_packet(&pong_data.payload, ep2.address.clone())
+            .on_packet(&pong_data.payload, ep2.address)
             .unwrap()
         {
             assert_eq!(table_updates.added.len(), 1);
@@ -1496,9 +1487,10 @@ mod tests {
         append_expiration(&mut unexpected_pong_rlp);
         let unexpected_pong =
             assemble_packet(PACKET_PONG, &unexpected_pong_rlp.drain(), key3.secret()).unwrap();
-        if let Some(_) = discovery1
-            .on_packet(&unexpected_pong, ep3.address.clone())
+        if discovery1
+            .on_packet(&unexpected_pong, ep3.address)
             .unwrap()
+            .is_some()
         {
             panic!("Expected no changes to discovery1's table for unexpected pong");
         }

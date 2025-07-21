@@ -127,7 +127,7 @@ fn guards_delete_folders() {
         pruning: ::journaldb::Algorithm::Archive,
         channel: IoChannel::disconnected(),
         snapshot_root: tempdir.path().to_owned(),
-        client: client,
+        client,
     };
 
     let service = Service::new(service_params).unwrap();
@@ -221,7 +221,7 @@ fn keep_ancient_blocks() {
 
     // Initialize the Client
     let db_config = DatabaseConfig::with_columns(::db::NUM_COLUMNS);
-    let client_db = new_temp_db(&tempdir.path());
+    let client_db = new_temp_db(tempdir.path());
     let client2 = Client::new(
         ClientConfig::default(),
         &spec,
@@ -277,10 +277,7 @@ fn keep_ancient_blocks() {
     }
 
     // Check that the latest block number is the right one
-    assert_eq!(
-        client2.block(BlockId::Latest).unwrap().number(),
-        NUM_BLOCKS as u64
-    );
+    assert_eq!(client2.block(BlockId::Latest).unwrap().number(), NUM_BLOCKS);
 
     // Check that we have blocks in [NUM_BLOCKS - NUM_SNAPSHOT_BLOCKS + 1 ; NUM_BLOCKS]
     // but none before

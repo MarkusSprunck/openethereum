@@ -96,7 +96,7 @@ impl txpool::Listener<Transaction> for Logger {
         _tx: &Arc<Transaction>,
         reason: &txpool::Error<H>,
     ) {
-        trace!(target: "txqueue", "Rejected {}.", reason);
+        trace!(target: "txqueue", "Rejected {reason}.");
     }
 
     fn dropped(&mut self, tx: &Arc<Transaction>, new: Option<&Transaction>) {
@@ -135,7 +135,7 @@ mod tests {
         let received = Arc::new(Mutex::new(vec![]));
         let r = received.clone();
         let listener = Box::new(move |hashes: &[H256]| {
-            *r.lock() = hashes.iter().map(|x| *x).collect();
+            *r.lock() = hashes.iter().copied().collect();
         });
 
         let mut tx_listener = Notifier::default();

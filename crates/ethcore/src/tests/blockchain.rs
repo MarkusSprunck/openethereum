@@ -35,7 +35,7 @@ fn can_collect_garbage() {
     let best_hash = bc.best_block_hash();
     let mut block_header = bc.block_header_data(&best_hash);
 
-    while !block_header.is_none() {
+    while block_header.is_some() {
         block_header = bc.block_header_data(&block_header.unwrap().parent_hash());
     }
     assert!(bc.cache_size().blocks > 1024 * 1024);

@@ -90,7 +90,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
 
     if let Ok(lvl) = env::var("RUST_LOG") {
         levels.push_str(&lvl);
-        levels.push_str(",");
+        levels.push(',');
         builder.parse(&lvl);
     }
 
@@ -112,7 +112,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
                 .append(true)
                 .create(true)
                 .open(f)
-                .map_err(|e| format!("Cannot write to log file given: {}, {}", f, e))?,
+                .map_err(|e| format!("Cannot write to log file given: {f}, {e}"))?,
         ),
         None => None,
     };
@@ -129,7 +129,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
         } else {
             let name = thread::current()
                 .name()
-                .map_or_else(Default::default, |x| format!("{}", x));
+                .map_or_else(Default::default, |x| x.to_string());
             if enable_json {
                 let utc_time = chrono::Utc::now();
                 let timestamp = utc_time.to_rfc3339_opts(SecondsFormat::Millis, true);
@@ -173,25 +173,25 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
         logger.append(removed_color);
         if !isatty && record.level() <= Level::Info && atty::is(atty::Stream::Stdout) {
             // duplicate INFO/WARN output to console
-            println!("{}", ret);
+            println!("{ret}");
         }
 
-        writeln!(buf, "{}", ret)
+        writeln!(buf, "{ret}")
     };
 
     builder.format(format);
     builder
         .try_init()
-        .and_then(|_| {
+        .map(|_| {
             *ROTATING_LOGGER.lock() = Arc::downgrade(&logs);
-            Ok(logs)
+            logs
         })
         // couldn't create new logger - try to fall back on previous logger.
         .or_else(|err| {
             ROTATING_LOGGER
                 .lock()
                 .upgrade()
-                .ok_or_else(|| format!("{:?}", err))
+                .ok_or_else(|| format!("{err:?}"))
         })
 }
 

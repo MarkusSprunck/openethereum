@@ -124,10 +124,10 @@ pub enum Status {
     Unknown,
 }
 
-impl Into<::types::block_status::BlockStatus> for Status {
-    fn into(self) -> ::types::block_status::BlockStatus {
+impl From<Status> for ::types::block_status::BlockStatus {
+    fn from(val: Status) -> Self {
         use types::block_status::BlockStatus;
-        match self {
+        match val {
             Status::Queued => BlockStatus::Queued,
             Status::Bad => BlockStatus::Bad,
             Status::Unknown => BlockStatus::Unknown,
@@ -181,7 +181,7 @@ impl QueueSignal {
         {
             let channel = self.message_channel.lock().clone();
             if let Err(e) = channel.send_sync(ClientIoMessage::BlockVerified) {
-                debug!("Error sending BlockVerified message: {:?}", e);
+                debug!("Error sending BlockVerified message: {e:?}");
             }
         }
     }
@@ -199,7 +199,7 @@ impl QueueSignal {
         {
             let channel = self.message_channel.lock().clone();
             if let Err(e) = channel.send(ClientIoMessage::BlockVerified) {
-                debug!("Error sending BlockVerified message: {:?}", e);
+                debug!("Error sending BlockVerified message: {e:?}");
             }
         }
     }
@@ -237,7 +237,7 @@ impl<K: Kind> VerificationQueue<K> {
                 verifying: AtomicUsize::new(0),
                 verified: AtomicUsize::new(0),
             },
-            check_seal: check_seal,
+            check_seal,
         });
         let more_to_verify = Arc::new(Condvar::new());
         let deleting = Arc::new(AtomicBool::new(false));
@@ -266,11 +266,11 @@ impl<K: Kind> VerificationQueue<K> {
         let state = Arc::new((Mutex::new(State::Work(default_amount)), Condvar::new()));
         let mut verifier_handles = Vec::with_capacity(number_of_threads);
 
-        debug!(target: "verification", "Allocating {} verifiers, {} initially active", number_of_threads, default_amount);
+        debug!(target: "verification", "Allocating {number_of_threads} verifiers, {default_amount} initially active");
         debug!(target: "verification", "Verifier auto-scaling {}", if scale_verifiers { "enabled" } else { "disabled" });
 
         for i in 0..number_of_threads {
-            debug!(target: "verification", "Adding verification thread #{}", i);
+            debug!(target: "verification", "Adding verification thread #{i}");
 
             let verification = verification.clone();
             let engine = engine.clone();
@@ -280,7 +280,7 @@ impl<K: Kind> VerificationQueue<K> {
             let state = state.clone();
 
             let handle = thread::Builder::new()
-                .name(format!("Verifier #{}", i))
+                .name(format!("Verifier #{i}"))
                 .spawn(move || {
                     VerificationQueue::verify(verification, engine, wait, ready, empty, state, i)
                 })
@@ -289,19 +289,19 @@ impl<K: Kind> VerificationQueue<K> {
         }
 
         VerificationQueue {
-            engine: engine,
-            ready_signal: ready_signal,
-            more_to_verify: more_to_verify,
-            verification: verification,
-            deleting: deleting,
+            engine,
+            ready_signal,
+            more_to_verify,
+            verification,
+            deleting,
             processing: RwLock::new(HashMap::new()),
-            empty: empty,
+            empty,
             ticks_since_adjustment: AtomicUsize::new(0),
             max_queue_size: cmp::max(config.max_queue_size, MIN_QUEUE_LIMIT),
             max_mem_use: cmp::max(config.max_mem_use, MIN_MEM_LIMIT),
-            scale_verifiers: scale_verifiers,
-            verifier_handles: verifier_handles,
-            state: state,
+            scale_verifiers,
+            verifier_handles,
+            state,
             total_difficulty: RwLock::new(0.into()),
         }
     }
@@ -325,13 +325,13 @@ impl<K: Kind> VerificationQueue<K> {
                         break;
                     }
 
-                    debug!(target: "verification", "verifier {} sleeping", id);
+                    debug!(target: "verification", "verifier {id} sleeping");
                     state.1.wait(&mut cur_state);
-                    debug!(target: "verification", "verifier {} waking up", id);
+                    debug!(target: "verification", "verifier {id} waking up");
                 }
 
                 if let State::Exit = *cur_state {
-                    debug!(target: "verification", "verifier {} exiting", id);
+                    debug!(target: "verification", "verifier {id} exiting");
                     break;
                 }
             }
@@ -346,7 +346,7 @@ impl<K: Kind> VerificationQueue<K> {
 
                 while unverified.is_empty() {
                     if let State::Exit = *state.0.lock() {
-                        debug!(target: "verification", "verifier {} exiting", id);
+                        debug!(target: "verification", "verifier {id} exiting");
                         return;
                     }
 
@@ -354,7 +354,7 @@ impl<K: Kind> VerificationQueue<K> {
                 }
 
                 if let State::Exit = *state.0.lock() {
-                    debug!(target: "verification", "verifier {} exiting", id);
+                    debug!(target: "verification", "verifier {id} exiting");
                     return;
                 }
             }
@@ -421,10 +421,10 @@ impl<K: Kind> VerificationQueue<K> {
                     let mut verified = verification.verified.lock();
                     let mut bad = verification.bad.lock();
 
-                    bad.insert(hash.clone());
+                    bad.insert(hash);
                     verifying.retain(|e| e.hash != hash);
 
-                    if verifying.front().map_or(false, |x| x.output.is_some()) {
+                    if verifying.front().is_some_and(|x| x.output.is_some()) {
                         VerificationQueue::drain_verifying(
                             &mut verifying,
                             &mut verified,
@@ -564,7 +564,7 @@ impl<K: Kind> VerificationQueue<K> {
                 //self.processing.write().insert(hash, item.difficulty());
                 {
                     let mut td = self.total_difficulty.write();
-                    *td = *td + item.difficulty();
+                    *td += item.difficulty();
                 }
                 self.verification.unverified.lock().push_back(item);
                 self.more_to_verify.notify_all();
@@ -605,10 +605,10 @@ impl<K: Kind> VerificationQueue<K> {
         let mut processing = self.processing.write();
         bad.reserve(hashes.len());
         for hash in hashes {
-            bad.insert(hash.clone());
+            bad.insert(*hash);
             if let Some((difficulty, _)) = processing.remove(hash) {
                 let mut td = self.total_difficulty.write();
-                *td = *td - difficulty;
+                *td -= difficulty;
             }
         }
 
@@ -620,7 +620,7 @@ impl<K: Kind> VerificationQueue<K> {
                 bad.insert(output.hash());
                 if let Some((difficulty, _)) = processing.remove(&output.hash()) {
                     let mut td = self.total_difficulty.write();
-                    *td = *td - difficulty;
+                    *td -= difficulty;
                 }
             } else {
                 new_verified.push_back(output);
@@ -644,7 +644,7 @@ impl<K: Kind> VerificationQueue<K> {
         for hash in hashes {
             if let Some((difficulty, _)) = processing.remove(hash) {
                 let mut td = self.total_difficulty.write();
-                *td = *td - difficulty;
+                *td -= difficulty;
             }
         }
         processing.is_empty()
@@ -659,7 +659,7 @@ impl<K: Kind> VerificationQueue<K> {
         let drained_size = result
             .iter()
             .map(MallocSizeOfExt::malloc_size_of)
-            .fold(0, |a, c| a + c);
+            .sum::<usize>();
         self.verification
             .sizes
             .verified
@@ -700,7 +700,7 @@ impl<K: Kind> VerificationQueue<K> {
         for (_, item_parent_hash) in processing.values() {
             if chain
                 .tree_route(*best_block_hash, *item_parent_hash)
-                .map_or(true, |route| route.ancestor != *best_block_hash)
+                .is_none_or(|route| route.ancestor != *best_block_hash)
             {
                 return true;
             }
@@ -753,7 +753,7 @@ impl<K: Kind> VerificationQueue<K> {
 
     /// Get the total difficulty of all the blocks in the queue.
     pub fn total_difficulty(&self) -> U256 {
-        self.total_difficulty.read().clone()
+        *self.total_difficulty.read()
     }
 
     /// Get the current number of working verifiers.
@@ -833,7 +833,7 @@ impl<K: Kind> VerificationQueue<K> {
         let target = cmp::min(self.verifier_handles.len(), target);
         let target = cmp::max(1, target);
 
-        debug!(target: "verification", "Scaling from {} to {} verifiers", current, target);
+        debug!(target: "verification", "Scaling from {current} to {target} verifiers");
 
         *self.state.0.lock() = State::Work(target);
         self.state.1.notify_all();
@@ -943,8 +943,7 @@ mod tests {
         let block = get_good_dummy_block();
         let hash = view!(BlockView, &block)
             .header(BlockNumber::max_value())
-            .hash()
-            .clone();
+            .hash();
         if let Err(e) = queue.import(new_unverified(block)) {
             panic!("error importing block that is valid by definition({:?})", e);
         }
@@ -962,8 +961,7 @@ mod tests {
         let block = get_good_dummy_block();
         let hash = view!(BlockView, &block)
             .header(BlockNumber::max_value())
-            .hash()
-            .clone();
+            .hash();
         if let Err(e) = queue.import(new_unverified(block)) {
             panic!("error importing block that is valid by definition({:?})", e);
         }

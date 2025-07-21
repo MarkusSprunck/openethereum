@@ -89,7 +89,7 @@ impl Derive {
             Derive::Hierarchical(drv) => ethstore::Derivation::Hierarchical({
                 let mut members = Vec::<ethstore::IndexDerivation>::new();
                 for h in drv {
-                    if h.index > ::std::u32::MAX as u64 {
+                    if h.index > u64::from(::std::u32::MAX) {
                         return Err(ConvertError::IndexOverlfow(h.index));
                     }
                     members.push(match h.d_type {
@@ -106,8 +106,8 @@ impl Derive {
                 members
             }),
             Derive::Hash(drv) => match drv.d_type {
-                DerivationType::Soft => ethstore::Derivation::SoftHash(drv.hash.into()),
-                DerivationType::Hard => ethstore::Derivation::HardHash(drv.hash.into()),
+                DerivationType::Soft => ethstore::Derivation::SoftHash(drv.hash),
+                DerivationType::Hard => ethstore::Derivation::HardHash(drv.hash),
             },
         })
     }
@@ -124,7 +124,7 @@ impl<'a> Deserialize<'a> for DerivationType {
 
 struct DerivationTypeVisitor;
 
-impl<'a> Visitor<'a> for DerivationTypeVisitor {
+impl Visitor<'_> for DerivationTypeVisitor {
     type Value = DerivationType;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -138,7 +138,7 @@ impl<'a> Visitor<'a> for DerivationTypeVisitor {
         match value {
             "soft" => Ok(DerivationType::Soft),
             "hard" => Ok(DerivationType::Hard),
-            v => Err(Error::custom(format!("invalid derivation type: {:?}", v))),
+            v => Err(Error::custom(format!("invalid derivation type: {v:?}"))),
         }
     }
 

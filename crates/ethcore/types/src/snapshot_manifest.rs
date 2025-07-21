@@ -60,19 +60,19 @@ impl ManifestData {
             (1, decoder.val_at(0)?)
         };
 
-        let state_hashes: Vec<H256> = decoder.list_at(start + 0)?;
+        let state_hashes: Vec<H256> = decoder.list_at(start)?;
         let block_hashes: Vec<H256> = decoder.list_at(start + 1)?;
         let state_root: H256 = decoder.val_at(start + 2)?;
         let block_number: u64 = decoder.val_at(start + 3)?;
         let block_hash: H256 = decoder.val_at(start + 4)?;
 
         Ok(ManifestData {
-            version: version,
-            state_hashes: state_hashes,
-            block_hashes: block_hashes,
-            state_root: state_root,
-            block_number: block_number,
-            block_hash: block_hash,
+            version,
+            state_hashes,
+            block_hashes,
+            state_root,
+            block_number,
+            block_hash,
         })
     }
 }

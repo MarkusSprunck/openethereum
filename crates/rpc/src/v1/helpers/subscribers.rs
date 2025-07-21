@@ -30,7 +30,7 @@ impl str::FromStr for Id {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("0x") {
-            Ok(Id(s[2..].parse().map_err(|e| format!("{}", e))?))
+            Ok(Id(s[2..].parse().map_err(|e| format!("{e}"))?))
         } else {
             Err("The id must start with 0x".into())
         }
@@ -40,27 +40,6 @@ impl Id {
     // TODO: replace `format!` see [#10412](https://github.com/openethereum/openethereum/issues/10412)
     pub fn as_string(&self) -> String {
         format!("{:?}", self.0)
-    }
-}
-
-#[cfg(not(test))]
-mod random {
-    use rand::rngs::OsRng;
-    pub type Rng = rand::rngs::OsRng;
-    pub fn new() -> Rng {
-        OsRng
-    }
-}
-
-#[cfg(test)]
-mod random {
-    extern crate rand_xorshift;
-    use self::rand_xorshift::XorShiftRng;
-    use rand::SeedableRng;
-    const RNG_SEED: [u8; 16] = [0u8; 16];
-    pub type Rng = XorShiftRng;
-    pub fn new() -> Rng {
-        Rng::from_seed(RNG_SEED)
     }
 }
 
@@ -87,7 +66,7 @@ impl<T> Subscribers<T> {
     /// Insert new subscription and return assigned id.
     pub fn insert(&mut self, val: T) -> SubscriptionId {
         let id = self.next_id();
-        debug!(target: "pubsub", "Adding subscription id={:?}", id);
+        debug!(target: "pubsub", "Adding subscription id={id:?}");
         let s = id.as_string();
         self.subscriptions.insert(id, val);
         SubscriptionId::String(s)
@@ -95,7 +74,7 @@ impl<T> Subscribers<T> {
 
     /// Removes subscription with given id and returns it (if any).
     pub fn remove(&mut self, id: &SubscriptionId) -> Option<T> {
-        trace!(target: "pubsub", "Removing subscription id={:?}", id);
+        trace!(target: "pubsub", "Removing subscription id={id:?}");
         match *id {
             SubscriptionId::String(ref id) => match id.parse() {
                 Ok(id) => self.subscriptions.remove(&id),
@@ -111,7 +90,7 @@ impl<T> Subscribers<Sink<T>> {
     pub fn push(&mut self, sub: Subscriber<T>) {
         let id = self.next_id();
         if let Ok(sink) = sub.assign_id(SubscriptionId::String(id.as_string())) {
-            debug!(target: "pubsub", "Adding subscription id={:?}", id);
+            debug!(target: "pubsub", "Adding subscription id={id:?}");
             self.subscriptions.insert(id, sink);
         }
     }
@@ -122,7 +101,7 @@ impl<T, V> Subscribers<(Sink<T>, V)> {
     pub fn push(&mut self, sub: Subscriber<T>, val: V) {
         let id = self.next_id();
         if let Ok(sink) = sub.assign_id(SubscriptionId::String(id.as_string())) {
-            debug!(target: "pubsub", "Adding subscription id={:?}", id);
+            debug!(target: "pubsub", "Adding subscription id={id:?}");
             self.subscriptions.insert(id, (sink, val));
         }
     }
@@ -133,5 +112,26 @@ impl<T> ops::Deref for Subscribers<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.subscriptions
+    }
+}
+
+#[cfg(not(test))]
+mod random {
+    use rand::rngs::OsRng;
+    pub type Rng = rand::rngs::OsRng;
+    pub fn new() -> Rng {
+        OsRng
+    }
+}
+
+#[cfg(test)]
+mod random {
+    extern crate rand_xorshift;
+    use self::rand_xorshift::XorShiftRng;
+    use rand::SeedableRng;
+    const RNG_SEED: [u8; 16] = [0u8; 16];
+    pub type Rng = XorShiftRng;
+    pub fn new() -> Rng {
+        Rng::from_seed(RNG_SEED)
     }
 }

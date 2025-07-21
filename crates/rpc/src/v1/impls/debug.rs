@@ -104,7 +104,7 @@ impl<C: BlockChainClient + 'static> Debug for DebugClient<C> {
                     extra_info: vec![
                         ("reason".to_owned(), reason),
                         ("rlp".to_owned(), serialize(&Bytes(block.bytes))),
-                        ("hash".to_owned(), format!("{:#x}", hash)),
+                        ("hash".to_owned(), format!("{hash:#x}")),
                     ]
                     .into_iter()
                     .collect(),

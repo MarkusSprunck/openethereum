@@ -36,7 +36,7 @@ use v1::{
 
 #[cfg(any(test, feature = "accounts"))]
 pub mod accounts {
-    use super::*;
+    use super::{miner, Arc, MinerService, Result, H160};
     use accounts::AccountProvider;
     use v1::{
         helpers::{deprecated::DeprecationNotice, engine_signer::EngineSigner},
@@ -51,7 +51,7 @@ pub mod accounts {
     }
 
     impl<M> ParitySetAccountsClient<M> {
-        /// Creates new ParitySetAccountsClient
+        /// Creates new `ParitySetAccountsClient`
         pub fn new(accounts: &Arc<AccountProvider>, miner: &Arc<M>) -> Self {
             ParitySetAccountsClient {
                 accounts: accounts.clone(),
@@ -70,7 +70,7 @@ pub mod accounts {
 
             let signer = Box::new(EngineSigner::new(
                 self.accounts.clone(),
-                address.clone().into(),
+                address,
                 password.into(),
             ));
             self.miner.set_author(miner::Author::Sealer(signer));
@@ -212,7 +212,7 @@ where
     fn set_spec_name(&self, spec_name: String) -> Result<bool> {
         self.client
             .set_spec_name(spec_name)
-            .map(|_| true)
+            .map(|()| true)
             .map_err(|()| errors::cannot_restart())
     }
 
@@ -221,13 +221,10 @@ where
             .fetch
             .get_compat(&url, Default::default())
             .then(move |result| {
-                result
-                    .map_err(errors::fetch)
-                    .and_then(move |response| {
-                        let mut reader = io::BufReader::new(fetch::BodyReader::new(response));
-                        keccak_buffer(&mut reader).map_err(errors::fetch)
-                    })
-                    .map(Into::into)
+                result.map_err(errors::fetch).and_then(move |response| {
+                    let mut reader = io::BufReader::new(fetch::BodyReader::new(response));
+                    keccak_buffer(&mut reader).map_err(errors::fetch)
+                })
             });
         Box::new(future)
     }

@@ -68,7 +68,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_pooled_transactions,
-                        |e| format!("Error sending pooled transactions: {:?}", e),
+                        |e| format!("Error sending pooled transactions: {e:?}"),
                     ),
 
                     GetBlockBodiesPacket => SyncSupplier::return_rlp(
@@ -77,7 +77,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_block_bodies,
-                        |e| format!("Error sending block bodies: {:?}", e),
+                        |e| format!("Error sending block bodies: {e:?}"),
                     ),
 
                     GetBlockHeadersPacket => SyncSupplier::return_rlp(
@@ -86,7 +86,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_block_headers,
-                        |e| format!("Error sending block headers: {:?}", e),
+                        |e| format!("Error sending block headers: {e:?}"),
                     ),
 
                     GetNodeDataPacket => SyncSupplier::return_rlp(
@@ -95,7 +95,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_node_data,
-                        |e| format!("Error sending node data: {:?}", e),
+                        |e| format!("Error sending node data: {e:?}"),
                     ),
 
                     GetReceiptsPacket => SyncSupplier::return_rlp(
@@ -104,7 +104,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_receipts,
-                        |e| format!("Error sending receipts: {:?}", e),
+                        |e| format!("Error sending receipts: {e:?}"),
                     ),
 
                     GetSnapshotManifestPacket => SyncSupplier::return_rlp(
@@ -113,7 +113,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_snapshot_manifest,
-                        |e| format!("Error sending snapshot manifest: {:?}", e),
+                        |e| format!("Error sending snapshot manifest: {e:?}"),
                     ),
 
                     GetSnapshotDataPacket => SyncSupplier::return_rlp(
@@ -122,7 +122,7 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_snapshot_data,
-                        |e| format!("Error sending snapshot data: {:?}", e),
+                        |e| format!("Error sending snapshot data: {e:?}"),
                     ),
 
                     StatusPacket => {
@@ -135,14 +135,14 @@ impl SyncSupplier {
                             debug!(target: "sync", "Unexpected packet {} from unregistered peer: {}:{}", packet_id, peer, io.peer_version(peer));
                             return;
                         }
-                        debug!(target: "sync", "{} -> Dispatching packet: {}", peer, packet_id);
+                        debug!(target: "sync", "{peer} -> Dispatching packet: {packet_id}");
 
                         match id {
                             ConsensusDataPacket => SyncHandler::on_consensus_packet(io, peer, &rlp),
                             TransactionsPacket => {
                                 let res = {
                                     let sync_ro = sync.read();
-                                    SyncHandler::on_peer_transactions(&*sync_ro, io, peer, &rlp)
+                                    SyncHandler::on_peer_transactions(&sync_ro, io, peer, &rlp)
                                 };
                                 if res.is_err() {
                                     // peer sent invalid data, disconnect.
@@ -162,7 +162,7 @@ impl SyncSupplier {
 
             match result {
                 Err(PacketProcessError::Decoder(e)) => {
-                    debug!(target:"sync", "{} -> Malformed packet {} : {}", peer, packet_id, e)
+                    debug!(target:"sync", "{peer} -> Malformed packet {packet_id} : {e}")
                 }
                 Err(PacketProcessError::ClientBusy) => {
                     sync.write().add_delayed_request(peer, packet_id, data)
@@ -192,11 +192,11 @@ impl SyncSupplier {
                         peer,
                         request_id,
                         SyncSupplier::return_block_headers,
-                        |e| format!("Error sending block headers: {:?}", e),
+                        |e| format!("Error sending block headers: {e:?}"),
                     ),
 
                     _ => {
-                        debug!(target: "sync", "Unexpected packet {} was dispatched for delayed processing", packet_id);
+                        debug!(target: "sync", "Unexpected packet {packet_id} was dispatched for delayed processing");
                         Ok(())
                     }
                 },
@@ -205,7 +205,7 @@ impl SyncSupplier {
 
             match result {
                 Err(PacketProcessError::Decoder(e)) => {
-                    debug!(target:"sync", "{} -> Malformed packet {} : {}", peer, packet_id, e)
+                    debug!(target:"sync", "{peer} -> Malformed packet {packet_id} : {e}")
                 }
                 Err(PacketProcessError::ClientBusy) => {
                     sync.write().add_delayed_request(peer, packet_id, data)
@@ -231,10 +231,10 @@ impl SyncSupplier {
         let number = if r.at(0)?.size() == 32 {
             // id is a hash
             let hash: H256 = r.val_at(0)?;
-            trace!(target: "sync", "{} -> GetBlockHeaders (hash: {}, max: {}, skip: {}, reverse:{})", peer_id, hash, max_headers, skip, reverse);
+            trace!(target: "sync", "{peer_id} -> GetBlockHeaders (hash: {hash}, max: {max_headers}, skip: {skip}, reverse:{reverse})");
             match io.chain().block_header(BlockId::Hash(hash)) {
                 Some(hdr) => {
-                    let number = hdr.number().into();
+                    let number = hdr.number();
                     debug_assert_eq!(hdr.hash(), hash);
 
                     if max_headers == 1
@@ -242,7 +242,7 @@ impl SyncSupplier {
                     {
                         // Non canonical header or single header requested
                         // TODO: handle single-step reverse hashchains of non-canon hashes
-                        trace!(target:"sync", "Returning single header: {:?}", hash);
+                        trace!(target:"sync", "Returning single header: {hash:?}");
                         let mut rlp = RlpStream::new_list(1);
                         rlp.append_raw(&hdr.into_inner(), 1);
                         return Ok(Some((BlockHeadersPacket, rlp)));
@@ -253,7 +253,7 @@ impl SyncSupplier {
             }
         } else {
             let number = r.val_at::<BlockNumber>(0)?;
-            trace!(target: "sync", "{} -> GetBlockHeaders (number: {}, max: {}, skip: {}, reverse:{})", peer_id, number, max_headers, skip, reverse);
+            trace!(target: "sync", "{peer_id} -> GetBlockHeaders (number: {number}, max: {max_headers}, skip: {skip}, reverse:{reverse})");
             number
         };
 
@@ -273,7 +273,7 @@ impl SyncSupplier {
         // even if we are not synced until the fork block
         while (number <= last || overlay.contains_key(&number)) && count < max_count {
             if let Some(hdr) = overlay.get(&number) {
-                trace!(target: "sync", "{}: Returning cached fork header", peer_id);
+                trace!(target: "sync", "{peer_id}: Returning cached fork header");
                 data.extend_from_slice(hdr);
                 count += 1;
             } else if let Some(hdr) = io.chain().block_header(BlockId::Number(number)) {
@@ -296,9 +296,9 @@ impl SyncSupplier {
                 number = number.saturating_add(inc);
             }
         }
-        let mut rlp = RlpStream::new_list(count as usize);
-        rlp.append_raw(&data, count as usize);
-        trace!(target: "sync", "{} -> GetBlockHeaders: returned {} entries", peer_id, count);
+        let mut rlp = RlpStream::new_list(count);
+        rlp.append_raw(&data, count);
+        trace!(target: "sync", "{peer_id} -> GetBlockHeaders: returned {count} entries");
         Ok(Some((BlockHeadersPacket, rlp)))
     }
 
@@ -320,7 +320,7 @@ impl SyncSupplier {
         }
         rlp.finalize_unbounded_list();
 
-        trace!(target: "sync", "{} -> GetPooledTransactions: returned {} entries", peer_id, added);
+        trace!(target: "sync", "{peer_id} -> GetPooledTransactions: returned {added} entries");
         Ok(Some((PooledTransactionsPacket, rlp)))
     }
 
@@ -346,13 +346,13 @@ impl SyncSupplier {
         }
         let mut rlp = RlpStream::new_list(added);
         rlp.append_raw(&data, added);
-        trace!(target: "sync", "{} -> GetBlockBodies: returned {} entries", peer_id, added);
+        trace!(target: "sync", "{peer_id} -> GetBlockBodies: returned {added} entries");
         Ok(Some((BlockBodiesPacket, rlp)))
     }
 
     fn return_node_data(io: &dyn SyncIo, rlp: &Rlp, peer_id: PeerId) -> RlpResponseResult {
         let count = cmp::min(rlp.item_count().unwrap_or(0), MAX_NODE_DATA_TO_SEND);
-        trace!(target: "sync", "{} -> GetNodeData: {} entries", peer_id, count);
+        trace!(target: "sync", "{peer_id} -> GetNodeData: {count} entries");
         if count == 0 {
             debug!(target: "sync", "Empty GetNodeData request, ignoring.");
             return Ok(None);
@@ -377,13 +377,13 @@ impl SyncSupplier {
         for d in data {
             rlp.append(&d);
         }
-        trace!(target: "sync", "{} -> GetNodeData: returned {} entries", peer_id, added);
+        trace!(target: "sync", "{peer_id} -> GetNodeData: returned {added} entries");
         Ok(Some((NodeDataPacket, rlp)))
     }
 
     fn return_receipts(io: &dyn SyncIo, rlp: &Rlp, peer_id: PeerId) -> RlpResponseResult {
         let mut count = rlp.item_count().unwrap_or(0);
-        trace!(target: "sync", "{} -> GetReceipts: {} entries", peer_id, count);
+        trace!(target: "sync", "{peer_id} -> GetReceipts: {count} entries");
         if count == 0 {
             debug!(target: "sync", "Empty GetReceipts request, ignoring.");
             return Ok(None);
@@ -411,20 +411,20 @@ impl SyncSupplier {
     /// Respond to GetSnapshotManifest request
     fn return_snapshot_manifest(io: &dyn SyncIo, r: &Rlp, peer_id: PeerId) -> RlpResponseResult {
         let count = r.item_count().unwrap_or(0);
-        trace!(target: "warp", "{} -> GetSnapshotManifest", peer_id);
+        trace!(target: "warp", "{peer_id} -> GetSnapshotManifest");
         if count != 0 {
             debug!(target: "warp", "Invalid GetSnapshotManifest request, ignoring.");
             return Ok(None);
         }
         let rlp = match io.snapshot_service().manifest() {
             Some(manifest) => {
-                trace!(target: "warp", "{} <- SnapshotManifest", peer_id);
+                trace!(target: "warp", "{peer_id} <- SnapshotManifest");
                 let mut rlp = RlpStream::new_list(1);
                 rlp.append_raw(&manifest.into_rlp(), 1);
                 rlp
             }
             None => {
-                trace!(target: "warp", "{}: No snapshot manifest to return", peer_id);
+                trace!(target: "warp", "{peer_id}: No snapshot manifest to return");
                 RlpStream::new_list(0)
             }
         };
@@ -434,16 +434,16 @@ impl SyncSupplier {
     /// Respond to GetSnapshotData request
     fn return_snapshot_data(io: &dyn SyncIo, r: &Rlp, peer_id: PeerId) -> RlpResponseResult {
         let hash: H256 = r.val_at(0)?;
-        trace!(target: "warp", "{} -> GetSnapshotData {:?}", peer_id, hash);
+        trace!(target: "warp", "{peer_id} -> GetSnapshotData {hash:?}");
         let rlp = match io.snapshot_service().chunk(hash) {
             Some(data) => {
                 let mut rlp = RlpStream::new_list(1);
-                trace!(target: "warp", "{} <- SnapshotData", peer_id);
+                trace!(target: "warp", "{peer_id} <- SnapshotData");
                 rlp.append(&data);
                 rlp
             }
             None => {
-                trace!(target: "warp", "{}: No snapshot data to return", peer_id);
+                trace!(target: "warp", "{peer_id}: No snapshot data to return");
                 RlpStream::new_list(0)
             }
         };

@@ -169,7 +169,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
 
     // get the mode
     let mode = mode_switch_to_bool(cmd.mode, &user_defaults)?;
-    trace!(target: "mode", "mode is {:?}", mode);
+    trace!(target: "mode", "mode is {mode:?}");
     let network_enabled = match mode {
         Mode::Dark(_) | Mode::Off => false,
         _ => true,
@@ -184,7 +184,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
 
     // create dirs used by parity
     cmd.dirs.create_dirs(
-        cmd.acc_conf.unlocked_accounts.len() == 0,
+        cmd.acc_conf.unlocked_accounts.is_empty(),
         cmd.secretstore_conf.enabled,
     )?;
 
@@ -206,7 +206,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     );
     info!(
         "Operating mode: {}",
-        Colour::White.bold().paint(format!("{}", mode))
+        Colour::White.bold().paint(format!("{mode}"))
     );
 
     // display warning about using experimental journaldb algorithm
@@ -268,8 +268,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     let runtime = Runtime::with_default_thread_count();
 
     // fetch service
-    let fetch =
-        fetch::Client::new().map_err(|e| format!("Error starting fetch client: {:?}", e))?;
+    let fetch = fetch::Client::new().map_err(|e| format!("Error starting fetch client: {e:?}"))?;
 
     let txpool_size = cmd.miner_options.pool_limits.max_count;
     // create miner
@@ -342,7 +341,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     let restoration_db_handler = db::restoration_db_handler(&client_path, &client_config);
     let client_db = restoration_db_handler
         .open(&client_path)
-        .map_err(|e| format!("Failed to open database {:?}", e))?;
+        .map_err(|e| format!("Failed to open database {e:?}"))?;
 
     // create client service.
     let service = ClientService::start(
@@ -354,7 +353,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
         &cmd.dirs.ipc_path(),
         miner.clone(),
     )
-    .map_err(|e| format!("Client service error: {:?}", e))?;
+    .map_err(|e| format!("Client service error: {e:?}"))?;
 
     let connection_filter_address = spec.params().node_permission_contract;
     // drop the spec to free up genesis state.
@@ -404,7 +403,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
             info!("Running without a persistent transaction queue.");
 
             if let Err(e) = store.clear() {
-                warn!("Error clearing persistent transaction queue: {}", e);
+                warn!("Error clearing persistent transaction queue: {e}");
             }
         }
 
@@ -413,11 +412,11 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
             Ok(pending) => {
                 for pending_tx in pending {
                     if let Err(e) = miner.import_own_transaction(&*client, pending_tx) {
-                        warn!("Error importing saved transaction: {}", e)
+                        warn!("Error importing saved transaction: {e}")
                     }
                 }
             }
-            Err(e) => warn!("Error loading cached pending transactions from disk: {}", e),
+            Err(e) => warn!("Error loading cached pending transactions from disk: {e}"),
         }
 
         Arc::new(store)
@@ -434,14 +433,14 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     // start stratum
     if let Some(ref stratum_config) = cmd.stratum {
         stratum::Stratum::register(stratum_config, miner.clone(), Arc::downgrade(&client))
-            .map_err(|e| format!("Stratum start error: {:?}", e))?;
+            .map_err(|e| format!("Stratum start error: {e:?}"))?;
     }
 
     // create sync object
     let (sync_provider, manage_network, chain_notify, priority_tasks, new_transaction_hashes) =
         modules::sync(
             sync_config,
-            net_conf.clone().into(),
+            net_conf.clone(),
             client.clone(),
             forks,
             snapshot_service.clone(),
@@ -450,7 +449,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
                 .clone()
                 .map(|f| f as Arc<dyn crate::sync::ConnectionFilter + 'static>),
         )
-        .map_err(|e| format!("Sync error: {}", e))?;
+        .map_err(|e| format!("Sync error: {e}"))?;
 
     service.add_notify(chain_notify.clone());
 
@@ -470,7 +469,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
         {
             for hash in hashes {
                 new_transaction_hashes
-                    .send(hash.clone())
+                    .send(*hash)
                     .expect("new_transaction_hashes receiving side is disconnected");
             }
             let task =
@@ -491,7 +490,7 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     let signer_service = Arc::new(signer::new_service(&cmd.ws_conf, &cmd.logger_config));
 
     let deps_for_rpc_apis = Arc::new(rpc_apis::FullDependencies {
-        signer_service: signer_service,
+        signer_service,
         snapshot: snapshot_service.clone(),
         client: client.clone(),
         sync: sync_provider.clone(),

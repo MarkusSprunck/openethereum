@@ -136,7 +136,7 @@ impl<'a, C: 'a> Clone for PoolClient<'a, C> {
             engine: self.engine,
             accounts: self.accounts,
             best_block_header: self.best_block_header.clone(),
-            service_transaction_checker: self.service_transaction_checker.clone(),
+            service_transaction_checker: self.service_transaction_checker,
         }
     }
 }
@@ -238,11 +238,11 @@ where
     fn transaction_type(&self, tx: &SignedTransaction) -> pool::client::TransactionType {
         match self.service_transaction_checker {
             None => pool::client::TransactionType::Regular,
-            Some(ref checker) => match checker.check(self.chain, &tx) {
+            Some(checker) => match checker.check(self.chain, tx) {
                 Ok(true) => pool::client::TransactionType::Service,
                 Ok(false) => pool::client::TransactionType::Regular,
                 Err(e) => {
-                    debug!(target: "txqueue", "Unable to verify service transaction: {:?}", e);
+                    debug!(target: "txqueue", "Unable to verify service transaction: {e:?}");
                     pool::client::TransactionType::Regular
                 }
             },

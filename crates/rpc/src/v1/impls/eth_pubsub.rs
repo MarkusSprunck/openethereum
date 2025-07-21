@@ -48,7 +48,7 @@ use types::{encoded, filter::Filter as EthFilter};
 
 type Client = Sink<pubsub::Result>;
 
-/// Eth PubSub implementation.
+/// Eth `PubSub` implementation.
 pub struct EthPubSubClient<C> {
     handler: Arc<ChainNotificationHandler<C>>,
     heads_subscribers: Arc<RwLock<Subscribers<Client>>>,
@@ -88,12 +88,13 @@ impl<C> EthPubSubClient<C> {
     }
 
     /// Returns a chain notification handler.
+    #[must_use]
     pub fn handler(&self) -> Weak<ChainNotificationHandler<C>> {
         Arc::downgrade(&self.handler)
     }
 }
 
-/// PubSub Notification handler.
+/// `PubSub` Notification handler.
 pub struct ChainNotificationHandler<C> {
     client: Arc<C>,
     executor: Executor,
@@ -111,13 +112,13 @@ where
             subscriber
                 .notify(Ok(result))
                 .map(|_| ())
-                .map_err(|e| warn!(target: "rpc", "Unable to send notification: {}", e)),
+                .map_err(|e| warn!(target: "rpc", "Unable to send notification: {e}")),
         );
     }
 
     fn notify_heads(&self, headers: &[(encoded::Header, BTreeMap<String, String>)]) {
         for subscriber in self.heads_subscribers.read().values() {
-            for &(ref header, ref extra_info) in headers {
+            for (header, extra_info) in headers {
                 Self::notify(
                     &self.executor,
                     subscriber,
@@ -140,7 +141,7 @@ where
         T: IntoFuture<Item = Vec<Log>, Error = Error>,
         T::Future: Send + 'static,
     {
-        for &(ref subscriber, ref filter) in self.logs_subscribers.read().values() {
+        for (subscriber, filter) in self.logs_subscribers.read().values() {
             let logs = futures::future::join_all(
                 enacted
                     .iter()
@@ -157,13 +158,13 @@ where
             let subscriber = subscriber.clone();
             self.executor.spawn(
                 logs.map(move |logs| {
-                    let logs = logs.into_iter().flat_map(|log| log).collect();
+                    let logs = logs.into_iter().flatten().collect();
 
                     for log in limit_logs(logs, limit) {
-                        Self::notify(&executor, &subscriber, pubsub::Result::Log(Box::new(log)))
+                        Self::notify(&executor, &subscriber, pubsub::Result::Log(Box::new(log)));
                     }
                 })
-                .map_err(|e| warn!("Unable to fetch latest logs: {:?}", e)),
+                .map_err(|e| warn!("Unable to fetch latest logs: {e:?}")),
             );
         }
     }

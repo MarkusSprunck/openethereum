@@ -90,9 +90,9 @@ impl FlatTransactionTraces {
     }
 }
 
-impl Into<Vec<FlatTrace>> for FlatTransactionTraces {
-    fn into(self) -> Vec<FlatTrace> {
-        self.0
+impl From<FlatTransactionTraces> for Vec<FlatTrace> {
+    fn from(val: FlatTransactionTraces) -> Self {
+        val.0
     }
 }
 
@@ -117,9 +117,9 @@ impl FlatBlockTraces {
     }
 }
 
-impl Into<Vec<FlatTransactionTraces>> for FlatBlockTraces {
-    fn into(self) -> Vec<FlatTransactionTraces> {
-        self.0
+impl From<FlatBlockTraces> for Vec<FlatTransactionTraces> {
+    fn from(val: FlatBlockTraces) -> Self {
+        val.0
     }
 }
 

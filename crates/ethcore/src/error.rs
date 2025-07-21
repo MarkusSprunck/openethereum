@@ -110,56 +110,56 @@ impl fmt::Display for BlockError {
         use self::BlockError::*;
 
         let msg = match *self {
-            TooManyUncles(ref oob) => format!("Block has too many uncles. {}", oob),
-            ExtraDataOutOfBounds(ref oob) => format!("Extra block data too long. {}", oob),
-            InvalidSealArity(ref mis) => format!("Block seal in incorrect format: {}", mis),
-            TooMuchGasUsed(ref oob) => format!("Block has too much gas used. {}", oob),
-            GasTargetTooBig(ref oob) => format!("Gas target is bigger then expected. {}", oob),
-            GasTargetTooSmall(ref oob) => format!("Gas target is smaller then expected. {}", oob),
-            InvalidUnclesHash(ref mis) => format!("Block has invalid uncles hash: {}", mis),
-            UncleTooOld(ref oob) => format!("Uncle block is too old. {}", oob),
-            UncleIsBrother(ref oob) => format!("Uncle from same generation as block. {}", oob),
-            UncleInChain(ref hash) => format!("Uncle {} already in chain", hash),
-            DuplicateUncle(ref hash) => format!("Uncle {} already in the header", hash),
+            TooManyUncles(ref oob) => format!("Block has too many uncles. {oob}"),
+            ExtraDataOutOfBounds(ref oob) => format!("Extra block data too long. {oob}"),
+            InvalidSealArity(ref mis) => format!("Block seal in incorrect format: {mis}"),
+            TooMuchGasUsed(ref oob) => format!("Block has too much gas used. {oob}"),
+            GasTargetTooBig(ref oob) => format!("Gas target is bigger then expected. {oob}"),
+            GasTargetTooSmall(ref oob) => format!("Gas target is smaller then expected. {oob}"),
+            InvalidUnclesHash(ref mis) => format!("Block has invalid uncles hash: {mis}"),
+            UncleTooOld(ref oob) => format!("Uncle block is too old. {oob}"),
+            UncleIsBrother(ref oob) => format!("Uncle from same generation as block. {oob}"),
+            UncleInChain(ref hash) => format!("Uncle {hash} already in chain"),
+            DuplicateUncle(ref hash) => format!("Uncle {hash} already in the header"),
             UncleParentNotInChain(ref hash) => {
-                format!("Uncle {} has a parent not in the chain", hash)
+                format!("Uncle {hash} has a parent not in the chain")
             }
-            InvalidStateRoot(ref mis) => format!("Invalid state root in header: {}", mis),
-            InvalidGasUsed(ref mis) => format!("Invalid gas used in header: {}", mis),
+            InvalidStateRoot(ref mis) => format!("Invalid state root in header: {mis}"),
+            InvalidGasUsed(ref mis) => format!("Invalid gas used in header: {mis}"),
             InvalidTransactionsRoot(ref mis) => {
-                format!("Invalid transactions root in header: {}", mis)
+                format!("Invalid transactions root in header: {mis}")
             }
-            DifficultyOutOfBounds(ref oob) => format!("Invalid block difficulty: {}", oob),
-            InvalidDifficulty(ref mis) => format!("Invalid block difficulty: {}", mis),
-            MismatchedH256SealElement(ref mis) => format!("Seal element out of bounds: {}", mis),
-            InvalidProofOfWork(ref oob) => format!("Block has invalid PoW: {}", oob),
+            DifficultyOutOfBounds(ref oob) => format!("Invalid block difficulty: {oob}"),
+            InvalidDifficulty(ref mis) => format!("Invalid block difficulty: {mis}"),
+            MismatchedH256SealElement(ref mis) => format!("Seal element out of bounds: {mis}"),
+            InvalidProofOfWork(ref oob) => format!("Block has invalid PoW: {oob}"),
             InvalidSeal => "Block has invalid seal.".into(),
-            InvalidGasLimit(ref oob) => format!("Invalid gas limit: {}", oob),
-            IncorrectBaseFee(ref mis) => format!("Incorrect base fee: {}", mis),
+            InvalidGasLimit(ref oob) => format!("Invalid gas limit: {oob}"),
+            IncorrectBaseFee(ref mis) => format!("Incorrect base fee: {mis}"),
             InvalidReceiptsRoot(ref mis) => {
-                format!("Invalid receipts trie root in header: {}", mis)
+                format!("Invalid receipts trie root in header: {mis}")
             }
             InvalidTimestamp(ref oob) => {
                 let oob = oob.map(|st| st.elapsed().unwrap_or_default().as_secs());
-                format!("Invalid timestamp in header: {}", oob)
+                format!("Invalid timestamp in header: {oob}")
             }
             TemporarilyInvalid(ref oob) => {
                 let oob = oob.map(|st| st.elapsed().unwrap_or_default().as_secs());
-                format!("Future timestamp in header: {}", oob)
+                format!("Future timestamp in header: {oob}")
             }
-            InvalidLogBloom(ref oob) => format!("Invalid log bloom in header: {}", oob),
-            InvalidNumber(ref mis) => format!("Invalid number in header: {}", mis),
-            RidiculousNumber(ref oob) => format!("Implausible block number. {}", oob),
-            UnknownParent(ref hash) => format!("Unknown parent: {}", hash),
-            UnknownUncleParent(ref hash) => format!("Unknown uncle parent: {}", hash),
+            InvalidLogBloom(ref oob) => format!("Invalid log bloom in header: {oob}"),
+            InvalidNumber(ref mis) => format!("Invalid number in header: {mis}"),
+            RidiculousNumber(ref oob) => format!("Implausible block number. {oob}"),
+            UnknownParent(ref hash) => format!("Unknown parent: {hash}"),
+            UnknownUncleParent(ref hash) => format!("Unknown uncle parent: {hash}"),
             UnknownEpochTransition(ref num) => {
-                format!("Unknown transition to epoch number: {}", num)
+                format!("Unknown transition to epoch number: {num}")
             }
-            TimestampOverflow => format!("Timestamp overflow"),
-            TooManyTransactions(ref address) => format!("Too many transactions from: {}", address),
+            TimestampOverflow => "Timestamp overflow".to_string(),
+            TooManyTransactions(ref address) => format!("Too many transactions from: {address}"),
         };
 
-        f.write_fmt(format_args!("Block error ({})", msg))
+        f.write_fmt(format_args!("Block error ({msg})"))
     }
 }
 
@@ -228,7 +228,7 @@ impl From<Error> for TransactionImportError {
             Error(ErrorKind::Transaction(transaction_error), _) => {
                 TransactionImportError::Transaction(transaction_error)
             }
-            _ => TransactionImportError::Other(format!("other block import error: {:?}", e)),
+            _ => TransactionImportError::Other(format!("other block import error: {e:?}")),
         }
     }
 }

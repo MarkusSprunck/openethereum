@@ -410,7 +410,7 @@ pub trait BlockChainClient:
                         }
                     }))
                 });
-                h = block.parent_hash().clone();
+                h = block.parent_hash();
             }
         }
         corpus.into()
@@ -444,7 +444,7 @@ pub trait BlockChainClient:
                         // As block.number() >= eip_1559_transition, the base_fee should exist
                         corpus.push(t.effective_priority_gas_price(Some(block.header().base_fee())))
                     });
-                h = block.parent_hash().clone();
+                h = block.parent_hash();
             }
         }
         corpus.into()

@@ -16,10 +16,12 @@ pub fn json_local_block_en_de_test<H: FnMut(&str, HookType)>(
     json_data: &[u8],
     start_stop_hook: &mut H,
 ) -> Vec<String> {
-    let tests = ethjson::local_tests::BlockEnDeTest::load(json_data).expect(&format!(
-        "Could not parse JSON chain test data from {}",
-        path.display()
-    ));
+    let tests = ethjson::local_tests::BlockEnDeTest::load(json_data).unwrap_or_else(|_| {
+        panic!(
+            "Could not parse JSON chain test data from {}",
+            path.display()
+        )
+    });
     let mut failed = Vec::new();
 
     for (name, ref_block) in tests.into_iter() {
@@ -29,13 +31,13 @@ pub fn json_local_block_en_de_test<H: FnMut(&str, HookType)>(
         let block = match block {
             Ok(block) => block,
             Err(decoder_err) => {
-                warn!(target: "json-tests", "Error decoding test block: {:?}", decoder_err);
+                warn!(target: "json-tests", "Error decoding test block: {decoder_err:?}");
                 failed.push(name.clone());
                 continue;
             }
         };
         if !is_same_block(&ref_block, &block) {
-            println!("block failed {:?}", block);
+            println!("block failed {block:?}");
             failed.push(name.clone())
         }
 
@@ -56,7 +58,7 @@ fn rlp_append_block(block: &Unverified) -> Vec<u8> {
 pub fn is_same_block(ref_block: &Block, block: &Unverified) -> bool {
     let test_exp = |exp: bool, err: &str| -> bool {
         if !exp {
-            println!("Test mismatch on:{}", err);
+            println!("Test mismatch on:{err}");
         }
         exp
     };
@@ -127,7 +129,7 @@ pub fn is_same_block(ref_block: &Block, block: &Unverified) -> bool {
                 if let Some(id) = TypedTxId::from_u8_id(ttype) {
                     id
                 } else {
-                    println!("Unknown transaction {}", ttype);
+                    println!("Unknown transaction {ttype}");
                     continue;
                 }
             } else {
@@ -201,10 +203,7 @@ pub fn is_same_block(ref_block: &Block, block: &Unverified) -> bool {
                 };
 
             if !is_ok {
-                println!(
-                    "Transaction not valid got: {:?} \n expected:{:?}\n",
-                    tx, ref_tx
-                );
+                println!("Transaction not valid got: {tx:?} \n expected:{ref_tx:?}\n");
             }
             is_all_ok = is_ok && is_all_ok;
         }
@@ -214,7 +213,7 @@ pub fn is_same_block(ref_block: &Block, block: &Unverified) -> bool {
     };
 
     let encript_ok = {
-        let rlp = rlp_append_block(&block);
+        let rlp = rlp_append_block(block);
         rlp == ref_block.rlp()
     };
 

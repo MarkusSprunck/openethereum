@@ -134,7 +134,7 @@ where
 
                 //boost local and retracted only if they are currently includable (base fee criteria)
                 if self.block_base_fee.is_none() || scores[i] >= self.block_base_fee.unwrap() {
-                    scores[i] = scores[i] << boost;
+                    scores[i] <<= boost;
                 }
             }
             // We are only sending an event in case of penalization.
@@ -145,7 +145,7 @@ where
                         for (score, tx) in scores.iter_mut().zip(txs) {
                             // Never penalize local transactions.
                             if !tx.priority().is_local() {
-                                *score = *score >> 3;
+                                *score >>= 3;
                             }
                         }
                     }
@@ -162,7 +162,7 @@ where
                             if self.block_base_fee.is_none()
                                 || scores[i] >= self.block_base_fee.unwrap()
                             {
-                                scores[i] = scores[i] << boost;
+                                scores[i] <<= boost;
                             }
                         }
                     }
@@ -212,37 +212,37 @@ mod tests {
 
         // No update required
         let mut scores = initial_scores.clone();
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::Culled(0));
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::Culled(1));
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::Culled(2));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::Culled(0));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::Culled(1));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::Culled(2));
         assert_eq!(scores, initial_scores);
         let mut scores = initial_scores.clone();
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::RemovedAt(0));
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::RemovedAt(1));
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::RemovedAt(2));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::RemovedAt(0));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::RemovedAt(1));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::RemovedAt(2));
         assert_eq!(scores, initial_scores);
 
         // Compute score at given index
         let mut scores = initial_scores.clone();
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::InsertedAt(0));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::InsertedAt(0));
         assert_eq!(scores, vec![32768.into(), 0.into(), 0.into()]);
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::InsertedAt(1));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::InsertedAt(1));
         assert_eq!(scores, vec![32768.into(), 1024.into(), 0.into()]);
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::InsertedAt(2));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::InsertedAt(2));
         assert_eq!(scores, vec![32768.into(), 1024.into(), 1.into()]);
 
         let mut scores = initial_scores.clone();
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::ReplacedAt(0));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::ReplacedAt(0));
         assert_eq!(scores, vec![32768.into(), 0.into(), 0.into()]);
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::ReplacedAt(1));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::ReplacedAt(1));
         assert_eq!(scores, vec![32768.into(), 1024.into(), 0.into()]);
-        scoring.update_scores(&transactions, &mut *scores, scoring::Change::ReplacedAt(2));
+        scoring.update_scores(&transactions, &mut scores, scoring::Change::ReplacedAt(2));
         assert_eq!(scores, vec![32768.into(), 1024.into(), 1.into()]);
 
         // Check penalization
         scoring.update_scores(
             &transactions,
-            &mut *scores,
+            &mut scores,
             scoring::Change::Event(ScoringEvent::Penalize),
         );
         assert_eq!(scores, vec![32768.into(), 128.into(), 0.into()]);

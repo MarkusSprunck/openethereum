@@ -37,7 +37,7 @@ impl<'a> Deserialize<'a> for Bytes {
         let s = String::deserialize(deserializer)?;
         let data = s
             .from_hex()
-            .map_err(|e| Error::custom(format!("Invalid hex value {}", e)))?;
+            .map_err(|e| Error::custom(format!("Invalid hex value {e}")))?;
         Ok(Bytes(data))
     }
 }
@@ -61,11 +61,8 @@ impl str::FromStr for Bytes {
 
 impl From<&'static str> for Bytes {
     fn from(s: &'static str) -> Self {
-        s.parse().expect(&format!(
-            "invalid string literal for {}: '{}'",
-            stringify!(Self),
-            s
-        ))
+        s.parse()
+            .unwrap_or_else(|_| panic!("invalid string literal for {}: '{}'", stringify!(Self), s))
     }
 }
 

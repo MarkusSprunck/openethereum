@@ -111,7 +111,7 @@ pub fn block_gas_limit(
 ) -> Option<U256> {
     let (data, decoder) = contract::functions::block_gas_limit::call();
     let value = full_client.call_contract(BlockId::Hash(*header.parent_hash()), address, data).map_err(|err| {
-		error!(target: "block_gas_limit", "Contract call failed. Not changing the block gas limit. {:?}", err);
+		error!(target: "block_gas_limit", "Contract call failed. Not changing the block gas limit. {err:?}");
 	}).ok()?;
     if value.is_empty() {
         debug!(target: "block_gas_limit", "Contract call returned nothing. Not changing the block gas limit.");

@@ -44,15 +44,15 @@ pub struct SafeAccount {
     pub meta: String,
 }
 
-impl Into<json::KeyFile> for SafeAccount {
-    fn into(self) -> json::KeyFile {
+impl From<SafeAccount> for json::KeyFile {
+    fn from(val: SafeAccount) -> Self {
         json::KeyFile {
-            id: From::from(self.id),
-            version: self.version.into(),
-            address: Some(self.address.into()),
-            crypto: self.crypto.into(),
-            name: Some(self.name.into()),
-            meta: Some(self.meta.into()),
+            id: From::from(val.id),
+            version: val.version.into(),
+            address: Some(val.address.into()),
+            crypto: val.crypto.into(),
+            name: Some(val.name),
+            meta: Some(val.meta),
         }
     }
 }
@@ -68,13 +68,13 @@ impl SafeAccount {
         meta: String,
     ) -> Result<Self, crypto::Error> {
         Ok(SafeAccount {
-            id: id,
+            id,
             version: Version::V3,
             crypto: Crypto::with_secret(keypair.secret(), password, iterations)?,
             address: keypair.address(),
             filename: None,
-            name: name,
-            meta: meta,
+            name,
+            meta,
         })
     }
 
@@ -99,20 +99,16 @@ impl SafeAccount {
             (Some(password), json_address) => {
                 let derived_address = KeyPair::from_secret(
                     crypto
-                        .secret(&password)
+                        .secret(password)
                         .map_err(|_| Error::InvalidPassword)?,
                 )?
                 .address();
 
-                match json_address {
-                    Some(json_address) => {
-                        let json_address = json_address.into();
-                        if derived_address != json_address {
-                            warn!("Detected address mismatch when opening an account. Derived: {:?}, in json got: {:?}",
-								derived_address, json_address);
-                        }
+                if let Some(json_address) = json_address {
+                    let json_address = json_address.into();
+                    if derived_address != json_address {
+                        warn!("Detected address mismatch when opening an account. Derived: {derived_address:?}, in json got: {json_address:?}");
                     }
-                    _ => {}
                 }
                 derived_address
             }
@@ -124,7 +120,7 @@ impl SafeAccount {
             address,
             crypto,
             filename,
-            name: json.name.unwrap_or(String::new()),
+            name: json.name.unwrap_or_default(),
             meta: json.meta.unwrap_or("{}".to_owned()),
         })
     }
@@ -140,7 +136,7 @@ impl SafeAccount {
         let meta_crypto: Crypto = json.metacrypto.into();
         let meta_plain = meta_crypto.decrypt(password)?;
         let meta_plain =
-            json::VaultKeyMeta::load(&meta_plain).map_err(|e| Error::Custom(format!("{:?}", e)))?;
+            json::VaultKeyMeta::load(&meta_plain).map_err(|e| Error::Custom(format!("{e:?}")))?;
 
         SafeAccount::from_file(
             json::KeyFile {
@@ -169,7 +165,7 @@ impl SafeAccount {
         };
         let meta_plain = meta_plain
             .write()
-            .map_err(|e| Error::Custom(format!("{:?}", e)))?;
+            .map_err(|e| Error::Custom(format!("{e:?}")))?;
         let meta_crypto = Crypto::with_plain(&meta_plain, password, iterations)?;
 
         Ok(json::VaultKeyFile {
@@ -206,7 +202,7 @@ impl SafeAccount {
     /// Derive public key.
     pub fn public(&self, password: &Password) -> Result<Public, Error> {
         let secret = self.crypto.secret(password)?;
-        Ok(KeyPair::from_secret(secret)?.public().clone())
+        Ok(*KeyPair::from_secret(secret)?.public())
     }
 
     /// Change account's password.
@@ -218,10 +214,10 @@ impl SafeAccount {
     ) -> Result<Self, Error> {
         let secret = self.crypto.secret(old_password)?;
         let result = SafeAccount {
-            id: self.id.clone(),
+            id: self.id,
             version: self.version.clone(),
             crypto: Crypto::with_secret(&secret, new_password, iterations)?,
-            address: self.address.clone(),
+            address: self.address,
             filename: self.filename.clone(),
             name: self.name.clone(),
             meta: self.meta.clone(),

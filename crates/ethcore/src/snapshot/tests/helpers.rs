@@ -184,7 +184,7 @@ pub fn restore(
 
     trace!(target: "snapshot", "restoring state");
     for state_chunk_hash in manifest.state_hashes.iter() {
-        trace!(target: "snapshot", "state chunk hash: {}", state_chunk_hash);
+        trace!(target: "snapshot", "state chunk hash: {state_chunk_hash}");
         let chunk = reader.chunk(*state_chunk_hash).unwrap();
         let len = snappy::decompress_into(&chunk, &mut snappy_buffer).unwrap();
         state.feed(&snappy_buffer[..len], &flag)?;

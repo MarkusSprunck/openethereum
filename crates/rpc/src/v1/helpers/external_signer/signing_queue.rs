@@ -105,12 +105,12 @@ pub type ConfirmationReceiver = oneshot::Receiver<ConfirmationResult>;
 pub struct ConfirmationsQueue {
     id: Mutex<U256>,
     queue: RwLock<BTreeMap<U256, ConfirmationSender>>,
-    on_event: RwLock<Vec<Box<dyn Fn(QueueEvent) -> () + Send + Sync>>>,
+    on_event: RwLock<Vec<Box<dyn Fn(QueueEvent) + Send + Sync>>>,
 }
 
 impl ConfirmationsQueue {
     /// Adds a queue listener. For each event, `listener` callback will be invoked.
-    pub fn on_event<F: Fn(QueueEvent) -> () + Send + Sync + 'static>(&self, listener: F) {
+    pub fn on_event<F: Fn(QueueEvent) + Send + Sync + 'static>(&self, listener: F) {
         self.on_event.write().push(Box::new(listener));
     }
 
@@ -143,7 +143,7 @@ impl ConfirmationsQueue {
     /// Notifies receiver about the event happening in this queue.
     fn notify_message(&self, message: QueueEvent) {
         for listener in &*self.on_event.read() {
-            listener(message.clone())
+            listener(message.clone());
         }
     }
 }
@@ -172,8 +172,8 @@ impl SigningQueue for ConfirmationsQueue {
         };
         // Add request to queue
         let res = {
-            debug!(target: "own_tx", "Signer: New entry ({:?}) in confirmation queue.", id);
-            trace!(target: "own_tx", "Signer: ({:?}) : {:?}", id, request);
+            debug!(target: "own_tx", "Signer: New entry ({id:?}) in confirmation queue.");
+            trace!(target: "own_tx", "Signer: ({id:?}) : {request:?}");
 
             let mut queue = self.queue.write();
             let (sender, receiver) = oneshot::oneshot::<ConfirmationResult>();
@@ -326,7 +326,7 @@ mod test {
 
         // then
         assert_eq!(all.len(), 1);
-        let el = all.get(0).unwrap();
+        let el = all.first().unwrap();
         assert_eq!(el.id, U256::from(1));
         assert_eq!(el.payload, request);
     }

@@ -31,7 +31,7 @@ use SyncConfig;
 
 fn new_tx(secret: &Secret, nonce: U256, chain_id: u64) -> PendingTransaction {
     let signed = TypedTransaction::Legacy(Transaction {
-        nonce: nonce.into(),
+        nonce: nonce,
         gas_price: 0.into(),
         gas: 21000.into(),
         action: Action::Call(Address::default()),

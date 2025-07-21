@@ -67,10 +67,10 @@ impl Broadcast for Mutex<IoChannel<ClientIoMessage>> {
             None => return,
         };
 
-        trace!(target: "snapshot_watcher", "broadcast: {}", num);
+        trace!(target: "snapshot_watcher", "broadcast: {num}");
 
         if let Err(e) = self.lock().send(ClientIoMessage::TakeSnapshot(num)) {
-            warn!("Snapshot watcher disconnected from IoService: {}", e);
+            warn!("Snapshot watcher disconnected from IoService: {e}");
         }
     }
 }
@@ -100,12 +100,12 @@ impl Watcher {
     {
         Watcher {
             oracle: Box::new(StandardOracle {
-                client: client,
-                sync_status: sync_status,
+                client,
+                sync_status,
             }),
             broadcast: Box::new(Mutex::new(channel)),
-            period: period,
-            history: history,
+            period,
+            history,
         }
     }
 }
@@ -183,8 +183,8 @@ mod tests {
         let watcher = Watcher {
             oracle: Box::new(TestOracle(map)),
             broadcast: Box::new(TestBroadcast(expected)),
-            period: period,
-            history: history,
+            period,
+            history,
         };
 
         watcher.new_blocks(NewBlocks::new(
