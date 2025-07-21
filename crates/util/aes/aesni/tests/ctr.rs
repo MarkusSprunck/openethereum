@@ -1,6 +1,7 @@
 #![cfg(all(feature = "ctr", any(target_arch = "x86_64", target_arch = "x86")))]
 extern crate aesni;
-#[macro_use] extern crate stream_cipher;
+#[macro_use]
+extern crate stream_cipher;
 
 use aesni::{Aes128Ctr, Aes256Ctr};
 

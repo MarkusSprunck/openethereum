@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use deque;
 use crate::service_mio::{HandlerId, IoChannel, IoContext};
+use crate::{IoHandler, LOCAL_STACK_SIZE};
+use deque;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering as AtomicOrdering},
@@ -23,7 +24,6 @@ use std::{
     },
     thread::{self, JoinHandle},
 };
-use crate::{IoHandler, LOCAL_STACK_SIZE};
 
 use parking_lot::{Condvar, Mutex};
 
@@ -108,8 +108,8 @@ impl Worker {
                     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                         runtime.block_on(future)
                     })) {
-                        Ok(_) => {},
-                        Err(_) => error!(target: "ioworker", "worker panicked")
+                        Ok(_) => {}
+                        Err(_) => error!(target: "ioworker", "worker panicked"),
                     }
                 })
                 .expect("Error creating worker thread"),

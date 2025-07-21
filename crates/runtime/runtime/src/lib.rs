@@ -23,11 +23,7 @@ pub extern crate tokio;
 pub use futures01;
 
 use futures::Future;
-use std::{
-    fmt,
-    sync::mpsc,
-    thread,
-};
+use std::{fmt, sync::mpsc, thread};
 pub use tokio::{
     runtime::{Builder as TokioRuntimeBuilder, Handle as TokioHandle, Runtime as TokioRuntime},
     time::{sleep as delay, Sleep as Delay},
@@ -162,7 +158,6 @@ impl fmt::Debug for Mode {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Executor {

@@ -64,7 +64,6 @@ const SNAPSHOT_HISTORY: u64 = 50;
 
 // Note: DNS thread configuration removed when upgradying hyper: v0.14 uses system default DNS resolution
 
-
 #[derive(Debug, PartialEq)]
 pub struct RunCmd {
     pub cache_config: CacheConfig,
@@ -269,8 +268,8 @@ pub fn execute(cmd: RunCmd, logger: Arc<RotatingLogger>) -> Result<RunningClient
     let runtime = Runtime::with_default_thread_count();
 
     // fetch service
-    let fetch = fetch::Client::new()
-        .map_err(|e| format!("Error starting fetch client: {:?}", e))?;
+    let fetch =
+        fetch::Client::new().map_err(|e| format!("Error starting fetch client: {:?}", e))?;
 
     let txpool_size = cmd.miner_options.pool_limits.max_count;
     // create miner

@@ -18,10 +18,10 @@ use std::{str::FromStr, sync::Arc, thread, time::Duration};
 
 use jsonrpc_core::{futures::Future, IoHandler, Success};
 use v1::{
-    helpers::nonce,
+    helpers::dispatch,
     helpers::external_signer::SignerService,
     helpers::external_signer::SigningQueue,
-    helpers::dispatch,
+    helpers::nonce,
     impls::SigningQueueClient,
     metadata::Metadata,
     tests::{helpers::TestMinerService, mocked::parity},
@@ -32,12 +32,12 @@ use v1::{
 use accounts::AccountProvider;
 use bytes::ToPretty;
 use crypto::publickey::{Generator, Random, Secret};
+use dispatch::FullDispatcher;
 use ethcore::client::TestBlockChainClient;
 use ethereum_types::{Address, H256, H520, U256};
 use parity_runtime::{Executor, Runtime};
 use parking_lot::Mutex;
 use serde_json;
-use dispatch::FullDispatcher;
 use types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
 
 #[allow(dead_code)]

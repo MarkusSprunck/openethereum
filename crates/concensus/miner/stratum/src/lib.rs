@@ -309,10 +309,7 @@ impl MetaExtractor<SocketMetadata> for PeerMetaExtractor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        net::SocketAddr,
-        sync::Arc,
-    };
+    use std::{net::SocketAddr, sync::Arc};
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
@@ -342,7 +339,10 @@ mod tests {
             stream.shutdown().await.expect("Failed to shutdown write");
 
             let mut read_buf = Vec::with_capacity(2048);
-            stream.read_to_end(&mut read_buf).await.expect("Failed to read");
+            stream
+                .read_to_end(&mut read_buf)
+                .await
+                .expect("Failed to read");
 
             read_buf
         })

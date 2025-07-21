@@ -40,11 +40,11 @@ use log::{trace, warn};
 use num::Zero;
 use num_bigint::BigUint;
 use parity_bytes::BytesRef;
-use substrate_bn as bn;
 use parity_crypto::{
     digest,
     publickey::{recover_allowing_all_zero_message, Signature, ZeroesAllowedMessage},
 };
+use substrate_bn as bn;
 
 /// Native implementation of a built-in contract.
 pub trait Implementation: Send + Sync {
@@ -935,7 +935,7 @@ fn modexp(mut base: BigUint, exp: Vec<u8>, modulus: BigUint) -> BigUint {
 
     // n^0 % m
     if exp.peek().is_none() {
-        return BigUint::from(1u32)
+        return BigUint::from(1u32);
     }
 
     // 0^n % m, n > 0

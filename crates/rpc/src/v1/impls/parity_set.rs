@@ -23,7 +23,7 @@ use ethcore::{
     miner::{self, MinerService},
 };
 use ethereum_types::{H160, H256, U256};
-use fetch::{self, Fetch, ClientCompatExt};
+use fetch::{self, ClientCompatExt, Fetch};
 use hash::keccak_buffer;
 use sync::ManageNetwork;
 
@@ -217,7 +217,6 @@ where
     }
 
     fn hash_content(&self, url: String) -> BoxFuture<H256> {
-
         let future = self
             .fetch
             .get_compat(&url, Default::default())

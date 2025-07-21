@@ -335,13 +335,17 @@ pub fn map_external_address(local: &NodeEndpoint) -> Option<NodeEndpoint> {
         let local_udp_port = local.udp_port;
 
         let search_gateway_child = ::std::thread::spawn(move || {
-			// search option local ip and timeout
-			let five_seconds_timeout = Duration::new(5, 0);
+            // search option local ip and timeout
+            let five_seconds_timeout = Duration::new(5, 0);
             let broadcast_address = Ipv4Addr::new(255, 255, 255, 255);
-			let bind_addr = SocketAddr::V4(SocketAddrV4::new(local_ip, local_port));
-			let broadcast_address = SocketAddr::V4(SocketAddrV4::new(broadcast_address, 0));
-            let search_options = SearchOptions { bind_addr, broadcast_address, timeout: Some(five_seconds_timeout) };
-			let search_gateway = search_gateway(search_options);
+            let bind_addr = SocketAddr::V4(SocketAddrV4::new(local_ip, local_port));
+            let broadcast_address = SocketAddr::V4(SocketAddrV4::new(broadcast_address, 0));
+            let search_options = SearchOptions {
+                bind_addr,
+                broadcast_address,
+                timeout: Some(five_seconds_timeout),
+            };
+            let search_gateway = search_gateway(search_options);
             match search_gateway {
                 Err(ref err) => debug!("Gateway search error: {}", err),
                 Ok(gateway) => match gateway.get_external_ip() {

@@ -172,7 +172,6 @@ impl EthTester {
     }
 }
 
-
 #[test]
 fn harness_works() {
     let chain: BlockChain =
@@ -300,7 +299,6 @@ fn eth_get_max_priority_fee_per_gas() {
         response
     )
 }
-
 
 #[test]
 fn eth_get_block_by_hash() {
@@ -613,7 +611,6 @@ fn starting_nonce_test() {
 
     assert_eq!(r#"{"jsonrpc":"2.0","result":"0x100","id":15}"#, &sample);
 }
-
 
 register_test!(
     eth_transaction_count_1,

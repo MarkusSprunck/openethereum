@@ -20,8 +20,8 @@ extern crate hyper;
 
 use fetch::{ClientCompatExt, Fetch, FetchResult01, Request, Url};
 use futures::{future, Future, TryFutureExt};
-use hyper::Body;
 use http::StatusCode;
+use hyper::Body;
 use std::pin::Pin;
 
 #[derive(Clone, Default)]

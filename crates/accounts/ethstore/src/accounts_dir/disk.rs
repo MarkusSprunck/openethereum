@@ -26,7 +26,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
-use time::{OffsetDateTime};
+use time::OffsetDateTime;
 use Error;
 use SafeAccount;
 
@@ -409,8 +409,15 @@ fn account_filename(account: &SafeAccount) -> String {
     account.filename.clone().unwrap_or_else(|| {
         // Format: YYYY-MM-DDTHH-MM-SS
         let now = OffsetDateTime::now_utc();
-        let timestamp = format!("{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
-            now.year(), now.month() as u8, now.day(), now.hour(), now.minute(), now.second());
+        let timestamp = format!(
+            "{:04}-{:02}-{:02}T{:02}-{:02}-{:02}",
+            now.year(),
+            now.month() as u8,
+            now.day(),
+            now.hour(),
+            now.minute(),
+            now.second()
+        );
         format!("UTC--{}Z--{}", timestamp, Uuid::from(account.id))
     })
 }

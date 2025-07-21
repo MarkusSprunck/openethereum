@@ -1,17 +1,15 @@
-use core::{mem, cmp};
 use arch::*;
+use core::{cmp, mem};
 
 use super::{Aes128, Aes192, Aes256};
-use block_cipher_trait::BlockCipher;
-use block_cipher_trait::generic_array::GenericArray;
 use block_cipher_trait::generic_array::typenum::U16;
-use stream_cipher::{
-    SyncStreamCipher, SyncStreamCipherSeek, NewStreamCipher, LoopError,
-};
+use block_cipher_trait::generic_array::GenericArray;
+use block_cipher_trait::BlockCipher;
+use stream_cipher::{LoopError, NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
 
 const BLOCK_SIZE: usize = 16;
 const PAR_BLOCKS: usize = 8;
-const PAR_BLOCKS_SIZE: usize = PAR_BLOCKS*BLOCK_SIZE;
+const PAR_BLOCKS_SIZE: usize = PAR_BLOCKS * BLOCK_SIZE;
 
 #[inline(always)]
 pub fn xor(buf: &mut [u8], key: &[u8]) {
@@ -27,7 +25,7 @@ fn xor_block8(buf: &mut [u8], ctr: [__m128i; 8]) {
     unsafe {
         // compiler should unroll this loop
         for i in 0..8 {
-            let ptr = buf.as_mut_ptr().offset(16*i) as *mut __m128i;
+            let ptr = buf.as_mut_ptr().offset(16 * i) as *mut __m128i;
             let data = _mm_loadu_si128(ptr);
             let data = _mm_xor_si128(data, ctr[i as usize]);
             _mm_storeu_si128(ptr, data);
@@ -52,7 +50,6 @@ fn inc_be(v: __m128i) -> __m128i {
 fn load(val: &GenericArray<u8, U16>) -> __m128i {
     unsafe { _mm_loadu_si128(val.as_ptr() as *const __m128i) }
 }
-
 
 macro_rules! impl_ctr {
     ($name:ident, $cipher:ty, $doc:expr) => {
@@ -97,22 +94,25 @@ macro_rules! impl_ctr {
 
             #[inline(always)]
             fn get_u64_ctr(&self) -> u64 {
-                let (ctr, nonce) = unsafe {(
-                    mem::transmute::<__m128i, [u64; 2]>(self.ctr)[0],
-                    mem::transmute::<__m128i, [u64; 2]>(self.nonce)[0],
-                )};
+                let (ctr, nonce) = unsafe {
+                    (
+                        mem::transmute::<__m128i, [u64; 2]>(self.ctr)[0],
+                        mem::transmute::<__m128i, [u64; 2]>(self.nonce)[0],
+                    )
+                };
                 ctr.wrapping_sub(nonce)
             }
 
             /// Check if provided data will not overflow counter
             #[inline(always)]
             fn check_data_len(&self, data: &[u8]) -> Result<(), LoopError> {
-                let dlen = data.len() - match self.leftover_pos {
-                    Some(pos) => cmp::min(BLOCK_SIZE - pos as usize, data.len()),
-                    None => 0,
-                };
-                let data_blocks = dlen/BLOCK_SIZE +
-                    if data.len() % BLOCK_SIZE != 0 { 1 } else { 0 };
+                let dlen = data.len()
+                    - match self.leftover_pos {
+                        Some(pos) => cmp::min(BLOCK_SIZE - pos as usize, data.len()),
+                        None => 0,
+                    };
+                let data_blocks =
+                    dlen / BLOCK_SIZE + if data.len() % BLOCK_SIZE != 0 { 1 } else { 0 };
                 let counter = self.get_u64_ctr();
                 if counter.checked_add(data_blocks as u64).is_some() {
                     Ok(())
@@ -144,9 +144,7 @@ macro_rules! impl_ctr {
 
         impl SyncStreamCipher for $name {
             #[inline]
-            fn try_apply_keystream(&mut self, mut data: &mut [u8])
-                -> Result<(), LoopError>
-            {
+            fn try_apply_keystream(&mut self, mut data: &mut [u8]) -> Result<(), LoopError> {
                 self.check_data_len(data)?;
                 // process leftover bytes from the last call if any
                 if let Some(pos) = self.leftover_pos {
@@ -155,7 +153,7 @@ macro_rules! impl_ctr {
                     // with all leftover bytes
                     if data.len() >= BLOCK_SIZE - pos {
                         let buf = &self.leftover_buf[pos..];
-                        let (r, l) = {data}.split_at_mut(buf.len());
+                        let (r, l) = { data }.split_at_mut(buf.len());
                         data = l;
                         xor(r, buf);
                         self.leftover_pos = None;
@@ -169,14 +167,14 @@ macro_rules! impl_ctr {
 
                 // process 8 blocks at a time
                 while data.len() >= PAR_BLOCKS_SIZE {
-                    let (r, l) = {data}.split_at_mut(PAR_BLOCKS_SIZE);
+                    let (r, l) = { data }.split_at_mut(PAR_BLOCKS_SIZE);
                     data = l;
                     xor_block8(r, self.next_block8());
                 }
 
                 // process one block at a time
                 while data.len() >= BLOCK_SIZE {
-                    let (r, l) = {data}.split_at_mut(BLOCK_SIZE);
+                    let (r, l) = { data }.split_at_mut(BLOCK_SIZE);
                     data = l;
 
                     let block = self.next_block();
@@ -191,9 +189,8 @@ macro_rules! impl_ctr {
                 // process leftover bytes
                 if data.len() != 0 {
                     let block = self.next_block();
-                    self.leftover_buf = unsafe {
-                         mem::transmute::<__m128i, [u8; BLOCK_SIZE]>(block)
-                    };
+                    self.leftover_buf =
+                        unsafe { mem::transmute::<__m128i, [u8; BLOCK_SIZE]>(block) };
                     let n = data.len();
                     self.leftover_pos = Some(n as u8);
                     for (a, b) in data.iter_mut().zip(&self.leftover_buf[..n]) {
@@ -209,30 +206,26 @@ macro_rules! impl_ctr {
                 let bs = BLOCK_SIZE as u64;
                 let ctr = self.get_u64_ctr();
                 match self.leftover_pos {
-                    Some(pos) => ctr.wrapping_sub(1)*bs + pos as u64,
-                    None => ctr*bs,
+                    Some(pos) => ctr.wrapping_sub(1) * bs + pos as u64,
+                    None => ctr * bs,
                 }
             }
 
             fn seek(&mut self, pos: u64) {
                 let n = pos / BLOCK_SIZE as u64;
                 let l = pos % BLOCK_SIZE as u64;
-                self.ctr = unsafe {
-                    _mm_add_epi64(self.nonce, _mm_set_epi64x(n as i64, 0))
-                };
+                self.ctr = unsafe { _mm_add_epi64(self.nonce, _mm_set_epi64x(n as i64, 0)) };
                 if l == 0 {
                     self.leftover_pos = None;
                 } else {
-                    self.leftover_buf = unsafe {
-                        mem::transmute(self.next_block())
-                    };
+                    self.leftover_buf = unsafe { mem::transmute(self.next_block()) };
                     self.leftover_pos = Some(l as u8);
                 }
             }
         }
 
         impl_opaque_debug!($name);
-    }
+    };
 }
 
 impl_ctr!(Aes128Ctr, Aes128, "AES-128 in CTR mode");

@@ -1057,7 +1057,7 @@ impl Configuration {
             "local" => "127.0.0.1",
             x => x,
         }
-            .into()
+        .into()
     }
 
     fn rpc_interface(&self) -> String {

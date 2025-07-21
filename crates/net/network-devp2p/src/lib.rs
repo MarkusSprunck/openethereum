@@ -60,7 +60,6 @@
 //! ```
 //!
 
-
 //TODO: use Poll from mio
 #![allow(deprecated)]
 

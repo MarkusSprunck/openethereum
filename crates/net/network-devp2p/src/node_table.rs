@@ -93,20 +93,27 @@ impl NodeEndpoint {
                 tcp_port,
             ))),
             16 => {
-                let segments: Vec<u16> = addr_bytes.chunks(2)
+                let segments: Vec<u16> = addr_bytes
+                    .chunks(2)
                     .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
                     .collect();
-				assert!(8 == segments.len());
+                assert!(8 == segments.len());
                 Ok(SocketAddr::V6(SocketAddrV6::new(
                     Ipv6Addr::new(
-                        segments[0], segments[1], segments[2], segments[3],
-                        segments[4], segments[5], segments[6], segments[7]
+                        segments[0],
+                        segments[1],
+                        segments[2],
+                        segments[3],
+                        segments[4],
+                        segments[5],
+                        segments[6],
+                        segments[7],
                     ),
                     tcp_port,
                     0,
                     0,
                 )))
-            },
+            }
             _ => Err(DecoderError::RlpInconsistentLengthAndData),
         }?;
         Ok(NodeEndpoint { address, udp_port })
@@ -118,9 +125,9 @@ impl NodeEndpoint {
                 rlp.append(&(&a.ip().octets()[..]));
             }
             SocketAddr::V6(a) => unsafe {
-				let segments = a.ip().segments();
-				let o: *const u8 = segments.as_ptr() as *const u8;
-				rlp.append(&slice::from_raw_parts(o, 16));
+                let segments = a.ip().segments();
+                let o: *const u8 = segments.as_ptr() as *const u8;
+                rlp.append(&slice::from_raw_parts(o, 16));
             },
         };
         rlp.append(&self.udp_port);

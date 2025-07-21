@@ -1043,7 +1043,7 @@ struct Misc {
     color: Option<bool>,
     ports_shift: Option<u16>,
     unsafe_expose: Option<bool>,
-    json: Option<bool>
+    json: Option<bool>,
 }
 
 #[cfg(test)]
@@ -1646,7 +1646,7 @@ mod tests {
                     color: Some(true),
                     ports_shift: Some(0),
                     unsafe_expose: Some(false),
-                    json:  None
+                    json: None
                 }),
                 stratum: None,
             }

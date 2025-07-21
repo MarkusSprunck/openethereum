@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::IoError;
+use crate::IoHandler;
+use chrono::TimeDelta;
 use deque;
 use fnv::FnvHashMap;
 use num_cpus;
@@ -24,10 +27,7 @@ use std::{
     thread,
     time::Duration,
 };
-use chrono::TimeDelta;
 use timer::{Guard as TimerGuard, Timer};
-use crate::IoError;
-use crate::IoHandler;
 
 /// Timer ID
 pub type TimerToken = usize;

@@ -34,7 +34,7 @@ use std::{cmp, fmt, io, str};
 use fetch::{Client as FetchClient, Fetch};
 use futures::{FutureExt, StreamExt, TryFutureExt};
 use log::warn;
-use parity_runtime::{Executor};
+use parity_runtime::Executor;
 use serde_json::Value;
 
 /// Current ETH price information.
@@ -105,7 +105,10 @@ impl<F: Fetch> Client<F> {
         let fetch = self.fetch.clone();
         let api_endpoint = self.api_endpoint.clone();
         let future = async move {
-            let response = fetch.get(&api_endpoint, fetch::Abort::default()).await.map_err(Error::Fetch)?;
+            let response = fetch
+                .get(&api_endpoint, fetch::Abort::default())
+                .await
+                .map_err(Error::Fetch)?;
             if !response.is_success() {
                 return Err(Error::StatusCode(
                     response.status().canonical_reason().unwrap_or("unknown"),

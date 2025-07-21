@@ -1326,12 +1326,12 @@ impl Client {
     }
 
     #[allow(missing_docs)]
-	#[cfg(test)]
+    #[cfg(test)]
     pub fn state_db(&self) -> ::parking_lot::RwLockReadGuard<StateDB> {
         self.state_db.read()
     }
 
-	#[allow(missing_docs)]
+    #[allow(missing_docs)]
     #[cfg(test)]
     pub fn chain(&self) -> Arc<BlockChain> {
         self.chain.read().clone()

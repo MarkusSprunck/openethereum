@@ -30,7 +30,6 @@ use self::{
     url::Url,
 };
 
-
 use ethereum_types::{H256, U256};
 use parking_lot::Mutex;
 
@@ -87,7 +86,7 @@ impl NotifyWork for WorkPoster {
             let u = u.clone();
             self.executor.spawn_01(
                 self.client
-                .fetch_compat(
+                    .fetch_compat(
                         Request::new(u.clone(), Method::POST)
                             .with_header(
                                 header::CONTENT_TYPE,
@@ -95,7 +94,8 @@ impl NotifyWork for WorkPoster {
                             )
                             .with_body(body.clone()),
                         Default::default(),
-                    ).map_err(move |e| {
+                    )
+                    .map_err(move |e| {
                         warn!("Error sending HTTP notification to {} : {}, retrying", u, e);
                     })
                     .map(|_| ()),

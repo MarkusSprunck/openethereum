@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::worker::{Work, WorkType, Worker};
+use crate::IoError;
+use crate::IoHandler;
 use deque;
 use mio::{
     deprecated::{EventLoop, EventLoopBuilder, Handler, Sender},
@@ -28,9 +31,6 @@ use std::{
     thread::{self, JoinHandle},
     time::Duration,
 };
-use crate::worker::{Work, WorkType, Worker};
-use crate::IoError;
-use crate::IoHandler;
 
 /// Timer ID
 pub type TimerToken = usize;
@@ -215,7 +215,7 @@ where
         handlers: Arc<RwLock<Slab<Arc<dyn IoHandler<Message>>>>>,
     ) -> Result<(), IoError> {
         let worker = deque::Worker::new_fifo();
-		let stealer = worker.stealer();
+        let stealer = worker.stealer();
         let num_workers = 4;
         let work_ready_mutex = Arc::new(Mutex::new(()));
         let work_ready = Arc::new(Condvar::new());

@@ -818,7 +818,8 @@ impl ChainSync {
     pub fn status(&self) -> SyncStatus {
         let last_imported_number = self.new_blocks.last_imported_block_number();
         let mut item_sizes = BTreeMap::<String, usize>::new();
-        let _ = self.old_blocks
+        let _ = self
+            .old_blocks
             .as_ref()
             .map_or((), |d| d.get_sizes(&mut item_sizes));
         self.new_blocks.get_sizes(&mut item_sizes);

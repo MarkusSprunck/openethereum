@@ -28,8 +28,8 @@ extern crate openethereum;
 extern crate panic_hook;
 extern crate parking_lot;
 
-extern crate ethcore_logger;
 extern crate daemonize;
+extern crate ethcore_logger;
 
 use std::{
     io::Write,
@@ -42,11 +42,11 @@ use std::{
 
 use ansi_term::Colour;
 use ctrlc::CtrlC;
+use daemonize::Daemonize;
 use ethcore_logger::setup_log;
 use fdlimit::raise_fd_limit;
 use openethereum::{start, ExecutionAction};
 use parking_lot::{Condvar, Mutex};
-use daemonize::Daemonize;
 
 #[derive(Debug)]
 /// Status used to exit or restart the program.
@@ -75,19 +75,21 @@ fn main() -> Result<(), i32> {
         );
         let _ = std::io::stdout().flush();
 
-		let daemonize = Daemonize::new()
-			.pid_file(pid);
+        let daemonize = Daemonize::new().pid_file(pid);
 
-		match daemonize.start() {
-			Ok(_) => {
-				info!("{}", Colour::Green.paint("Daemonization succeeded"));
-				Some(())
-			}
-			Err(e) => {
-				error!("{}", Colour::Red.paint(format!("Daemonization failed: {}", e)));
-				return Err(1);
-			}
-		}
+        match daemonize.start() {
+            Ok(_) => {
+                info!("{}", Colour::Green.paint("Daemonization succeeded"));
+                Some(())
+            }
+            Err(e) => {
+                error!(
+                    "{}",
+                    Colour::Red.paint(format!("Daemonization failed: {}", e))
+                );
+                return Err(1);
+            }
+        }
     } else {
         None
     };

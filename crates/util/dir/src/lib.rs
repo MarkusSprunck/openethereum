@@ -329,20 +329,8 @@ mod tests {
         let local_dir = super::default_local_path();
         let expected = Directories {
             base: replace_home(&data_dir, "$BASE"),
-            db: replace_home_and_local(
-                &data_dir,
-                &local_dir,
-                {
-                    "$BASE/chains"
-                },
-            ),
-            cache: replace_home_and_local(
-                &data_dir,
-                &local_dir,
-                {
-                    "$BASE/cache"
-                },
-            ),
+            db: replace_home_and_local(&data_dir, &local_dir, { "$BASE/chains" }),
+            cache: replace_home_and_local(&data_dir, &local_dir, { "$BASE/cache" }),
             keys: replace_home(&data_dir, "$BASE/keys"),
             signer: replace_home(&data_dir, "$BASE/signer"),
             secretstore: replace_home(&data_dir, "$BASE/secretstore"),

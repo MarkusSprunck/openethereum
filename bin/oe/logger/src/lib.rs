@@ -19,12 +19,12 @@
 extern crate ansi_term;
 extern crate arrayvec;
 extern crate atty;
+extern crate chrono;
 extern crate env_logger;
 extern crate log as rlog;
 extern crate parking_lot;
 extern crate regex;
 extern crate time;
-extern crate chrono;    
 
 #[macro_use]
 extern crate lazy_static;
@@ -32,6 +32,7 @@ extern crate lazy_static;
 mod rotating;
 
 use ansi_term::Colour;
+use chrono::SecondsFormat;
 use env_logger::{Builder as LogBuilder, Formatter};
 use parking_lot::Mutex;
 use regex::Regex;
@@ -39,9 +40,8 @@ use std::{
     env, fs,
     io::Write,
     sync::{Arc, Weak},
-    thread
+    thread,
 };
-use chrono::SecondsFormat;
 
 pub use rotating::{init_log, RotatingLogger};
 
@@ -119,16 +119,20 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
 
     let format = move |buf: &mut Formatter, record: &Record| {
         let with_color = if max_level() <= LevelFilter::Info && !enable_json {
-			let utc_time = chrono::Utc::now();
-			let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
-            format!("{} {}", Colour::Black.bold().paint(timestamp), record.args())
+            let utc_time = chrono::Utc::now();
+            let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
+            format!(
+                "{} {}",
+                Colour::Black.bold().paint(timestamp),
+                record.args()
+            )
         } else {
-            let name = thread::current().name().map_or_else(Default::default, |x| {
-                format!("{}", x)
-            });
+            let name = thread::current()
+                .name()
+                .map_or_else(Default::default, |x| format!("{}", x));
             if enable_json {
-				let utc_time = chrono::Utc::now();
-				let timestamp = utc_time.to_rfc3339_opts(SecondsFormat::Millis, true);
+                let utc_time = chrono::Utc::now();
+                let timestamp = utc_time.to_rfc3339_opts(SecondsFormat::Millis, true);
                 format!(
                     "{{\"@timestamp\":\"{}\",\"@version\":\"1\",\"SERVICE\":\"{}\",\"level\":\"{}\",\"STEP\":\"{}\",\"message\":\"{}\"}}",
                     timestamp,
@@ -138,8 +142,8 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
                     escape(&record.args().to_string())
                 )
             } else {
-				let utc_time = chrono::Utc::now();
-				let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
+                let utc_time = chrono::Utc::now();
+                let timestamp = utc_time.format("%Y-%m-%d %H:%M:%S %Z").to_string();
                 let name = thread::current().name().map_or_else(Default::default, |x| {
                     format!("{}", Colour::Blue.bold().paint(x))
                 });
@@ -149,7 +153,8 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
                     name,
                     record.level(),
                     record.target(),
-                    record.args())
+                    record.args()
+                )
             }
         };
 

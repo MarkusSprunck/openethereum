@@ -1,14 +1,14 @@
-use std::{convert::Infallible, sync::Arc, time::Instant};
 use crate::{rpc, rpc_apis};
-use parking_lot::Mutex;
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Method, Request, Response, Server, StatusCode,
 };
+use parking_lot::Mutex;
 use stats::{
     prometheus::{self, Encoder},
     PrometheusMetrics, PrometheusRegistry,
 };
+use std::{convert::Infallible, sync::Arc, time::Instant};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MetricsConfiguration {
@@ -43,17 +43,17 @@ async fn handle_request(
     state: Arc<Mutex<State>>,
 ) -> Result<Response<Body>, Infallible> {
     let (parts, _body) = req.into_parts();
-    
+
     match (parts.method, parts.uri.path()) {
         (Method::GET, "/metrics") => {
             let start = Instant::now();
             let mut reg = PrometheusRegistry::new(conf.prefix.clone());
-            
+
             let state = state.lock();
-            
+
             state.rpc_apis.client.prometheus_metrics(&mut reg);
             state.rpc_apis.sync.prometheus_metrics(&mut reg);
-            
+
             let elapsed = start.elapsed();
             reg.register_gauge(
                 "metrics_time",
@@ -119,7 +119,7 @@ pub fn start_prometheus_metrics(
             let make_svc = make_service_fn(move |_conn| {
                 let state = state.clone();
                 let conf = conf.clone();
-                
+
                 async move {
                     Ok::<_, Infallible>(service_fn(move |req| {
                         handle_request(req, conf.clone(), state.clone())
@@ -128,7 +128,7 @@ pub fn start_prometheus_metrics(
             });
 
             let server = Server::bind(&addr).serve(make_svc);
-            
+
             info!("Started prometheus metrics at http://{}/metrics", addr);
 
             if let Err(e) = server.await {

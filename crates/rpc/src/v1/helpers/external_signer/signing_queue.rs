@@ -86,7 +86,6 @@ pub trait SigningQueue: Send + Sync {
 
     /// Returns number of requests awaiting confirmation.
     fn len(&self) -> usize;
-
 }
 
 /// Confirmation request information with result notifier.
@@ -231,7 +230,6 @@ impl SigningQueue for ConfirmationsQueue {
         let queue = self.queue.read();
         queue.len()
     }
-
 }
 
 #[cfg(test)]

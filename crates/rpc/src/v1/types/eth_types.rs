@@ -53,7 +53,7 @@ fn should_fail_to_deserialize_decimals() {
 
     assert!(deserialized0.is_err());
     assert!(deserialized1.is_err());
-	assert!(deserialized2.is_ok());
+    assert!(deserialized2.is_ok());
     assert!(deserialized3.is_ok());
     assert!(deserialized4.is_ok());
     assert!(deserialized5.is_ok());
