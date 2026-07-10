@@ -434,7 +434,7 @@ pub fn get_temp_state_db() -> StateDB {
 }
 
 impl ReopenBlock for TestBlockChainClient {
-    fn reopen_block(&self, block: ClosedBlock) -> OpenBlock {
+    fn reopen_block(&self, block: ClosedBlock) -> OpenBlock<'_> {
         block.reopen(&*self.spec.engine)
     }
 }
@@ -445,7 +445,7 @@ impl PrepareOpenBlock for TestBlockChainClient {
         author: Address,
         gas_range_target: (U256, U256),
         extra_data: Bytes,
-    ) -> Result<OpenBlock, Error> {
+    ) -> Result<OpenBlock<'_>, Error> {
         let engine = &*self.spec.engine;
         let genesis_header = self.spec.genesis_header();
         let db = self

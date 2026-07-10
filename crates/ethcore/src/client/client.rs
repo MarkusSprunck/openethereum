@@ -1327,7 +1327,7 @@ impl Client {
 
     #[allow(missing_docs)]
     #[cfg(test)]
-    pub fn state_db(&self) -> ::parking_lot::RwLockReadGuard<StateDB> {
+    pub fn state_db(&self) -> ::parking_lot::RwLockReadGuard<'_, StateDB> {
         self.state_db.read()
     }
 

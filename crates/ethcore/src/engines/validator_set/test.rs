@@ -73,7 +73,7 @@ impl TestSet {
 }
 
 impl ValidatorSet for TestSet {
-    fn default_caller(&self, _block_id: ::types::ids::BlockId) -> Box<Call> {
+    fn default_caller(&self, _block_id: ::types::ids::BlockId) -> Box<Call<'_>> {
         Box::new(|_, _| Err("Test set doesn't require calls.".into()))
     }
 
