@@ -11,7 +11,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 # Only work_notify, consider a separate crate
 ethash = { path = "../../concensus/ethash", optional = true }
 fetch = { path = "../../net/fetch", optional = true }
-hyper = { version = "0.14.12", optional = true }
+hyper = { version = "0.14.32", optional = true }
 url = { version = "2", optional = true }
 
 # Miner
@@ -34,7 +34,7 @@ parking_lot = "0.12.4"
 price-info = { path = "./price-info", optional = true }
 rlp = { version = "0.4.6" }
 serde = { version = "1.0", features = ["derive"] }
-serde_derive = "1.0.219"
+serde_derive = "1.0.228"
 trace-time = "0.1"
 txpool = { path = "../../transaction-pool" }
 

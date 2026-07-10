@@ -11,10 +11,10 @@ env_logger = "0.5"
 ethkey = { path = "../../crates/accounts/ethkey" }
 panic_hook = { path = "../../crates/util/panic-hook" }
 parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
-parity-wordlist="1.3"
+parity-wordlist="1.3.1"
 rustc-hex = "1.0.0"
-serde = "1.0.219"
-serde_derive = "1.0.219"
+serde = "1.0.228"
+serde_derive = "1.0.228"
 threadpool = "1.7"
 
 [[bin]]

@@ -17,7 +17,7 @@ parity-util-mem = "0.7"
 rlp = { version = "0.4.6" }
 rlp-derive = "0.2.0"
 unexpected = { path = "../../util/unexpected" }
-serde = "1.0.219"
+serde = "1.0.228"
 serde_repr = "0.1"
 
 [dev-dependencies]

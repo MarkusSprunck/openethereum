@@ -7,11 +7,11 @@ authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
 docopt = "1.1.1"
-env_logger = "0.5"
+env_logger = "0.5.13"
 num_cpus = "1.17.0"
 rustc-hex = "1.0.0"
-serde = "1.0.219"
-serde_derive = "1.0.219"
+serde = "1.0.228"
+serde_derive = "1.0.228"
 parking_lot = "0.12.4"
 ethstore = { path = "../../crates/accounts/ethstore" }
 dir = { path = '../../crates/util/dir' }

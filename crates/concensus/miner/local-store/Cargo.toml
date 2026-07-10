@@ -13,8 +13,8 @@ kvdb = "0.1.1"
 log = "0.4"
 parity-crypto = { version = "0.6.2", features = [ "publickey" ] }
 rlp = { version = "0.4.6" }
-serde = "1.0.219"
-serde_derive = "1.0.219"
+serde = "1.0.228"
+serde_derive = "1.0.228"
 serde_json = "1.0.140"
 
 [dev-dependencies]
