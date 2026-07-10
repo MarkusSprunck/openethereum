@@ -72,7 +72,7 @@ impl Substate {
     }
 
     /// Get the cleanup mode object from this.
-    pub fn to_cleanup_mode(&mut self, schedule: &Schedule) -> CleanupMode {
+    pub fn to_cleanup_mode(&mut self, schedule: &Schedule) -> CleanupMode<'_> {
         match (
             schedule.kill_dust != CleanDustMode::Off,
             schedule.no_empty,

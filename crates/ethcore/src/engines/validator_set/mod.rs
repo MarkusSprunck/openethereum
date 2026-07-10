@@ -81,7 +81,7 @@ pub trait ValidatorSet: Send + Sync + 'static {
     /// Get the default "Call" helper, for use in general operation.
     // TODO [keorn]: this is a hack intended to migrate off of
     // a strict dependency on state always being available.
-    fn default_caller(&self, block_id: BlockId) -> Box<Call>;
+    fn default_caller(&self, block_id: BlockId) -> Box<Call<'_>>;
 
     /// Called for each new block this node is creating.  If this block is
     /// the first block of an epoch, this is called *after* `on_epoch_begin()`,

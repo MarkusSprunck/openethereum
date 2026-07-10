@@ -476,7 +476,7 @@ where
         &self,
         ready: R,
         includable_boundary: S::Score,
-    ) -> PendingIterator<T, R, S, L> {
+    ) -> PendingIterator<'_, T, R, S, L> {
         PendingIterator {
             ready,
             best_transactions: self.best_transactions.clone(),
@@ -491,7 +491,7 @@ where
         ready: R,
         sender: &T::Sender,
         includable_boundary: S::Score,
-    ) -> PendingIterator<T, R, S, L> {
+    ) -> PendingIterator<'_, T, R, S, L> {
         let best_transactions = self
             .transactions
             .get(sender)
@@ -517,7 +517,7 @@ where
         &self,
         ready: R,
         includable_boundary: S::Score,
-    ) -> UnorderedIterator<T, R, S> {
+    ) -> UnorderedIterator<'_, T, R, S> {
         UnorderedIterator {
             ready,
             senders: self.transactions.iter(),

@@ -123,7 +123,7 @@ impl ValidatorContract {
 }
 
 impl ValidatorSet for ValidatorContract {
-    fn default_caller(&self, id: ::types::ids::BlockId) -> Box<Call> {
+    fn default_caller(&self, id: ::types::ids::BlockId) -> Box<Call<'_>> {
         self.validators.default_caller(id)
     }
 

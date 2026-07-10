@@ -61,11 +61,11 @@ impl<T: fmt::Debug, S: Scoring<T>> Transactions<T, S> {
         self.transactions.len()
     }
 
-    pub fn iter_transactions(&self) -> ::std::slice::Iter<Transaction<T>> {
+    pub fn iter_transactions(&self) -> ::std::slice::Iter<'_, Transaction<T>> {
         self.transactions.iter()
     }
 
-    pub fn iter_scores(&self) -> ::std::slice::Iter<S::Score> {
+    pub fn iter_scores(&self) -> ::std::slice::Iter<'_, S::Score> {
         self.scores.iter()
     }
 

@@ -68,7 +68,7 @@ impl<'a> BoundContract<'a> {
         client: &dyn EngineClient,
         block_id: BlockId,
         contract_addr: Address,
-    ) -> BoundContract {
+    ) -> BoundContract<'_> {
         BoundContract {
             client,
             block_id,

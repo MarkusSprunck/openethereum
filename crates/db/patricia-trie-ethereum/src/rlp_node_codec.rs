@@ -44,7 +44,7 @@ impl NodeCodec<KeccakHasher> for RlpNodeCodec<KeccakHasher> {
     fn hashed_null_node() -> <KeccakHasher as Hasher>::Out {
         HASHED_NULL_NODE
     }
-    fn decode(data: &[u8]) -> ::std::result::Result<Node, Self::Error> {
+    fn decode(data: &[u8]) -> ::std::result::Result<Node<'_>, Self::Error> {
         let r = Rlp::new(data);
         match r.prototype()? {
             // either leaf or extension - decode first item with NibbleSlice::???

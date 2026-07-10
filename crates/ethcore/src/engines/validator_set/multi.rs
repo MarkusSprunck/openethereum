@@ -85,7 +85,7 @@ impl Multi {
 }
 
 impl ValidatorSet for Multi {
-    fn default_caller(&self, block_id: BlockId) -> Box<Call> {
+    fn default_caller(&self, block_id: BlockId) -> Box<Call<'_>> {
         self.correct_set(block_id)
             .map(|set| set.default_caller(block_id))
             .unwrap_or_else(|| Box::new(|_, _| Err("No validator set for given ID.".into())))

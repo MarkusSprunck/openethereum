@@ -439,7 +439,7 @@ impl ClosedBlock {
     }
 
     /// Given an engine reference, reopen the `ClosedBlock` into an `OpenBlock`.
-    pub fn reopen(self, engine: &dyn EthEngine) -> OpenBlock {
+    pub fn reopen(self, engine: &dyn EthEngine) -> OpenBlock<'_> {
         // revert rewards (i.e. set state back at last transaction's state).
         let mut block = self.block;
         block.state = self.unclosed_state;

@@ -330,8 +330,7 @@ impl Transaction {
 
     /// Convert `PendingTransaction` into RPC Transaction.
     pub fn from_pending(t: PendingTransaction) -> Transaction {
-        let mut r = Transaction::from_signed(t.transaction);
-        r.condition = r.condition;
+        let r = Transaction::from_signed(t.transaction);
         r
     }
 }

@@ -30,6 +30,7 @@ use std::{
 /// Socket address extension for rustc beta. To be replaces with now unstable API
 pub trait SocketAddrExt {
     /// Returns true if the address appears to be globally routable.
+    #[allow(dead_code)]
     fn is_global_s(&self) -> bool;
 
     // Ipv4 specific

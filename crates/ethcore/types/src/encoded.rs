@@ -55,13 +55,13 @@ impl Header {
 
     /// Get a borrowed header view onto the data.
     #[inline]
-    pub fn view(&self) -> HeaderView {
+    pub fn view(&self) -> HeaderView<'_> {
         view!(HeaderView, &self.0)
     }
 
     /// Get the rlp of the header.
     #[inline]
-    pub fn rlp(&self) -> Rlp {
+    pub fn rlp(&self) -> Rlp<'_> {
         Rlp::new(&self.0)
     }
 
@@ -167,7 +167,7 @@ impl Body {
 
     /// Get a borrowed view of the data within.
     #[inline]
-    pub fn view(&self) -> BodyView {
+    pub fn view(&self) -> BodyView<'_> {
         view!(BodyView, &self.0)
     }
 
@@ -184,7 +184,7 @@ impl Body {
 
     /// Get the RLP of this block body.
     #[inline]
-    pub fn rlp(&self) -> Rlp {
+    pub fn rlp(&self) -> Rlp<'_> {
         Rlp::new(&self.0)
     }
 
@@ -197,7 +197,7 @@ impl Body {
 // forwarders to borrowed view.
 impl Body {
     /// Get raw rlp of transactions
-    pub fn transactions_rlp(&self) -> Rlp {
+    pub fn transactions_rlp(&self) -> Rlp<'_> {
         self.view().transactions_rlp().rlp
     }
 
@@ -212,7 +212,7 @@ impl Body {
     }
 
     /// A view over each transaction in the block.
-    pub fn transaction_views(&self) -> Vec<views::TypedTransactionView> {
+    pub fn transaction_views(&self) -> Vec<views::TypedTransactionView<'_>> {
         self.view().transaction_views()
     }
 
@@ -222,7 +222,7 @@ impl Body {
     }
 
     /// Get raw rlp of uncle headers
-    pub fn uncles_rlp(&self) -> Rlp {
+    pub fn uncles_rlp(&self) -> Rlp<'_> {
         self.view().uncles_rlp().rlp
     }
 
@@ -237,7 +237,7 @@ impl Body {
     }
 
     /// Borrowed view over each uncle.
-    pub fn uncle_views(&self) -> Vec<views::HeaderView> {
+    pub fn uncle_views(&self) -> Vec<views::HeaderView<'_>> {
         self.view().uncle_views()
     }
 
@@ -268,13 +268,13 @@ impl Block {
 
     /// Get a borrowed view of the whole block.
     #[inline]
-    pub fn view(&self) -> BlockView {
+    pub fn view(&self) -> BlockView<'_> {
         view!(BlockView, &self.0)
     }
 
     /// Get a borrowed view of the block header.
     #[inline]
-    pub fn header_view(&self) -> HeaderView {
+    pub fn header_view(&self) -> HeaderView<'_> {
         self.view().header_view()
     }
 
@@ -297,7 +297,7 @@ impl Block {
 
     /// Get the rlp of this block.
     #[inline]
-    pub fn rlp(&self) -> Rlp {
+    pub fn rlp(&self) -> Rlp<'_> {
         Rlp::new(&self.0)
     }
 
@@ -403,7 +403,7 @@ impl Block {
     }
 
     /// A view over each transaction in the block.
-    pub fn transaction_views(&self) -> Vec<views::TypedTransactionView> {
+    pub fn transaction_views(&self) -> Vec<views::TypedTransactionView<'_>> {
         self.view().transaction_views()
     }
 
@@ -423,7 +423,7 @@ impl Block {
     }
 
     /// Borrowed view over each uncle.
-    pub fn uncle_views(&self) -> Vec<views::HeaderView> {
+    pub fn uncle_views(&self) -> Vec<views::HeaderView<'_>> {
         self.view().uncle_views()
     }
 

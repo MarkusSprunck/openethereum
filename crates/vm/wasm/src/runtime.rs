@@ -157,7 +157,7 @@ impl<'a> Runtime<'a> {
         gas_limit: u64,
         args: Vec<u8>,
         context: RuntimeContext,
-    ) -> Runtime {
+    ) -> Runtime<'_> {
         Runtime {
             gas_counter: 0,
             gas_limit,

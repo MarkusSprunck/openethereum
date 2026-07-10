@@ -78,7 +78,7 @@ impl RotatingLogger {
     }
 
     /// Return logs
-    pub fn logs(&self) -> RwLockReadGuard<ArrayVec<[String; LOG_SIZE]>> {
+    pub fn logs(&self) -> RwLockReadGuard<'_, ArrayVec<[String; LOG_SIZE]>> {
         self.logs.read()
     }
 }

@@ -57,7 +57,7 @@ impl From<Vec<Address>> for SimpleList {
 }
 
 impl ValidatorSet for SimpleList {
-    fn default_caller(&self, _block_id: ::types::ids::BlockId) -> Box<Call> {
+    fn default_caller(&self, _block_id: ::types::ids::BlockId) -> Box<Call<'_>> {
         Box::new(|_, _| Err("Simple list doesn't require calls.".into()))
     }
 

@@ -2927,7 +2927,7 @@ impl IoClient for Client {
 }
 
 impl ReopenBlock for Client {
-    fn reopen_block(&self, block: ClosedBlock) -> OpenBlock {
+    fn reopen_block(&self, block: ClosedBlock) -> OpenBlock<'_> {
         let engine = &*self.engine;
         let mut block = block.reopen(engine);
         let max_uncles = engine.maximum_uncle_count(block.header.number());
@@ -2969,7 +2969,7 @@ impl PrepareOpenBlock for Client {
         author: Address,
         gas_range_target: (U256, U256),
         extra_data: Bytes,
-    ) -> Result<OpenBlock, EthcoreError> {
+    ) -> Result<OpenBlock<'_>, EthcoreError> {
         let engine = &*self.engine;
         let chain = self.chain.read();
         let best_header = chain.best_block_header();

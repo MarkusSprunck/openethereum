@@ -1174,7 +1174,7 @@ impl BlockChain {
 
     /// Iterate over all epoch transitions.
     /// This will only return transitions within the canonical chain.
-    pub fn epoch_transitions(&self) -> EpochTransitionIter {
+    pub fn epoch_transitions(&self) -> EpochTransitionIter<'_> {
         let iter = self
             .db
             .key_value()
@@ -1553,7 +1553,7 @@ impl BlockChain {
     }
 
     /// Iterator that lists `first` and then all of `first`'s ancestors, by hash.
-    pub fn ancestry_iter(&self, first: H256) -> Option<AncestryIter> {
+    pub fn ancestry_iter(&self, first: H256) -> Option<AncestryIter<'_>> {
         if self.is_known(&first) {
             Some(AncestryIter {
                 current: first,

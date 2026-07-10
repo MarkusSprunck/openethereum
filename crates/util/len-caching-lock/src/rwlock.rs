@@ -63,7 +63,7 @@ impl<T: Len + ?Sized> LenCachingRwLock<T> {
 
     /// Delegates to `parking_lot::RwLock`
     /// [`write()`](../../lock_api/struct.RwLock.html#method.write).
-    pub fn write(&self) -> CachingRwLockWriteGuard<T> {
+    pub fn write(&self) -> CachingRwLockWriteGuard<'_, T> {
         CachingRwLockWriteGuard {
             write_guard: self.data.write(),
             len: &self.len,
@@ -72,7 +72,7 @@ impl<T: Len + ?Sized> LenCachingRwLock<T> {
 
     /// Delegates to `parking_lot::RwLock`
     /// [`try_write()`](../../lock_api/struct.RwLock.html#method.try_write).
-    pub fn try_write(&self) -> Option<CachingRwLockWriteGuard<T>> {
+    pub fn try_write(&self) -> Option<CachingRwLockWriteGuard<'_, T>> {
         Some(CachingRwLockWriteGuard {
             write_guard: self.data.try_write()?,
             len: &self.len,
@@ -81,13 +81,13 @@ impl<T: Len + ?Sized> LenCachingRwLock<T> {
 
     /// Delegates to `parking_lot::RwLock`
     /// [`read()`](../../lock_api/struct.RwLock.html#method.read).
-    pub fn read(&self) -> RwLockReadGuard<T> {
+    pub fn read(&self) -> RwLockReadGuard<'_, T> {
         self.data.read()
     }
 
     /// Delegates to `parking_lot::RwLock`
     /// [`try_read()`](../../lock_api/struct.RwLock.html#method.try_read).
-    pub fn try_read(&self) -> Option<RwLockReadGuard<T>> {
+    pub fn try_read(&self) -> Option<RwLockReadGuard<'_, T>> {
         self.data.try_read()
     }
 }

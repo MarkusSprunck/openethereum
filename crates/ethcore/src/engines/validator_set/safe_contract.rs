@@ -370,7 +370,7 @@ impl ValidatorSafeContract {
 }
 
 impl ValidatorSet for ValidatorSafeContract {
-    fn default_caller(&self, id: BlockId) -> Box<Call> {
+    fn default_caller(&self, id: BlockId) -> Box<Call<'_>> {
         let client = self.client.read().clone();
         Box::new(move |addr, data| {
             client

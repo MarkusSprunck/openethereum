@@ -547,7 +547,7 @@ impl TransactionRequest {
 /// Provides `reopen_block` method
 pub trait ReopenBlock {
     /// Reopens an OpenBlock and updates uncles.
-    fn reopen_block(&self, block: ClosedBlock) -> OpenBlock;
+    fn reopen_block(&self, block: ClosedBlock) -> OpenBlock<'_>;
 }
 
 /// Provides `prepare_open_block` method
@@ -558,7 +558,7 @@ pub trait PrepareOpenBlock {
         author: Address,
         gas_range_target: (U256, U256),
         extra_data: Bytes,
-    ) -> Result<OpenBlock, Error>;
+    ) -> Result<OpenBlock<'_>, Error>;
 }
 
 /// Provides methods used for sealing new state

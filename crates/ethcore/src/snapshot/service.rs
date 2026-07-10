@@ -499,7 +499,7 @@ impl Service {
     }
 
     /// Get a reference to the snapshot reader.
-    pub fn reader(&self) -> RwLockReadGuard<Option<LooseReader>> {
+    pub fn reader(&self) -> RwLockReadGuard<'_, Option<LooseReader>> {
         self.reader.read()
     }
 

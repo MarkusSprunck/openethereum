@@ -440,7 +440,7 @@ impl ChainSyncApi {
     }
 
     /// Gives `write` access to underlying `ChainSync`
-    pub fn write(&self) -> RwLockWriteGuard<ChainSync> {
+    pub fn write(&self) -> RwLockWriteGuard<'_, ChainSync> {
         self.sync.write()
     }
 

@@ -64,7 +64,7 @@ impl<T: Len + ?Sized> LenCachingMutex<T> {
 
     /// Delegates to `parking_lot::Mutex`
     /// [`lock()`](../../lock_api/struct.Mutex.html#method.lock).
-    pub fn lock(&self) -> CachingMutexGuard<T> {
+    pub fn lock(&self) -> CachingMutexGuard<'_, T> {
         CachingMutexGuard {
             mutex_guard: self.data.lock(),
             len: &self.len,
@@ -73,7 +73,7 @@ impl<T: Len + ?Sized> LenCachingMutex<T> {
 
     /// Delegates to `parking_lot::Mutex`
     /// [`try_lock()`](../../lock_api/struct.Mutex.html#method.try_lock).
-    pub fn try_lock(&self) -> Option<CachingMutexGuard<T>> {
+    pub fn try_lock(&self) -> Option<CachingMutexGuard<'_, T>> {
         Some(CachingMutexGuard {
             mutex_guard: self.data.try_lock()?,
             len: &self.len,

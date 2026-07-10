@@ -1,8 +1,8 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.0
+**Version:** 1.3
 **Last Updated:** 2026-07-10
-**Project:** OpenEthereum v3.5.0 (Fast, Feature-rich Ethereum Client in Rust)
+**Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
 
 ## 🤖 Purpose
@@ -17,7 +17,7 @@ This file provides AI coding agents with the essential context to be immediately
 
 - **Language:** Rust (edition 2021, toolchain pinned to 1.97)
 - **Build tool:** Cargo (workspace layout with standalone members)
-- **Rust upgrade:** 1.97 → 1.97 (2026-07-10); see `scripts/setup-rust-1.97.sh`
+- **Rust upgrade:** 1.88 → 1.97 (2026-07-10); see `scripts/setup-rust-1.97.sh`
 - **Blockchain protocol:** Ethereum (GPL-3.0)
 - **Database:** RocksDB via `kvdb-rocksdb`
 - **Networking:** devp2p (`ethcore-network-devp2p`)
@@ -157,6 +157,11 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 - **DO NOT** upgrade `jsonrpc-*` (v15 → v18) or `parity-util-mem` (0.7.0 → 0.11.0) without a full migration plan — both require coordinated changes across many crates and will introduce breaking `ethereum-types` conflicts
 - **DO NOT** upgrade `secp256k1` independently — constrained by `parity-crypto v0.6.2` chain
 - For `atty` (Windows-only CVE): safe to replace with `is-terminal = "0.4"` — only a few call sites in `bin/oe/`
+- For `lru-cache` (unmaintained): replace with `lru = "0.12"` — same API, no call-site changes needed
+- For `tempdir` (deprecated): replace with `tempfile::TempDir` — also resolves `remove_dir_all` CVE transitively
+- For `term_size` (unmaintained): replace with `terminal_size = "0.3"`
+- **Do NOT upgrade `rayon`** beyond 1.1 without re-testing on macOS — 1.12 introduced EMFILE failures; pinned at 1.1 intentionally
+- **Do NOT upgrade `number_prefix`** beyond 0.2.8 — 0.4.0 changed `binary_prefix()` to `NumberPrefix::binary()` and required qualified variant names
 - Follow the phased roadmap in `UPDATE_PLAN.md` (Phase 1 ✅ done 2026-07-10; Phases 2–4 pending)
 - Always run `cargo build` after any `Cargo.toml` change to catch breakage early
 - Check `MAINTENANCE.md` § 6.0 for the current CVE status before touching any vulnerable dependency
@@ -251,6 +256,12 @@ cargo test --package evmbin -- --nocapture    # with stdout
 #   brew install lz4 zstd snappy rocksdb
 #   export CC=/usr/bin/clang && export CXX=/usr/bin/clang++
 #   cargo test --all
+
+# ⚠️ macOS EMFILE note: rayon-core 1.13.0 opens extra OS FDs per thread via
+# kqueue, which combined with RocksDB exhausts the default macOS FD limit (256).
+# rayon is intentionally pinned at 1.1 in Cargo.toml (not 1.12). Always use
+# ./scripts/test-all-macos-arm64.sh (sets ulimit -n 65536) instead of bare
+# `cargo test --all` on macOS.
 ```
 
 > **Note:** `[profile.test]` uses `opt-level = 3` — compilation is slow, test execution is fast.
@@ -263,6 +274,11 @@ docker buildx build \
   -t ihkmunich/openethereum:latest-local \
   .
 ```
+
+> **CI workflows:**
+> - `docker-ubuntu-rust-1.97-latest.yml` — triggered on push to `main`; pushes tag `latest-rust-1.97`
+> - `docker-ubuntu-rust-1.97-release.yml` — triggered on tag `v*`; pushes versioned tags
+> - Legacy image base `ubuntu-rust-1.88` remains in `.github/docker/ubuntu-rust-1.88/` for reference
 
 ---
 
@@ -280,10 +296,14 @@ docker buildx build \
 
 | Dependency | Current | Fix Available | Blocker |
 |---|---|---|---|
-| `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration |
-| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes |
-| `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint |
-| `atty` | 0.2.14 | Replace crate | Windows-only CVE, low priority |
+| `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration (Phase 3) |
+| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3) |
+| `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
+| `atty` | 0.2.14 | Replace with `is-terminal = "0.4"` | Windows-only CVE, 2–3 call sites (Phase 2) |
+| `lru-cache` | 0.1.2 | Replace with `lru = "0.12"` | Unmaintained; same API (Phase 2) |
+| `tempdir` | 0.3.7 | Replace with `tempfile::TempDir` | Deprecated; also unblocks `remove_dir_all` CVE (Phase 2) |
+| `remove_dir_all` | 0.5.3 (via `tempdir`) | Resolved by `tempdir→tempfile` | Indirect dep (Phase 2) |
+| `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
 
 ### RPC Security ⭐ IF APPLICABLE
 
@@ -390,5 +410,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.4 (2026-07-10): Fixed 44 Rust 1.97 compiler warnings: mismatched_lifetime_syntaxes (added explicit `'_` to 38 return types across 23 crates/files), unused_parens (5 sites in vm/access_list.rs and db/db.rs), dead_code (is_global_s annotated with #[allow(dead_code)] in network-devp2p/ip_utils.rs, useless self-assignment and unused mut removed in rpc/transaction.rs)
+- v1.3 (2026-07-10): Corrected version to 3.5.1; fixed Rust upgrade note (1.88→1.97); added release Docker workflow; documented macOS EMFILE/rayon pin; expanded Known Vulnerable Dependencies table with lru-cache, tempdir, remove_dir_all, term_size; added rayon and number_prefix pin warnings
 - v1.2 (2026-07-10): Upgraded Rust toolchain from 1.97 to 1.97; added setup-rust-1.97.sh, .github/docker/ubuntu-rust-1.97/Dockerfile, and .github/workflows/docker-ubuntu-rust-1.97-latest.yml
 - v1.1 (2026-07-10): Added missing scripts, UPDATE_PLAN.md references, and Phase 1 completion status
