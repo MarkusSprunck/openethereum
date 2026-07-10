@@ -214,18 +214,24 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 
 ### Build & Test
 
+**1. Pin Rust version**
 ```bash
-# 1. Pin Rust version
 ./scripts/setup-rust-1.88.sh
+```
 
-# 2. Fetch Ethereum JSON test vectors (required before first test run)
+**2. Fetch Ethereum JSON test vectors** (required before first test run)
+```bash
 git submodule update --init --recursive
+```
 
-# 3. Build
+**3. Build**
+```bash
 cargo build                                   # debug (panic=abort, incremental)
 cargo build --release --features final        # production binary
+```
 
-# 4. Test
+**4. Test**
+```bash
 cargo test --all                              # all crates
 cargo test --package ethcore                  # single crate
 cargo test --package evmbin -- --nocapture    # with stdout
@@ -237,6 +243,15 @@ time cargo test --all
 ```
 
 > **Note:** `[profile.test]` uses `opt-level = 3` — compilation is slow, test execution is fast.
+
+**5. Docker image** (equivalent to CI workflow)
+```bash
+docker buildx build \
+  --platform linux/amd64 \
+  -f .github/docker/ubuntu-rust-1.88/Dockerfile \
+  -t ihkmunich/openethereum:latest-rust-1.88 \
+  .
+```
 
 ---
 
