@@ -56,7 +56,7 @@ trie-db = "0.11.0"
 patricia-trie-ethereum = { path = "../db/patricia-trie-ethereum" }
 rand = "0.7.3"
 rand_xorshift = "0.2.0"
-rayon = "1.1"
+rayon = "1.1" # rayon: kept at 1.1 intentionally — 1.12 pulls rayon-core 1.13.0 which opens extra OS file descriptors per worker thread; combined with RocksDB FDs in ethcore tests this exhausts the macOS EMFILE limit (133 test failures). Reverted 2026-07-10.
 regex = "1.11.1"
 rlp = { version = "0.4.6" }
 rlp-derive = "0.2.0"

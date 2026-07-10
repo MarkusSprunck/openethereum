@@ -3,7 +3,6 @@
 **Version:** 1.0
 **Last Updated:** 2026-07-10
 **Project:** OpenEthereum v3.5.0 (Fast, Feature-rich Ethereum Client in Rust)
-
 ---
 
 ## 🤖 Purpose
@@ -130,11 +129,16 @@ openethereum/
 ├── scripts/                            ← Developer helper scripts
 │   ├── setup-rust-1.88.sh              ← Pins exact Rust toolchain (run first)
 │   ├── build-release.sh                ← cargo build --release --features final
+│   ├── build-artifacts-cli-tools-macos-arm64.sh ← Build CLI tool artifacts (macOS arm64)
+│   ├── build-artifacts-cli-tools-linux-gcc.sh   ← Build CLI tool artifacts (Linux GCC)
 │   ├── test-all-macos-arm64.sh         ← macOS test runner with Clang override
-│   └── test-all-linux-gcc.sh           ← Linux test runner
+│   ├── test-all-linux-gcc.sh           ← Linux test runner
+│   ├── find-native-libraries-required.sh ← Discover native .so/.dylib deps of release binary
+│   └── generate-code-coverage-html.sh  ← Generate HTML coverage report (llvm-cov)
 ├── Cargo.toml                          ← Root manifest; workspace, features, [patch] overrides
 ├── Cargo.lock                          ← Locked dependency versions (committed)
 ├── AGENTS.md                           ← AI agent instructions (this file)
+├── UPDATE_PLAN.md                      ← 4-phase dependency update roadmap (Phase 1 ✅ 2026-07-10)
 ├── MAINTENANCE.md                      ← Dev setup, CVE status, upgrade blockers
 └── CHANGELOG.md                        ← Release history
 ```
@@ -151,7 +155,8 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 
 - **DO NOT** upgrade `jsonrpc-*` (v15 → v18) or `parity-util-mem` (0.7.0 → 0.11.0) without a full migration plan — both require coordinated changes across many crates and will introduce breaking `ethereum-types` conflicts
 - **DO NOT** upgrade `secp256k1` independently — constrained by `parity-crypto v0.6.2` chain
-- For `atty` (Windows-only CVE): safe to replace, used only in a few lines
+- For `atty` (Windows-only CVE): safe to replace with `is-terminal = "0.4"` — only a few call sites in `bin/oe/`
+- Follow the phased roadmap in `UPDATE_PLAN.md` (Phase 1 ✅ done 2026-07-10; Phases 2–4 pending)
 - Always run `cargo build` after any `Cargo.toml` change to catch breakage early
 - Check `MAINTENANCE.md` § 6.0 for the current CVE status before touching any vulnerable dependency
 
@@ -194,6 +199,7 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 | `bin/oe/run.rs` | Full-node wiring: client, sync, RPC, miner |
 | `crates/ethcore/res/` | Chain spec JSON files and official test vectors (submodule) |
 | `MAINTENANCE.md` | Dev environment setup, CVE status, known upgrade blockers |
+| `UPDATE_PLAN.md` | 4-phase dependency update roadmap with per-dep risk and status |
 
 ---
 
@@ -228,6 +234,7 @@ git submodule update --init --recursive
 ```bash
 cargo build                                   # debug (panic=abort, incremental)
 cargo build --release --features final        # production binary
+./scripts/build-release.sh                    # equivalent convenience script
 ```
 
 **4. Test**
@@ -236,10 +243,13 @@ cargo test --all                              # all crates
 cargo test --package ethcore                  # single crate
 cargo test --package evmbin -- --nocapture    # with stdout
 
-# macOS arm64 (requires Clang override)
-brew install lz4 zstd snappy rocksdb
-export CC=/usr/bin/clang && export CXX=/usr/bin/clang++
-time cargo test --all
+# macOS arm64 (requires Clang override AND raised FD limit — use the script)
+./scripts/test-all-macos-arm64.sh
+# Equivalent manual steps:
+#   ulimit -n 65536
+#   brew install lz4 zstd snappy rocksdb
+#   export CC=/usr/bin/clang && export CXX=/usr/bin/clang++
+#   cargo test --all
 ```
 
 > **Note:** `[profile.test]` uses `opt-level = 3` — compilation is slow, test execution is fast.
@@ -249,7 +259,7 @@ time cargo test --all
 docker buildx build \
   --platform linux/amd64 \
   -f .github/docker/ubuntu-rust-1.88/Dockerfile \
-  -t ihkmunich/openethereum:latest-rust-1.88 \
+  -t ihkmunich/openethereum:latest-local \
   .
 ```
 
@@ -289,6 +299,7 @@ docker buildx build \
 - `.github/copilot-instructions.md` — AI task router (read first)
 - `.github/templates/agents.md` — AGENTS.md structure template
 - `MAINTENANCE.md` — Dev setup (Ubuntu primary, macOS notes, CVE status)
+- `UPDATE_PLAN.md` — 4-phase dependency update roadmap; consult before any dep change
 - `CHANGELOG.md` — Release history
 - `bin/oe/lib.rs` — Public API: `start()`, `ExecutionAction`, `Configuration`
 - `bin/oe/configuration.rs` — Complete `Cmd` enum and CLI→config mapping
@@ -349,6 +360,7 @@ docker buildx build \
 - [ ] Run `cargo test --all` with submodules initialized
 - [ ] Update `CHANGELOG.md` with all changes
 - [ ] Verify RPC endpoint security settings in release configuration
+- [ ] Check `UPDATE_PLAN.md` for any Phase 2–4 items that should ship with the release
 
 ---
 
@@ -375,3 +387,7 @@ docker buildx build \
 **Last Reviewed:** 2026-07-10
 **Next Review:** Q4 2026
 **Maintained by:** Markus Sprunck
+
+**Changelog:**
+- v1.1 (2026-07-10): Added missing scripts, UPDATE_PLAN.md references, and Phase 1 completion status
+
