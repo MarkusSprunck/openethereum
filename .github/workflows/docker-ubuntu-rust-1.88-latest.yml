@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 env:
-  IMAGE_NAME: ihkmuenchen/openethereum
+  IMAGE_NAME: ihkmunich/openethereum
 
 jobs:
   docker:
@@ -31,5 +31,5 @@ jobs:
         with:
           sbom: true
           push: true
-          tags: "ihkmuenchen/openethereum:latest-rust-1.88"
+          tags: "ihkmunich/openethereum:latest-rust-1.88"
           file: ./.github/docker/ubuntu-rust-1.88/Dockerfile

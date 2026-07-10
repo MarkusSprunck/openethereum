@@ -6,7 +6,7 @@ on:
       - v*
 
 env:
-  IMAGE_NAME: ihkmuenchen/openethereum
+  IMAGE_NAME: ihkmunich/openethereum
 
 jobs:
   docker:
