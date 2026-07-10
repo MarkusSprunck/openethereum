@@ -18,7 +18,7 @@ rm -rf .artifacts/*
 mkdir -p .artifacts/
 
 echo "_____ Set Rust Version _____"
-rustup override set 1.88
+rustup override set 1.97
 
 echo "_____ Switch to Clang _____"
 export CC=/usr/bin/clang

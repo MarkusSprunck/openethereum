@@ -10,7 +10,7 @@ fi
 echo "$PWD"
 
 echo "_____ Set Rust Version _____"
-rustup override set 1.88
+rustup override set 1.97
 
 echo "_____ Run Leopold _____"
 export CC=/usr/bin/clang && export CXX=/usr/bin/clang++ &&\

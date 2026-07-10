@@ -1,4 +1,4 @@
-ARG RUST_VERSION="1.88"
+ARG RUST_VERSION="1.97"
 
 # ------------------------------------------------------------------------------
 # Build Stage - builds with testing

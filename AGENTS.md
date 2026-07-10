@@ -15,8 +15,9 @@ This file provides AI coding agents with the essential context to be immediately
 
 ### Technology Stack
 
-- **Language:** Rust (edition 2021, toolchain pinned to 1.88)
+- **Language:** Rust (edition 2021, toolchain pinned to 1.97)
 - **Build tool:** Cargo (workspace layout with standalone members)
+- **Rust upgrade:** 1.97 → 1.97 (2026-07-10); see `scripts/setup-rust-1.97.sh`
 - **Blockchain protocol:** Ethereum (GPL-3.0)
 - **Database:** RocksDB via `kvdb-rocksdb`
 - **Networking:** devp2p (`ethcore-network-devp2p`)
@@ -127,7 +128,7 @@ openethereum/
 │       └── wasm/                       ← WASM interpreter
 ├── docs/                               ← Historical changelogs (v0.9 – v3.1)
 ├── scripts/                            ← Developer helper scripts
-│   ├── setup-rust-1.88.sh              ← Pins exact Rust toolchain (run first)
+│   ├── setup-rust-1.97.sh              ← Pins exact Rust toolchain (run first)
 │   ├── build-release.sh                ← cargo build --release --features final
 │   ├── build-artifacts-cli-tools-macos-arm64.sh ← Build CLI tool artifacts (macOS arm64)
 │   ├── build-artifacts-cli-tools-linux-gcc.sh   ← Build CLI tool artifacts (Linux GCC)
@@ -209,7 +210,7 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 
 ```bash
 # Pin Rust toolchain (required once per environment)
-./scripts/setup-rust-1.88.sh
+./scripts/setup-rust-1.97.sh
 
 # Start node (default: mainnet, RPC on :8545/:8546)
 ./target/release/openethereum
@@ -222,7 +223,7 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 
 **1. Pin Rust version**
 ```bash
-./scripts/setup-rust-1.88.sh
+./scripts/setup-rust-1.97.sh
 ```
 
 **2. Fetch Ethereum JSON test vectors** (required before first test run)
@@ -258,7 +259,7 @@ cargo test --package evmbin -- --nocapture    # with stdout
 ```bash
 docker buildx build \
   --platform linux/amd64 \
-  -f .github/docker/ubuntu-rust-1.88/Dockerfile \
+  -f .github/docker/ubuntu-rust-1.97/Dockerfile \
   -t ihkmunich/openethereum:latest-local \
   .
 ```
@@ -335,7 +336,7 @@ docker buildx build \
 
 ### If Build Fails
 
-1. Check Rust toolchain: `rustup show` — must be `1.88`; fix with `./scripts/setup-rust-1.88.sh`
+1. Check Rust toolchain: `rustup show` — must be `1.97`; fix with `./scripts/setup-rust-1.97.sh`
 2. Clean and rebuild: `cargo clean && cargo build`
 3. On macOS: confirm `CC=/usr/bin/clang CXX=/usr/bin/clang++` are exported
 4. Submodule missing: `git submodule update --init --recursive`
@@ -348,7 +349,7 @@ docker buildx build \
 ### Quarterly Tasks
 
 - [ ] Review CVE alerts in `MAINTENANCE.md` § 6.0 and GitHub Dependabot
-- [ ] Update Rust toolchain pin in `scripts/setup-rust-1.88.sh` if a new stable is required
+- [ ] Update Rust toolchain pin in `scripts/setup-rust-1.97.sh` if a new stable is required
 - [ ] Run full test suite: `git submodule update --init --recursive && cargo test --all`
 - [ ] Review `atty` replacement opportunity (Windows CVE, low effort)
 - [ ] Sync `AGENTS.md` with any structural changes to `bin/oe/` or `crates/`
@@ -389,5 +390,5 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.2 (2026-07-10): Upgraded Rust toolchain from 1.97 to 1.97; added setup-rust-1.97.sh, .github/docker/ubuntu-rust-1.97/Dockerfile, and .github/workflows/docker-ubuntu-rust-1.97-latest.yml
 - v1.1 (2026-07-10): Added missing scripts, UPDATE_PLAN.md references, and Phase 1 completion status
-
