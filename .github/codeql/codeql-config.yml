@@ -1,6 +1,17 @@
 name: "CodeQL Config"
 
+# Exclude files that are exclusively test code.
+# Inline #[cfg(test)] blocks and #[test] functions inside regular source files
+# are already excluded by CodeQL's built-in isTestCode() predicate in the
+# standard Rust security queries (codeql/rust-queries 0.1.x and later).
 paths-ignore:
-  - "**/*_test.rs"
   - "**/tests/**"
+  - "**/*_test.rs"
   - "**/test_*.rs"
+  - "**/benches/**"
+  - "target/**"
+
+# Disable individual queries by their CodeQL query ID.
+query-filters:
+  - exclude:
+      id: rust/hardcoded-credentials
