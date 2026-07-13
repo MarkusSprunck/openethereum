@@ -32,6 +32,13 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: rust
+          build-mode: manual
+          config-file: ./.github/codeql/codeql-config.yml
+
       - name: Test Execution
         run: |
           cargo test --all
@@ -40,13 +47,7 @@ jobs:
         run: |
           cargo build --release --features final
           strip target/release/openethereum
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: rust
-          build-mode: none
-          config-file: ./.github/codeql/codeql-config.yml
+          cp target/release/openethereum openethereum
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -66,8 +67,6 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
 
-      # Dockerfile.ci copies the pre-built binary from target/release/ instead
-      # of rebuilding from source, keeping the Docker layer lean and fast.
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:
