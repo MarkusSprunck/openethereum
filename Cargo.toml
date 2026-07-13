@@ -95,6 +95,11 @@ atty = { path = "crates/util/atty-compat" }
 # with a local compatibility shim backed by tempfile 3.x (uses remove_dir_all >= 0.8).
 # This also fixes the transitive chain: parity-rocksdb → local-encoding → skeptic → tempdir.
 tempdir = { path = "crates/util/tempdir-compat" }
+# Replaces lock_api 0.3.4 (5 CVEs: CVE-2020-35910..35914) with a patched local fork
+# that adds the missing Send/Sync trait bounds (backport from lock_api >= 0.4.2).
+# Fixes the transitive chain: kvdb-memorydb 0.1.2 → parking_lot 0.9.0 → lock_api 0.3.4
+#                              jsonrpc-* v15       → parking_lot 0.10.2 → lock_api 0.3.4
+lock_api = { path = "crates/util/lock-api-compat" }
 
 [features]
 default = ["accounts"]
@@ -145,7 +150,8 @@ lto = true
 # This should only list projects that are not
 # in the dependency tree in any other way
 # (i.e. pretty much only standalone CLI tools)
-# tempdir-compat is a [patch.crates-io] shim — must be a workspace member so Cargo resolves it
+# tempdir-compat and atty-compat are [patch.crates-io] shims — must be workspace members so Cargo resolves them
+# lock-api-compat is a [patch.crates-io] shim — must be a workspace member so Cargo resolves it
 members = [
     "bin/ethkey",
     "bin/ethstore",
@@ -153,4 +159,5 @@ members = [
     "bin/chainspec",
     "crates/util/atty-compat",
     "crates/util/tempdir-compat",
+    "crates/util/lock-api-compat",
 ]

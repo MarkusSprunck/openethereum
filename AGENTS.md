@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.7
+**Version:** 1.8
 **Last Updated:** 2026-07-13
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -32,7 +32,7 @@ This file provides AI coding agents with the essential context to be immediately
 - **Full-node wiring:** `run.rs` connects client, sync, RPC, and miner subsystems
 - **Feature-gated subsystems:** `accounts` (default), `secretstore`, `json-tests`, `deadlock_detection`, `memory_profiling`
 - **Local crypto forks:** `aes`, `aesni`, `aes-soft`, `block-cipher-trait`, `stream-cipher` patched via `[patch.crates-io]`
-- **CVE patch shims:** `atty-compat` (RUSTSEC-2021-0017) and `tempdir-compat` (RUSTSEC-2021-0126) are local shims registered via `[patch.crates-io]`; both must be workspace members so Cargo resolves them
+- **CVE patch shims:** `atty-compat` (RUSTSEC-2021-0017), `tempdir-compat` (RUSTSEC-2021-0126), and `lock-api-compat` (CVE-2020-35910..35914) are local shims registered via `[patch.crates-io]`; all three must be workspace members so Cargo resolves them
 - **Standalone workspace members:** `bin/ethkey`, `bin/ethstore`, `bin/evmbin`, `bin/chainspec` — NOT in main dependency tree
 
 ### Project Structure
@@ -41,22 +41,22 @@ This file provides AI coding agents with the essential context to be immediately
 openethereum/
 ├── bin/                                ← Executable entry points
 │   ├── oe/                             ← Main client (lib.rs = library root, main.rs = binary entry)
-│   │   ├── cli/                        ← CLI argument definitions (docopt + clap)
-│   │   ├── db/                         ← RocksDB wrappers, bloom filters, migrations
-│   │   ├── logger/                     ← Rotating file logger setup
-│   │   ├── configuration.rs            ← CLI → Cmd enum mapping (2000+ lines, central dispatch)
-│   │   ├── run.rs                      ← Full-node startup: client, sync, RPC, miner wiring
-│   │   ├── lib.rs                      ← Library root; all mod declarations, start() public API
-│   │   ├── main.rs                     ← Binary entry; arg parse, logger init, signal handling
-│   │   ├── params.rs                   ← Node parameter structs (AccountsConfig, GasPricerConfig…)
-│   │   ├── rpc.rs / rpc_apis.rs        ← RPC server setup and API registry
 │   │   ├── account.rs / account_utils.rs ← Account CLI subcommands
 │   │   ├── blockchain.rs               ← Blockchain import/export/reset CLI subcommands
-│   │   ├── snapshot.rs                 ← Snapshot create/restore CLI subcommands
-│   │   ├── signer.rs / secretstore.rs  ← Signing and secret store integration
+│   │   ├── cli/                        ← CLI argument definitions (docopt + clap)
+│   │   ├── configuration.rs            ← CLI → Cmd enum mapping (2000+ lines, central dispatch)
+│   │   ├── db/                         ← RocksDB wrappers, bloom filters, migrations
 │   │   ├── informant.rs                ← Sync progress display
+│   │   ├── lib.rs                      ← Library root; all mod declarations, start() public API
+│   │   ├── logger/                     ← Rotating file logger setup
+│   │   ├── main.rs                     ← Binary entry; arg parse, logger init, signal handling
 │   │   ├── metrics.rs                  ← Prometheus metrics configuration
 │   │   ├── modules.rs                  ← Subsystem module wiring
+│   │   ├── params.rs                   ← Node parameter structs (AccountsConfig, GasPricerConfig…)
+│   │   ├── rpc.rs / rpc_apis.rs        ← RPC server setup and API registry
+│   │   ├── run.rs                      ← Full-node startup: client, sync, RPC, miner wiring
+│   │   ├── signer.rs / secretstore.rs  ← Signing and secret store integration
+│   │   ├── snapshot.rs                 ← Snapshot create/restore CLI subcommands
 │   │   └── user_defaults.rs            ← Persistent user default settings
 │   ├── ethkey/                         ← Key generation CLI (standalone workspace member)
 │   │   └── src/
@@ -115,11 +115,12 @@ openethereum/
 │   ├── aes/ aes-soft/             ← Local AES fork (patched via [patch.crates-io])
 │   ├── atty-compat/               ← CVE shim replacing atty 0.2.14 (RUSTSEC-2021-0017); **FIXED (2026-07-13)**
 │   ├── block-cipher-trait/        ← Local block-cipher-trait fork
-│   ├── stream-cipher/             ← Local stream-cipher fork
 │   ├── cli-signer/                ← IPC signer client helpers
 │   ├── dir/                       ← Default data/config path resolution
-│   ├── keccak-hasher/             ← Keccak256 hasher for trie
 │   ├── stats/                     ← Moving average & histogram stats
+│   ├── keccak-hasher/             ← Keccak256 hasher for trie
+│   ├── lock-api-compat/           ← CVE shim replacing lock_api 0.3.4 (CVE-2020-35910..35914); **FIXED (2026-07-13)**
+│   ├── stream-cipher/             ← Local stream-cipher fork
 │   ├── tempdir-compat/            ← CVE shim replacing tempdir 0.3.7 (RUSTSEC-2021-0126); **FIXED (2026-07-13)**
 │   ├── version/                   ← parity-version: build version string
 │   └── …                          ← fastmap, len-caching-lock, macros, memzero, …
@@ -131,13 +132,13 @@ openethereum/
 │       └── wasm/                       ← WASM interpreter
 ├── docs/                               ← Historical changelogs (v0.9 – v3.1)
 ├── scripts/                            ← Developer helper scripts
-│   ├── setup-rust-1.97.sh              ← Pins exact Rust toolchain (run first)
-│   ├── build-release.sh                ← cargo build --release --features final
-│   ├── build-artifacts-cli-tools-macos-arm64.sh ← Build CLI tool artifacts (macOS arm64)
 │   ├── build-artifacts-cli-tools-linux-gcc.sh   ← Build CLI tool artifacts (Linux GCC)
-│   ├── test-all-macos-arm64.sh         ← macOS test runner with Clang override
-│   ├── test-all-linux-gcc.sh           ← Linux test runner
+│   ├── build-artifacts-cli-tools-macos-arm64.sh ← Build CLI tool artifacts (macOS arm64)
+│   ├── build-release.sh                ← cargo build --release --features final
 │   ├── find-native-libraries-required.sh ← Discover native .so/.dylib deps of release binary
+│   ├── setup-rust-1.97.sh              ← Pins exact Rust toolchain (run first)
+│   ├── test-all-linux-gcc.sh           ← Linux test runner
+│   ├── test-all-macos-arm64.sh         ← macOS test runner with Clang override
 │   └── generate-code-coverage-html.sh  ← Generate HTML coverage report (llvm-cov)
 ├── Cargo.toml                          ← Root manifest; workspace, features, [patch] overrides
 ├── Cargo.lock                          ← Locked dependency versions (committed)
@@ -181,7 +182,7 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 - Use `extern crate` style even in Rust 2021 crates — this codebase keeps old-style declarations for compatibility with pre-2018 upstream crates
 - New subsystems must be feature-gated in `Cargo.toml` and declared conditionally in `bin/oe/lib.rs`
 - Adding a new workspace member requires updating `[workspace] members` in root `Cargo.toml` only if it is truly standalone (not in main dep tree)
-- `[patch.crates-io]` shims (`atty-compat`, `tempdir-compat`) also require a `[workspace] members` entry so Cargo resolves them — see existing entries as the pattern
+- `[patch.crates-io]` shims (`atty-compat`, `tempdir-compat`, `lock-api-compat`) also require a `[workspace] members` entry so Cargo resolves them — see existing entries as the pattern
 - `[patch.crates-io]` overrides must be mirrored for all affected crates to avoid version conflicts
 
 ---
@@ -292,7 +293,8 @@ docker buildx build \
 - [ ] No upgrade to `jsonrpc-*` or `parity-util-mem` without migration plan
 - [ ] CVE status in `MAINTENANCE.md` § 6.0 reviewed before touching dependencies
 - [ ] `secp256k1` version remains constrained by `parity-crypto v0.6.2`
-- [ ] `atty` replacement is safe but only relevant for Windows builds
+- [ ] `atty` replacement is safe but only relevant for Windows builds (already FIXED 2026-07-13)
+- [ ] `lock_api` CVE backport-fix is in place; full elimination requires Phase 3 `jsonrpc-*` upgrade
 - [ ] New RPC endpoints require auth/CORS review in `crates/rpc-servers/src/`
 
 ### Known Vulnerable Dependencies ⚠️
@@ -302,10 +304,7 @@ docker buildx build \
 | `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration (Phase 3) |
 | `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3) |
 | `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
-| `atty` | 0.2.14 | Replaced with local compat shim `crates/util/atty-compat` | **FIXED (2026-07-13)** via `[patch.crates-io]`; also patches `clap` and `env_logger` |
 | `lru-cache` | 0.1.2 | Replace with `lru = "0.12"` | Unmaintained; same API (Phase 2) |
-| `tempdir` | 0.3.7 | Replaced with local compat shim `crates/util/tempdir-compat` | **FIXED (2026-07-13)** via `[patch.crates-io]` |
-| `remove_dir_all` | 0.5.3 (via `tempdir`) | Resolved by `tempdir→tempdir-compat` shim | **FIXED (2026-07-13)** — no longer in `Cargo.lock` |
 | `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
 
 ### RPC Security ⭐ IF APPLICABLE
@@ -412,6 +411,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.8 (2026-07-13): Fixed lock_api CVEs (CVE-2020-35910..35914): created `crates/util/lock-api-compat` shim (fork of lock_api 0.3.4 with backported Send/Sync bounds from 0.4.2); registered via `[patch.crates-io]`; fixes transitive chain kvdb-memorydb→parking_lot 0.9.0 and jsonrpc-*→parking_lot 0.10.2; added `.github/dependabot.yml` to prevent Dependabot from breaking the `parity-crypto`/yanked-aes dependency chain; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist
 - v1.7 (2026-07-13): Fixed atty CVE (RUSTSEC-2021-0017): `crates/util/atty-compat` shim (backed by `std::io::IsTerminal`) already registered via `[patch.crates-io]` — AGENTS.md was still showing it as pending Phase 2; updated CVE table, Dep Management atty bullet, Phase 2 sequence, Key Components (CVE patch shims note), project structure tree (added `atty-compat/` and `tempdir-compat/` entries), and Modular Coding Rules (`[patch.crates-io]` shims require workspace member entry)
 - v1.6 (2026-07-13): Fixed remove_dir_all CVE (RUSTSEC-2021-0126): created `crates/util/tempdir-compat` local compat shim (tempdir 0.3.7 API backed by tempfile 3.27.0); registered via `[patch.crates-io]` in root Cargo.toml; removes tempdir 0.3.7 and remove_dir_all 0.5.3 entirely from Cargo.lock; added workspace member entry; all 4 shim unit tests pass; updated MAINTENANCE.md § Vulnerable Dependencies; updated AGENTS.md CVE table
 - v1.5 (2026-07-13): Removed references to non-existent `UPDATE_PLAN.md`; fixed version header (1.3→1.4); added `codeql.yml` CI workflow; added `.testing/README.md` reference; inlined Phase 2–4 upgrade sequence

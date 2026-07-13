@@ -1,0 +1,56 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    # parity-crypto 0.6.2 requires aes 0.3.2 which is yanked on crates.io.
+    # The workspace-level [patch.crates-io] supplies aes locally, but Dependabot
+    # processes individual crates without the workspace root context and therefore
+    # cannot resolve the yanked version. Ignore parity-crypto and the entire
+    # crypto stack that depends on the local AES fork to prevent broken PRs.
+    ignore:
+      - dependency-name: "parity-crypto"
+        reason: "requires yanked aes 0.3.2; patched via [patch.crates-io] in workspace root"
+      - dependency-name: "aes"
+        reason: "locally vendored fork (crates/util/aes) replacing yanked crates.io version"
+      - dependency-name: "aes-soft"
+        reason: "locally vendored fork (crates/util/aes-soft)"
+      - dependency-name: "aesni"
+        reason: "locally vendored fork (crates/util/aes/aesni)"
+      - dependency-name: "block-cipher-trait"
+        reason: "locally vendored fork (crates/util/block-cipher-trait)"
+      - dependency-name: "stream-cipher"
+        reason: "locally vendored fork (crates/util/stream-cipher)"
+      # lock_api 0.3.x is now patched via crates/util/lock-api-compat (CVE fix shim).
+      # Dependabot should not attempt to upgrade it independently.
+      - dependency-name: "lock_api"
+        versions: ["< 0.4.0"]
+        reason: "CVE-fixed via local shim crates/util/lock-api-compat; upgrade blocked by jsonrpc-* Phase 3 migration"
+      # jsonrpc-* v15 is pinned pending Phase 3 migration (hyper/tokio upgrade).
+      - dependency-name: "jsonrpc-core"
+        reason: "v15 pinned; Phase 3 migration required before upgrading to v18"
+      - dependency-name: "jsonrpc-http-server"
+        reason: "v15 pinned; Phase 3 migration required"
+      - dependency-name: "jsonrpc-ipc-server"
+        reason: "v15 pinned; Phase 3 migration required"
+      - dependency-name: "jsonrpc-pubsub"
+        reason: "v15 pinned; Phase 3 migration required"
+      - dependency-name: "jsonrpc-server-utils"
+        reason: "v15 pinned; Phase 3 migration required"
+      - dependency-name: "jsonrpc-tcp-server"
+        reason: "v15 pinned; Phase 3 migration required"
+      - dependency-name: "jsonrpc-ws-server"
+        reason: "v15 pinned; Phase 3 migration required"
+      # secp256k1 constrained by parity-crypto 0.6.2 (Phase 4 — blocked)
+      - dependency-name: "secp256k1"
+        reason: "constrained by parity-crypto 0.6.2 chain (Phase 4, blocked)"
+      # rayon pinned at 1.1 — 1.12+ causes EMFILE failures on macOS via kqueue
+      - dependency-name: "rayon"
+        versions: ["> 1.1"]
+        reason: "pinned at 1.1; rayon >= 1.12 causes EMFILE failures on macOS (kqueue FD exhaustion)"
+      # number_prefix kept at 0.2.8 — 0.4.0 changed binary_prefix() API
+      - dependency-name: "number_prefix"
+        versions: ["> 0.2.8"]
+        reason: "pinned at 0.2.8; 0.4.0 changed binary_prefix() to NumberPrefix::binary() with qualified variant names"
+

@@ -1,0 +1,29 @@
+[package]
+name = "lock_api"
+# Vendored fork of lock_api 0.3.4 with CVE fixes applied:
+#   CVE-2020-35910 (MappedMutexGuard Send)
+#   CVE-2020-35911 (MappedRwLockReadGuard Send)
+#   CVE-2020-35912 (MappedRwLockWriteGuard Send)
+#   CVE-2020-35913 (RwLockReadGuard Sync)
+#   CVE-2020-35914 (RwLockWriteGuard Sync)
+# All five fixed by tightening Send/Sync trait bounds to match lock_api >= 0.4.2.
+# Registered via [patch.crates-io] in root Cargo.toml so Cargo replaces the
+# crates.io version (used by parking_lot 0.9.0 / 0.10.2 transitively pulled in
+# by kvdb-memorydb and jsonrpc-* v15) with this patched local copy.
+version = "0.3.4"
+edition = "2018"
+authors = ["Amanieu d'Antras <amanieu@gmail.com>"]
+description = "Wrappers to create fully-featured Mutex and RwLock types. Compatible with no_std. (CVE-patched fork)"
+keywords = ["mutex", "rwlock", "lock", "no_std"]
+categories = ["concurrency", "no-std"]
+license = "Apache-2.0/MIT"
+repository = "https://github.com/openethereum/openethereum"
+
+[dependencies]
+scopeguard = { version = "1.0", default-features = false }
+
+[features]
+nightly = []
+owning_ref = []
+serde = []
+
