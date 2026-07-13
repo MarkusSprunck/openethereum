@@ -7,13 +7,50 @@ on:
 
 env:
   IMAGE_NAME: ihkmunich/openethereum
+  CXXFLAGS: "-include cstdint"
 
 jobs:
   docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      security-events: write
     steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            yasm gcc g++ \
+            liblz4-dev libzstd-dev libsnappy-dev
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Test Execution
+        run: |
+          cargo test --all
+
+      - name: Release Build
+        run: |
+          cargo build --release --features final
+          strip target/release/openethereum
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: rust
+          build-mode: none
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
 
@@ -29,10 +66,13 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
 
+      # Dockerfile.ci copies the pre-built binary from target/release/ instead
+      # of rebuilding from source, keeping the Docker layer lean and fast.
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:
+          context: .
           sbom: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          file: ./.github/docker/ubuntu-rust-1.97/Dockerfile
+          file: ./.github/docker/ubuntu-rust-1.97/Dockerfile.ci

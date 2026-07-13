@@ -6,6 +6,7 @@ on:
 
 env:
   IMAGE_NAME: ihkmunich/openethereum
+  CXXFLAGS: "-include cstdint"
 
 jobs:
   docker:
@@ -30,19 +31,15 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      # Build and test directly on the runner — one single build for both
-      # CodeQL analysis and the Docker image (via Dockerfile.ci).
-      # CXXFLAGS: parity-rocksdb-sys 0.5.6 bundles a RocksDB version that
-      # omits `#include <cstdint>` in compaction_iteration_stats.h; GCC 13
-      # (Ubuntu 24.04) no longer provides uint64_t transitively, so we
-      # inject the missing include for every C++ translation unit.
-      - name: Build and test
-        env:
-          CXXFLAGS: "-include cstdint"
+      - name: Test Execution
         run: |
           cargo test --all
+
+      - name: Release Build
+        run: |
           cargo build --release --features final
           strip target/release/openethereum
+          cp target/release/openethereum openethereum
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

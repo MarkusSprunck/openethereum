@@ -4,7 +4,7 @@
 # This avoids a duplicate build inside Docker and lets CodeQL use the
 # warm target/ cache from the runner build for better analysis quality.
 
-FROM --platform=$TARGETPLATFORM docker.io/library/ubuntu:25.10
+FROM docker.io/library/ubuntu:25.10
 
 RUN apt-get -y update && apt-get -y install curl jq && apt-get clean
 
@@ -20,7 +20,6 @@ EXPOSE 8545 8546 30303/tcp 30303/udp
 
 WORKDIR /home/openethereum
 
-COPY --chown=openethereum:openethereum target/release/openethereum ./
+COPY --chown=openethereum:openethereum openethereum ./
 
 ENTRYPOINT ["/home/openethereum/openethereum"]
-
