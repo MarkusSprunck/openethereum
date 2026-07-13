@@ -22,6 +22,7 @@ use self::ansi_term::{
 };
 
 use std::{
+    io::IsTerminal,
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering as AtomicOrdering},
         Arc,
@@ -268,7 +269,7 @@ impl<T: InformantData> Informant<T> {
         *self.last_tick.write() = now;
         *self.last_report.lock() = full_report.client_report.clone();
 
-        let paint = |c: Style, t: String| match self.with_color && atty::is(atty::Stream::Stdout) {
+        let paint = |c: Style, t: String| match self.with_color && std::io::stdout().is_terminal() {
             true => format!("{}", c.paint(t)),
             false => t,
         };

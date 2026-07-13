@@ -1,0 +1,8 @@
+[package]
+name = "atty"
+version = "0.2.14"
+authors = ["OpenEthereum contributors"]
+description = "Compatibility shim: re-implements the atty 0.2 API using std::io::IsTerminal, eliminating the atty CVE (RUSTSEC-2021-0017, Windows-only unaligned pointer dereference)."
+license = "MIT"
+edition = "2021"
+

@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.6
+**Version:** 1.7
 **Last Updated:** 2026-07-13
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -32,6 +32,7 @@ This file provides AI coding agents with the essential context to be immediately
 - **Full-node wiring:** `run.rs` connects client, sync, RPC, and miner subsystems
 - **Feature-gated subsystems:** `accounts` (default), `secretstore`, `json-tests`, `deadlock_detection`, `memory_profiling`
 - **Local crypto forks:** `aes`, `aesni`, `aes-soft`, `block-cipher-trait`, `stream-cipher` patched via `[patch.crates-io]`
+- **CVE patch shims:** `atty-compat` (RUSTSEC-2021-0017) and `tempdir-compat` (RUSTSEC-2021-0126) are local shims registered via `[patch.crates-io]`; both must be workspace members so Cargo resolves them
 - **Standalone workspace members:** `bin/ethkey`, `bin/ethstore`, `bin/evmbin`, `bin/chainspec` — NOT in main dependency tree
 
 ### Project Structure
@@ -111,15 +112,17 @@ openethereum/
 │   ├── util/                           ← Shared utilities
 │   │   ├── EIP-152/                    ← Blake2 compression (EIP-152)
 │   │   ├── EIP-712/                    ← Structured data hashing (EIP-712)
-│   │   ├── aes/ aes-soft/             ← Local AES fork (patched via [patch.crates-io])
-│   │   ├── block-cipher-trait/         ← Local block-cipher-trait fork
-│   │   ├── stream-cipher/              ← Local stream-cipher fork
-│   │   ├── cli-signer/                 ← IPC signer client helpers
-│   │   ├── dir/                        ← Default data/config path resolution
-│   │   ├── keccak-hasher/              ← Keccak256 hasher for trie
-│   │   ├── stats/                      ← Moving average & histogram stats
-│   │   ├── version/                    ← parity-version: build version string
-│   │   └── …                           ← fastmap, len-caching-lock, macros, memzero, …
+│   ├── aes/ aes-soft/             ← Local AES fork (patched via [patch.crates-io])
+│   ├── atty-compat/               ← CVE shim replacing atty 0.2.14 (RUSTSEC-2021-0017); **FIXED (2026-07-13)**
+│   ├── block-cipher-trait/        ← Local block-cipher-trait fork
+│   ├── stream-cipher/             ← Local stream-cipher fork
+│   ├── cli-signer/                ← IPC signer client helpers
+│   ├── dir/                       ← Default data/config path resolution
+│   ├── keccak-hasher/             ← Keccak256 hasher for trie
+│   ├── stats/                     ← Moving average & histogram stats
+│   ├── tempdir-compat/            ← CVE shim replacing tempdir 0.3.7 (RUSTSEC-2021-0126); **FIXED (2026-07-13)**
+│   ├── version/                   ← parity-version: build version string
+│   └── …                          ← fastmap, len-caching-lock, macros, memzero, …
 │   └── vm/                             ← Virtual machine layer
 │       ├── builtin/                    ← Precompiled contracts
 │       ├── call-contract/              ← On-chain contract call helper
@@ -155,13 +158,13 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 
 - **DO NOT** upgrade `jsonrpc-*` (v15 → v18) or `parity-util-mem` (0.7.0 → 0.11.0) without a full migration plan — both require coordinated changes across many crates and will introduce breaking `ethereum-types` conflicts
 - **DO NOT** upgrade `secp256k1` independently — constrained by `parity-crypto v0.6.2` chain
-- For `atty` (Windows-only CVE): safe to replace with `is-terminal = "0.4"` — only a few call sites in `bin/oe/`
+- For `atty` (Windows-only CVE): **FIXED (2026-07-13)** via `crates/util/atty-compat` local shim (backed by `std::io::IsTerminal`) + `[patch.crates-io]` override — also patches transitive consumers `clap 2.34.0` and `env_logger 0.5`
 - For `lru-cache` (unmaintained): replace with `lru = "0.12"` — same API, no call-site changes needed
 - For `tempdir` (deprecated): **FIXED (2026-07-13)** via `crates/util/tempdir-compat` local compat shim + `[patch.crates-io]` override — do NOT add new `tempdir` deps, use `tempfile` directly in new code
 - For `term_size` (unmaintained): replace with `terminal_size = "0.3"`
 - **Do NOT upgrade `rayon`** beyond 1.1 without re-testing on macOS — 1.12 introduced EMFILE failures; pinned at 1.1 intentionally
 - **Do NOT upgrade `number_prefix`** beyond 0.2.8 — 0.4.0 changed `binary_prefix()` to `NumberPrefix::binary()` and required qualified variant names
-- Follow the phased dependency upgrade sequence: Phase 2 (atty→is-terminal, lru-cache→lru, tempdir→tempfile, term_size→terminal_size), Phase 3 (jsonrpc-* v18, parity-util-mem 0.11), Phase 4 (secp256k1 — blocked by parity-crypto)
+- Follow the phased dependency upgrade sequence: Phase 2 (lru-cache→lru, term_size→terminal_size), Phase 3 (jsonrpc-* v18, parity-util-mem 0.11), Phase 4 (secp256k1 — blocked by parity-crypto); atty and tempdir are already done (2026-07-13)
 - Always run `cargo build` after any `Cargo.toml` change to catch breakage early
 - Check `MAINTENANCE.md` § 6.0 for the current CVE status before touching any vulnerable dependency
 
@@ -178,6 +181,7 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 - Use `extern crate` style even in Rust 2021 crates — this codebase keeps old-style declarations for compatibility with pre-2018 upstream crates
 - New subsystems must be feature-gated in `Cargo.toml` and declared conditionally in `bin/oe/lib.rs`
 - Adding a new workspace member requires updating `[workspace] members` in root `Cargo.toml` only if it is truly standalone (not in main dep tree)
+- `[patch.crates-io]` shims (`atty-compat`, `tempdir-compat`) also require a `[workspace] members` entry so Cargo resolves them — see existing entries as the pattern
 - `[patch.crates-io]` overrides must be mirrored for all affected crates to avoid version conflicts
 
 ---
@@ -298,7 +302,7 @@ docker buildx build \
 | `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration (Phase 3) |
 | `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3) |
 | `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
-| `atty` | 0.2.14 | Replace with `is-terminal = "0.4"` | Windows-only CVE, 2–3 call sites (Phase 2) |
+| `atty` | 0.2.14 | Replaced with local compat shim `crates/util/atty-compat` | **FIXED (2026-07-13)** via `[patch.crates-io]`; also patches `clap` and `env_logger` |
 | `lru-cache` | 0.1.2 | Replace with `lru = "0.12"` | Unmaintained; same API (Phase 2) |
 | `tempdir` | 0.3.7 | Replaced with local compat shim `crates/util/tempdir-compat` | **FIXED (2026-07-13)** via `[patch.crates-io]` |
 | `remove_dir_all` | 0.5.3 (via `tempdir`) | Resolved by `tempdir→tempdir-compat` shim | **FIXED (2026-07-13)** — no longer in `Cargo.lock` |
@@ -408,6 +412,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.7 (2026-07-13): Fixed atty CVE (RUSTSEC-2021-0017): `crates/util/atty-compat` shim (backed by `std::io::IsTerminal`) already registered via `[patch.crates-io]` — AGENTS.md was still showing it as pending Phase 2; updated CVE table, Dep Management atty bullet, Phase 2 sequence, Key Components (CVE patch shims note), project structure tree (added `atty-compat/` and `tempdir-compat/` entries), and Modular Coding Rules (`[patch.crates-io]` shims require workspace member entry)
 - v1.6 (2026-07-13): Fixed remove_dir_all CVE (RUSTSEC-2021-0126): created `crates/util/tempdir-compat` local compat shim (tempdir 0.3.7 API backed by tempfile 3.27.0); registered via `[patch.crates-io]` in root Cargo.toml; removes tempdir 0.3.7 and remove_dir_all 0.5.3 entirely from Cargo.lock; added workspace member entry; all 4 shim unit tests pass; updated MAINTENANCE.md § Vulnerable Dependencies; updated AGENTS.md CVE table
 - v1.5 (2026-07-13): Removed references to non-existent `UPDATE_PLAN.md`; fixed version header (1.3→1.4); added `codeql.yml` CI workflow; added `.testing/README.md` reference; inlined Phase 2–4 upgrade sequence
 - v1.4 (2026-07-10): Fixed 44 Rust 1.97 compiler warnings: mismatched_lifetime_syntaxes (added explicit `'_` to 38 return types across 23 crates/files), unused_parens (5 sites in vm/access_list.rs and db/db.rs), dead_code (is_global_s annotated with #[allow(dead_code)] in network-devp2p/ip_utils.rs, useless self-assignment and unused mut removed in rpc/transaction.rs)

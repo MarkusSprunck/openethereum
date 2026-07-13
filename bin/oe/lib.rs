@@ -21,7 +21,6 @@ extern crate ansi_term;
 extern crate docopt;
 #[macro_use]
 extern crate clap;
-extern crate atty;
 extern crate dir;
 extern crate futures;
 extern crate jsonrpc_core;

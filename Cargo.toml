@@ -24,7 +24,6 @@ ansi_term = "0.12.1"
 parking_lot = "0.12.4"
 crossbeam-channel = "0.5.16"
 regex = "1.11"
-atty = "0.2.14"
 toml = "0.9.2"
 serde = "1.0.228"
 serde_json = "1.0.150"
@@ -88,6 +87,10 @@ aesni = { path = "crates/util/aes/aesni" }
 aes-soft = { path = "crates/util/aes-soft" }
 block-cipher-trait = { path = "crates/util/block-cipher-trait" }
 stream-cipher = { path = "crates/util/stream-cipher" }
+# Replaces atty 0.2.14 (CVE RUSTSEC-2021-0017, Windows unaligned pointer) with
+# a local shim backed by std::io::IsTerminal (stable since Rust 1.70).
+# Also patches transitive consumers: clap 2.34.0 and env_logger 0.5.
+atty = { path = "crates/util/atty-compat" }
 # Replaces tempdir 0.3.7 (which depends on remove_dir_all 0.5.3, CVE RUSTSEC-2021-0126)
 # with a local compatibility shim backed by tempfile 3.x (uses remove_dir_all >= 0.8).
 # This also fixes the transitive chain: parity-rocksdb → local-encoding → skeptic → tempdir.
@@ -148,5 +151,6 @@ members = [
     "bin/ethstore",
     "bin/evmbin",
     "bin/chainspec",
+    "crates/util/atty-compat",
     "crates/util/tempdir-compat",
 ]

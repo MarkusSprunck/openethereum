@@ -18,7 +18,6 @@
 
 extern crate ansi_term;
 extern crate arrayvec;
-extern crate atty;
 extern crate chrono;
 extern crate env_logger;
 extern crate log as rlog;
@@ -38,7 +37,7 @@ use parking_lot::Mutex;
 use regex::Regex;
 use std::{
     env, fs,
-    io::Write,
+    io::{IsTerminal, Write},
     sync::{Arc, Weak},
     thread,
 };
@@ -99,7 +98,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
         builder.parse(s);
     }
 
-    let isatty = atty::is(atty::Stream::Stderr);
+    let isatty = std::io::stderr().is_terminal();
     let enable_color = config.color && isatty;
     let enable_json = config.json;
     let logs = Arc::new(RotatingLogger::new(levels));
@@ -171,7 +170,7 @@ pub fn setup_log(config: &Config) -> Result<Arc<RotatingLogger>, String> {
             let _ = file.write_all(b"\n");
         }
         logger.append(removed_color);
-        if !isatty && record.level() <= Level::Info && atty::is(atty::Stream::Stdout) {
+        if !isatty && record.level() <= Level::Info && std::io::stdout().is_terminal() {
             // duplicate INFO/WARN output to console
             println!("{ret}");
         }
