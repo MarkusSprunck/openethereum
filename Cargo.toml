@@ -120,7 +120,7 @@ name = "openethereum"
 
 [profile.test]
 lto = false
-opt-level = 3 # makes tests slower to compile, but faster to run
+opt-level = 3 # makes tests slower to compile but faster to run
 
 [profile.dev]
 debug = true

@@ -22,7 +22,7 @@ RUN strip target/release/openethereum
 # Runtime Stage
 # ------------------------------------------------------------------------------
 
-FROM --platform=linux/amd64 docker.io/library/ubuntu:25.10
+FROM --platform=$TARGETPLATFORM docker.io/library/ubuntu:25.10
 
 RUN apt-get -y update && apt-get -y install curl jq && apt-get clean
 

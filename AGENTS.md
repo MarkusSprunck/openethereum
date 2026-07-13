@@ -1,7 +1,7 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.3
-**Last Updated:** 2026-07-10
+**Version:** 1.5
+**Last Updated:** 2026-07-13
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
 
@@ -139,7 +139,6 @@ openethereum/
 ├── Cargo.toml                          ← Root manifest; workspace, features, [patch] overrides
 ├── Cargo.lock                          ← Locked dependency versions (committed)
 ├── AGENTS.md                           ← AI agent instructions (this file)
-├── UPDATE_PLAN.md                      ← 4-phase dependency update roadmap (Phase 1 ✅ 2026-07-10)
 ├── MAINTENANCE.md                      ← Dev setup, CVE status, upgrade blockers
 └── CHANGELOG.md                        ← Release history
 ```
@@ -162,7 +161,7 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 - For `term_size` (unmaintained): replace with `terminal_size = "0.3"`
 - **Do NOT upgrade `rayon`** beyond 1.1 without re-testing on macOS — 1.12 introduced EMFILE failures; pinned at 1.1 intentionally
 - **Do NOT upgrade `number_prefix`** beyond 0.2.8 — 0.4.0 changed `binary_prefix()` to `NumberPrefix::binary()` and required qualified variant names
-- Follow the phased roadmap in `UPDATE_PLAN.md` (Phase 1 ✅ done 2026-07-10; Phases 2–4 pending)
+- Follow the phased dependency upgrade sequence: Phase 2 (atty→is-terminal, lru-cache→lru, tempdir→tempfile, term_size→terminal_size), Phase 3 (jsonrpc-* v18, parity-util-mem 0.11), Phase 4 (secp256k1 — blocked by parity-crypto)
 - Always run `cargo build` after any `Cargo.toml` change to catch breakage early
 - Check `MAINTENANCE.md` § 6.0 for the current CVE status before touching any vulnerable dependency
 
@@ -205,7 +204,6 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 | `bin/oe/run.rs` | Full-node wiring: client, sync, RPC, miner |
 | `crates/ethcore/res/` | Chain spec JSON files and official test vectors (submodule) |
 | `MAINTENANCE.md` | Dev environment setup, CVE status, known upgrade blockers |
-| `UPDATE_PLAN.md` | 4-phase dependency update roadmap with per-dep risk and status |
 
 ---
 
@@ -278,6 +276,7 @@ docker buildx build \
 > **CI workflows:**
 > - `docker-ubuntu-rust-1.97-latest.yml` — triggered on push to `main`; pushes tag `latest-rust-1.97`
 > - `docker-ubuntu-rust-1.97-release.yml` — triggered on tag `v*`; pushes versioned tags
+> - `codeql.yml` — CodeQL security analysis; triggered on push/PR to `main`
 > - Legacy image base `ubuntu-rust-1.88` remains in `.github/docker/ubuntu-rust-1.88/` for reference
 
 ---
@@ -320,7 +319,7 @@ docker buildx build \
 - `.github/copilot-instructions.md` — AI task router (read first)
 - `.github/templates/agents.md` — AGENTS.md structure template
 - `MAINTENANCE.md` — Dev setup (Ubuntu primary, macOS notes, CVE status)
-- `UPDATE_PLAN.md` — 4-phase dependency update roadmap; consult before any dep change
+- `.testing/README.md` — Leopold Blockchain test client configuration (referenced in `MAINTENANCE.md` §5.0)
 - `CHANGELOG.md` — Release history
 - `bin/oe/lib.rs` — Public API: `start()`, `ExecutionAction`, `Configuration`
 - `bin/oe/configuration.rs` — Complete `Cmd` enum and CLI→config mapping
@@ -381,7 +380,6 @@ docker buildx build \
 - [ ] Run `cargo test --all` with submodules initialized
 - [ ] Update `CHANGELOG.md` with all changes
 - [ ] Verify RPC endpoint security settings in release configuration
-- [ ] Check `UPDATE_PLAN.md` for any Phase 2–4 items that should ship with the release
 
 ---
 
@@ -405,11 +403,12 @@ docker buildx build \
 
 ---
 
-**Last Reviewed:** 2026-07-10
+**Last Reviewed:** 2026-07-13
 **Next Review:** Q4 2026
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.5 (2026-07-13): Removed references to non-existent `UPDATE_PLAN.md`; fixed version header (1.3→1.4); added `codeql.yml` CI workflow; added `.testing/README.md` reference; inlined Phase 2–4 upgrade sequence
 - v1.4 (2026-07-10): Fixed 44 Rust 1.97 compiler warnings: mismatched_lifetime_syntaxes (added explicit `'_` to 38 return types across 23 crates/files), unused_parens (5 sites in vm/access_list.rs and db/db.rs), dead_code (is_global_s annotated with #[allow(dead_code)] in network-devp2p/ip_utils.rs, useless self-assignment and unused mut removed in rpc/transaction.rs)
 - v1.3 (2026-07-10): Corrected version to 3.5.1; fixed Rust upgrade note (1.88→1.97); added release Docker workflow; documented macOS EMFILE/rayon pin; expanded Known Vulnerable Dependencies table with lru-cache, tempdir, remove_dir_all, term_size; added rayon and number_prefix pin warnings
 - v1.2 (2026-07-10): Upgraded Rust toolchain from 1.97 to 1.97; added setup-rust-1.97.sh, .github/docker/ubuntu-rust-1.97/Dockerfile, and .github/workflows/docker-ubuntu-rust-1.97-latest.yml
