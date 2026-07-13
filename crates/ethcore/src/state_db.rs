@@ -27,7 +27,7 @@ use hash_db::HashDB;
 use journaldb::JournalDB;
 use keccak_hasher::KeccakHasher;
 use kvdb::{DBTransaction, DBValue};
-use lru_cache::LruCache;
+use lru::LruCache;
 use memory_cache::MemoryLruCache;
 use parking_lot::Mutex;
 use types::BlockNumber;
@@ -189,7 +189,7 @@ impl StateDB {
                     m.is_canon = true;
                     for a in &m.accounts {
                         trace!("Reverting enacted address {a:?}");
-                        cache.accounts.remove(a);
+                        cache.accounts.pop(a);
                     }
                     false
                 } else {
@@ -205,7 +205,7 @@ impl StateDB {
                     m.is_canon = false;
                     for a in &m.accounts {
                         trace!("Retracted address {a:?}");
-                        cache.accounts.remove(a);
+                        cache.accounts.pop(a);
                     }
                     false
                 } else {
@@ -247,7 +247,7 @@ impl StateDB {
                             continue;
                         }
                     }
-                    cache.accounts.insert(account.address, acc);
+                    cache.accounts.put(account.address, acc);
                 }
             }
 

@@ -23,7 +23,7 @@ use engines::{
 };
 use error::Error;
 use ethereum_types::{Address, H160, H256};
-use lru_cache::LruCache;
+use lru::LruCache;
 use parking_lot::RwLock;
 use rlp::encode;
 use types::header::Header;
@@ -72,7 +72,7 @@ pub fn recover_creator(header: &Header) -> Result<Address, Error> {
     let pubkey = ec_recover(&Signature::from(signature), &msg)?;
     let creator = public_to_address(&pubkey);
 
-    cache.insert(header.hash(), creator);
+    cache.put(header.hash(), creator);
     Ok(creator)
 }
 

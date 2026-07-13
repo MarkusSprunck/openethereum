@@ -72,7 +72,7 @@ extern crate igd;
 extern crate ipnetwork;
 extern crate keccak_hash as hash;
 extern crate libc;
-extern crate lru_cache;
+extern crate lru;
 extern crate mio;
 extern crate parity_bytes;
 extern crate parity_crypto as crypto;

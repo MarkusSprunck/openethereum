@@ -14,14 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Lru-cache related utilities as quick-and-dirty wrappers around the lru-cache
-//! crate.
+//! Lru-cache related utilities as quick-and-dirty wrappers around the lru crate.
 // TODO: push changes upstream in a clean way.
 
-extern crate lru_cache;
+extern crate lru;
 extern crate parity_util_mem;
 
-use lru_cache::LruCache;
+use lru::LruCache;
 use parity_util_mem::{MallocSizeOf, MallocSizeOfExt};
 
 use std::hash::Hash;
@@ -52,24 +51,24 @@ impl<K: Eq + Hash, V: MallocSizeOf> MemoryLruCache<K, V> {
 
     /// Insert an item.
     pub fn insert(&mut self, key: K, val: V) {
-        let cap = self.inner.capacity();
+        let cap = self.inner.cap();
 
         // grow the cache as necessary; it operates on amount of items
         // but we're working based on memory usage.
         if self.inner.len() == cap && self.cur_size < self.max_size {
-            self.inner.set_capacity(cap * 2);
+            self.inner.resize(cap * 2);
         }
 
         self.cur_size += heap_size_of(&val);
 
         // account for any element displaced from the cache.
-        if let Some(lru) = self.inner.insert(key, val) {
+        if let Some(lru) = self.inner.put(key, val) {
             self.cur_size -= heap_size_of(&lru);
         }
 
         // remove elements until we are below the memory target.
         while self.cur_size > self.max_size {
-            match self.inner.remove_lru() {
+            match self.inner.pop_lru() {
                 Some((_, v)) => self.cur_size -= heap_size_of(&v),
                 _ => break,
             }

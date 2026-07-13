@@ -21,7 +21,6 @@ extern crate ethcore;
 extern crate ethcore_network as network;
 extern crate ethcore_network_devp2p as devp2p;
 extern crate ethereum_types;
-extern crate lru_cache;
 extern crate parking_lot;
 
 extern crate ethabi_derive;

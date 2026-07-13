@@ -70,7 +70,7 @@ use ethjson::{self, uint::Uint};
 use hash::keccak;
 use io::{IoContext, IoHandler, IoService, TimerToken};
 use itertools::{self, Itertools};
-use lru_cache::LruCache;
+use lru::LruCache;
 use machine::{AuxiliaryData, Call, EthereumMachine};
 use parking_lot::{Mutex, RwLock};
 use rand::rngs::OsRng;
@@ -2348,7 +2348,7 @@ impl Engine<EthereumMachine> for AuthorityRound {
         let limit = util::block_gas_limit(full_client, header, address);
         self.gas_limit_override_cache
             .lock()
-            .insert(header.hash(), limit);
+            .put(header.hash(), limit);
         limit
     }
 }

@@ -18,7 +18,7 @@
 
 use ethabi::FunctionOutputDecoder;
 use ethereum_types::{Address, H256, U256};
-use lru_cache::LruCache;
+use lru::LruCache;
 
 use call_contract::CallContract;
 use client::{BlockId, BlockInfo};
@@ -127,7 +127,7 @@ impl TransactionFilter {
                     )
                     .ok()
             });
-        contract_version_cache.insert(*parent_hash, contract_version);
+        contract_version_cache.put(*parent_hash, contract_version);
 
         // Check permissions in smart contract based on its version
         let (permissions, filter_only_sender) = match contract_version {
@@ -204,7 +204,7 @@ impl TransactionFilter {
         };
 
         if filter_only_sender {
-            permission_cache.insert((*parent_hash, sender), permissions);
+            permission_cache.put((*parent_hash, sender), permissions);
         }
         trace!(target: "tx_filter", "Given transaction data: sender: {sender:?} to: {to:?} value: {value}, gas_price: {gas_price}. Permissions required: {tx_type:X}, got: {permissions:X}");
         permissions & tx_type != 0

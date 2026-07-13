@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.8
+**Version:** 1.9
 **Last Updated:** 2026-07-13
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -159,13 +159,10 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 
 - **DO NOT** upgrade `jsonrpc-*` (v15 → v18) or `parity-util-mem` (0.7.0 → 0.11.0) without a full migration plan — both require coordinated changes across many crates and will introduce breaking `ethereum-types` conflicts
 - **DO NOT** upgrade `secp256k1` independently — constrained by `parity-crypto v0.6.2` chain
-- For `atty` (Windows-only CVE): **FIXED (2026-07-13)** via `crates/util/atty-compat` local shim (backed by `std::io::IsTerminal`) + `[patch.crates-io]` override — also patches transitive consumers `clap 2.34.0` and `env_logger 0.5`
-- For `lru-cache` (unmaintained): replace with `lru = "0.12"` — same API, no call-site changes needed
-- For `tempdir` (deprecated): **FIXED (2026-07-13)** via `crates/util/tempdir-compat` local compat shim + `[patch.crates-io]` override — do NOT add new `tempdir` deps, use `tempfile` directly in new code
 - For `term_size` (unmaintained): replace with `terminal_size = "0.3"`
 - **Do NOT upgrade `rayon`** beyond 1.1 without re-testing on macOS — 1.12 introduced EMFILE failures; pinned at 1.1 intentionally
 - **Do NOT upgrade `number_prefix`** beyond 0.2.8 — 0.4.0 changed `binary_prefix()` to `NumberPrefix::binary()` and required qualified variant names
-- Follow the phased dependency upgrade sequence: Phase 2 (lru-cache→lru, term_size→terminal_size), Phase 3 (jsonrpc-* v18, parity-util-mem 0.11), Phase 4 (secp256k1 — blocked by parity-crypto); atty and tempdir are already done (2026-07-13)
+- Follow the phased dependency upgrade sequence: Phase 2 (term_size→terminal_size), Phase 3 (jsonrpc-* v18, parity-util-mem 0.11), Phase 4 (secp256k1 — blocked by parity-crypto); atty, tempdir and lru-cache are already done (2026-07-13)
 - Always run `cargo build` after any `Cargo.toml` change to catch breakage early
 - Check `MAINTENANCE.md` § 6.0 for the current CVE status before touching any vulnerable dependency
 
@@ -304,7 +301,6 @@ docker buildx build \
 | `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration (Phase 3) |
 | `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3) |
 | `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
-| `lru-cache` | 0.1.2 | Replace with `lru = "0.12"` | Unmaintained; same API (Phase 2) |
 | `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
 
 ### RPC Security ⭐ IF APPLICABLE
@@ -411,6 +407,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.9 (2026-07-13): Replaced `lru-cache = "0.1"` with `lru = "0.7.1"` across all 4 dependent crates (`memory-cache`, `ethcore`, `network-devp2p`, `node-filter`); migrated all call sites: `.insert()→.put()`, `.remove()→.pop()`, `.remove_lru()→.pop_lru()`, `.capacity()→.cap()`, `.set_capacity()→.resize()`; rewrote `clone_all()` in `state/account.rs` to manually copy LruCache entries since lru 0.7.x does not implement Clone; updated CVE table, Dep Management bullet, Phase sequence
 - v1.8 (2026-07-13): Fixed lock_api CVEs (CVE-2020-35910..35914): created `crates/util/lock-api-compat` shim (fork of lock_api 0.3.4 with backported Send/Sync bounds from 0.4.2); registered via `[patch.crates-io]`; fixes transitive chain kvdb-memorydb→parking_lot 0.9.0 and jsonrpc-*→parking_lot 0.10.2; added `.github/dependabot.yml` to prevent Dependabot from breaking the `parity-crypto`/yanked-aes dependency chain; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist
 - v1.7 (2026-07-13): Fixed atty CVE (RUSTSEC-2021-0017): `crates/util/atty-compat` shim (backed by `std::io::IsTerminal`) already registered via `[patch.crates-io]` — AGENTS.md was still showing it as pending Phase 2; updated CVE table, Dep Management atty bullet, Phase 2 sequence, Key Components (CVE patch shims note), project structure tree (added `atty-compat/` and `tempdir-compat/` entries), and Modular Coding Rules (`[patch.crates-io]` shims require workspace member entry)
 - v1.6 (2026-07-13): Fixed remove_dir_all CVE (RUSTSEC-2021-0126): created `crates/util/tempdir-compat` local compat shim (tempdir 0.3.7 API backed by tempfile 3.27.0); registered via `[patch.crates-io]` in root Cargo.toml; removes tempdir 0.3.7 and remove_dir_all 0.5.3 entirely from Cargo.lock; added workspace member entry; all 4 shim unit tests pass; updated MAINTENANCE.md § Vulnerable Dependencies; updated AGENTS.md CVE table

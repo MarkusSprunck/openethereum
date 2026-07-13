@@ -17,7 +17,7 @@
 use crypto::publickey::{recover, sign, KeyPair, Secret};
 use ethereum_types::{H256, H520};
 use hash::keccak;
-use lru_cache::LruCache;
+use lru::LruCache;
 use network::{Error, ErrorKind, IpFilter};
 use node_table::*;
 use parity_bytes::Bytes;
@@ -666,7 +666,7 @@ impl<'a> Discovery<'a> {
                     | NodeValidity::ValidNode(NodeCategory::Observed) => {
                         trace!(target: "discovery", "Updating node {:?} in the list of other_observed_nodes", &node);
                         self.other_observed_nodes
-                            .insert(node.id, (node.endpoint, Instant::now()));
+                            .put(node.id, (node.endpoint, Instant::now()));
                     }
                     NodeValidity::Ourselves => (),
                 }

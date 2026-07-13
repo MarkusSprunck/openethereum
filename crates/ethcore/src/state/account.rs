@@ -24,7 +24,7 @@ use hash::{keccak, KECCAK_EMPTY, KECCAK_NULL_RLP};
 use hash_db::HashDB;
 use keccak_hasher::KeccakHasher;
 use kvdb::DBValue;
-use lru_cache::LruCache;
+use lru::LruCache;
 use pod_account::*;
 use rlp::{encode, RlpStream};
 use std::{
@@ -282,7 +282,7 @@ impl Account {
             .get_with(key.as_bytes(), panicky_decoder)?
             .unwrap_or_else(U256::zero);
         let value: H256 = BigEndianHash::from_uint(&item);
-        storage_cache.insert(*key, value);
+        storage_cache.put(*key, value);
         Ok(value)
     }
 
@@ -542,7 +542,7 @@ impl Account {
                 false => t.insert(k.as_bytes(), &encode(&v.into_uint()))?,
             };
 
-            self.storage_cache.borrow_mut().insert(k, v);
+            self.storage_cache.borrow_mut().put(k, v);
         }
         self.original_storage_cache = None;
         Ok(())
@@ -610,8 +610,24 @@ impl Account {
     /// Clone account data, dirty storage keys and cached storage keys.
     pub fn clone_all(&self) -> Account {
         let mut account = self.clone_dirty();
-        account.storage_cache = self.storage_cache.clone();
-        account.original_storage_cache = self.original_storage_cache.clone();
+        account.storage_cache = {
+            let inner = self.storage_cache.borrow();
+            let mut new_cache = LruCache::new(STORAGE_CACHE_ITEMS);
+            let entries: Vec<_> = inner.iter().map(|(k, v)| (*k, *v)).collect();
+            for (k, v) in entries.into_iter().rev() {
+                new_cache.put(k, v);
+            }
+            RefCell::new(new_cache)
+        };
+        account.original_storage_cache = self.original_storage_cache.as_ref().map(|(root, cache)| {
+            let inner = cache.borrow();
+            let mut new_cache = LruCache::new(STORAGE_CACHE_ITEMS);
+            let entries: Vec<_> = inner.iter().map(|(k, v)| (*k, *v)).collect();
+            for (k, v) in entries.into_iter().rev() {
+                new_cache.put(k, v);
+            }
+            (*root, RefCell::new(new_cache))
+        });
         account
     }
 
@@ -629,7 +645,7 @@ impl Account {
         if self.storage_root == other.storage_root {
             let mut cache = self.storage_cache.borrow_mut();
             for (k, v) in other.storage_cache.into_inner() {
-                cache.insert(k, v);
+                cache.put(k, v);
             }
         } else {
             self.storage_cache = other.storage_cache;

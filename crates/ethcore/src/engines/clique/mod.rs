@@ -77,7 +77,7 @@ use error::{BlockError, Error};
 use ethereum_types::{Address, H160, H256, H64, U256};
 use hash::KECCAK_EMPTY_LIST_RLP;
 use itertools::Itertools;
-use lru_cache::LruCache;
+use lru::LruCache;
 use machine::{Call, EthereumMachine};
 use parking_lot::RwLock;
 use rand::Rng;
@@ -275,7 +275,7 @@ impl Clique {
         // If we are looking for an checkpoint block state, we can directly reconstruct it.
         if header.number() % self.epoch_length == 0 {
             let state = self.new_checkpoint_state(header)?;
-            block_state_by_hash.insert(header.hash(), state.clone());
+            block_state_by_hash.put(header.hash(), state.clone());
             return Ok(state);
         }
         // BlockState is not found in memory, which means we need to reconstruct state from last checkpoint.
@@ -341,7 +341,7 @@ impl Clique {
                 };
 
                 block_state_by_hash
-                    .insert(last_checkpoint_header.hash(), last_checkpoint_state.clone());
+                    .put(last_checkpoint_header.hash(), last_checkpoint_state.clone());
 
                 // Backfill!
                 let mut new_state = last_checkpoint_state.clone();
@@ -349,7 +349,7 @@ impl Clique {
                     new_state.apply(item, false)?;
                 }
                 new_state.calc_next_timestamp(header.timestamp(), self.period)?;
-                block_state_by_hash.insert(header.hash(), new_state.clone());
+                block_state_by_hash.put(header.hash(), new_state.clone());
 
                 let elapsed = backfill_start.elapsed();
                 trace!(target: "engine", "Back-filling succeed, took {} ms.", elapsed.as_millis());
@@ -467,7 +467,7 @@ impl Engine<EthereumMachine> for Clique {
         new_state.calc_next_timestamp(header.timestamp(), self.period)?;
         self.block_state_by_hash
             .write()
-            .insert(header.hash(), new_state);
+            .put(header.hash(), new_state);
 
         trace!(target: "engine", "on_seal_block: finished, final header: {header:?}");
 
@@ -705,7 +705,7 @@ impl Engine<EthereumMachine> for Clique {
         new_state.calc_next_timestamp(header.timestamp(), self.period)?;
         self.block_state_by_hash
             .write()
-            .insert(header.hash(), new_state);
+            .put(header.hash(), new_state);
 
         Ok(())
     }
@@ -719,7 +719,7 @@ impl Engine<EthereumMachine> for Clique {
             .map_err(|e| format!("{e}"))?;
         self.block_state_by_hash
             .write()
-            .insert(header.hash(), state);
+            .put(header.hash(), state);
 
         // no proof.
         Ok(Vec::new())
