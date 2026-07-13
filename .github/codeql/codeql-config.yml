@@ -15,3 +15,11 @@ paths-ignore:
 query-filters:
   - exclude:
       id: rust/hardcoded-credentials
+
+# Disable the `test` cfg flag so the Rust extractor skips all #[cfg(test)]
+# blocks entirely. This prevents macro expansion failures for test-only macros
+# like assert_eq!, assert_ne!, etc. that CodeQL cannot fully resolve.
+extractor:
+  rust:
+    cargo_cfg_overrides:
+      - "-test"
