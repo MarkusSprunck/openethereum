@@ -86,7 +86,7 @@ extern crate ethcore_secretstore;
 extern crate pretty_assertions;
 
 #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 
 #[cfg(test)]
 #[macro_use]

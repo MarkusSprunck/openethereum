@@ -107,7 +107,7 @@ extern crate fake_fetch;
 extern crate ethcore_io as io;
 
 // #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 
 // #[cfg(test)]
 // extern crate rpc_servers;

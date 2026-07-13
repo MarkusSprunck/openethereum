@@ -118,8 +118,8 @@ This upgrade will fix the `lru` vulnerabilities:
 
 ### Vulnerable Dependencies Without a Fixed Version
 
-For some vulnerabilities, even after upgrading the depencies there is no compatible version that fixes the vulnerability. Since they are moderate and low severity, it is to be decided if a fix/workaround outweighs the efforts for each vulnerability:
+For some vulnerabilities, even after upgrading the dependencies, there is no compatible version that fixes the vulnerability. Since they are moderate and low severity, it is to be decided if a fix/workaround outweighs the efforts for each vulnerability:
 
 -   [secp256k1](https://github.com/MarkusSprunck/openethereum/security/dependabot/23): Used at `0.17.2`, would need `0.22.2`. We use `parity-crypto v0.6.2`, which in its most recent version `v0.9.0` still depends on `secp256k1 v0.20`
--   [remove_dir_all](https://github.com/MarkusSprunck/openethereum/security/dependabot/24): Used at `0.5.3`, would need `0.8.0`. We use `tempdir` in its most recent version `v0.3.7`, which depends on `remove_dir_all v0.5`
+-   ~~[remove_dir_all](https://github.com/MarkusSprunck/openethereum/security/dependabot/24): Used at `0.5.3`, would need `0.8.0`.~~ **FIXED (2026-07-13):** `crates/util/tempdir-compat` is a local compatibility shim that re-implements the `tempdir 0.3.7` API using `tempfile 3.27.0`. It is registered via `[patch.crates-io]` in the root `Cargo.toml` and replaces all consumers of `tempdir` — including the transitive chain `parity-rocksdb → local-encoding → skeptic (build-dep) → tempdir → remove_dir_all 0.5.3`. `remove_dir_all 0.5.3` and `tempdir 0.3.7` are no longer present in `Cargo.lock`.
 -   [atty](https://github.com/MarkusSprunck/openethereum/security/dependabot/29): Used as a direct dependency at the most recent version `0.2.14`. Should be easy to replace as it is only used in a couple lines of code but the vulnerability seems to be only relevant for Windows

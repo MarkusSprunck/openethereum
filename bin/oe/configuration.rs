@@ -1248,7 +1248,9 @@ mod tests {
 
     use crate::{
         account::{AccountCmd, ImportAccounts, ListAccounts, NewAccount},
-        blockchain::{BlockchainCmd, ExportBlockchain, ExportState, ImportBlockchain},
+        blockchain::{
+            BlockchainCmd, ExportBlockchain, ExportState, ImportBlockchain,
+        },
         cli::Args,
         helpers::default_network_config,
         miner::pool::PrioritizationStrategy,
@@ -1262,7 +1264,7 @@ mod tests {
     use dir::Directories;
     use ethcore::{client::VMType, miner::MinerOptions};
     use parity_rpc::NetworkSettings;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use crate::network::{AllowIP, IpFilter};
 
@@ -1665,7 +1667,7 @@ mod tests {
 
     #[test]
     fn should_not_bail_on_empty_line_in_reserved_peers() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let filename = tempdir.path().join("peers");
         File::create(&filename)
             .unwrap()
@@ -1682,7 +1684,7 @@ mod tests {
 
     #[test]
     fn should_ignore_comments_in_reserved_peers() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let filename = tempdir.path().join("peers_comments");
         File::create(&filename).unwrap().write_all(b"# Sample comment\nenode://6f8a80d14311c39f35f516fa664deaaaa13e85b2f7493f37f6144d86991ec012937307647bd3b9a82abe2974e1407241d54947bbb39763a4cac9f77166ad92a0@172.0.0.1:30303\n").unwrap();
         let args = vec![

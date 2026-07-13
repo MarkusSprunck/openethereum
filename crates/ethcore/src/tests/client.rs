@@ -35,7 +35,7 @@ use miner::{Miner, MinerService, PendingOrdering};
 use rustc_hex::ToHex;
 use spec::Spec;
 use state::{self, CleanupMode, State, StateInfo};
-use tempdir::TempDir;
+use tempfile::TempDir;
 use test_helpers::{
     self, generate_dummy_client, generate_dummy_client_with_data, get_bad_state_dummy_block,
     get_good_dummy_block, get_good_dummy_block_seq, get_test_client_with_blocks,
@@ -71,7 +71,7 @@ fn imports_from_empty() {
 #[test]
 fn should_return_registrar() {
     let db = test_helpers::new_db();
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let spec = ethereum::new_morden(&tempdir.path().to_owned());
 
     let client = Client::new(

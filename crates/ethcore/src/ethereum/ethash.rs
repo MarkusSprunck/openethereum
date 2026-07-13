@@ -570,12 +570,12 @@ mod tests {
     use rlp;
     use spec::Spec;
     use std::{collections::BTreeMap, str::FromStr, sync::Arc};
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use test_helpers::get_temp_state_db;
     use types::header::Header;
 
     fn test_spec() -> Spec {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         new_morden(&tempdir.path())
     }
 
@@ -970,7 +970,7 @@ mod tests {
     fn difficulty_frontier() {
         let machine = new_homestead_test_machine();
         let ethparams = get_default_ethash_params();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let ethash = Ethash::new(tempdir.path(), ethparams, machine, None);
 
         let mut parent_header = Header::default();
@@ -989,7 +989,7 @@ mod tests {
     fn difficulty_homestead() {
         let machine = new_homestead_test_machine();
         let ethparams = get_default_ethash_params();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let ethash = Ethash::new(tempdir.path(), ethparams, machine, None);
 
         let mut parent_header = Header::default();
@@ -1008,7 +1008,7 @@ mod tests {
     fn difficulty_max_timestamp() {
         let machine = new_homestead_test_machine();
         let ethparams = get_default_ethash_params();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let ethash = Ethash::new(tempdir.path(), ethparams, machine, None);
 
         let mut parent_header = Header::default();
@@ -1027,7 +1027,7 @@ mod tests {
     fn test_extra_info() {
         let machine = new_homestead_test_machine();
         let ethparams = get_default_ethash_params();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let ethash = Ethash::new(tempdir.path(), ethparams, machine, None);
         let mut header = Header::default();
         header.set_seal(vec![

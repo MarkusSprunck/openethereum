@@ -18,13 +18,13 @@
 extern crate criterion;
 extern crate blooms_db;
 extern crate ethbloom;
-extern crate tempdir;
+extern crate tempfile;
 
 use blooms_db::Database;
 use criterion::Criterion;
 use ethbloom::Bloom;
 use std::iter;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 criterion_group!(
     blooms,
@@ -35,7 +35,7 @@ criterion_group!(
 criterion_main!(blooms);
 
 fn bench_blooms_filter_1_million_ok(c: &mut Criterion) {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let database = Database::open(tempdir.path()).unwrap();
     database
         .insert_blooms(999_999, iter::once(&Bloom::zero()))
@@ -55,7 +55,7 @@ fn bench_blooms_filter_1_million_ok(c: &mut Criterion) {
 }
 
 fn bench_blooms_filter_1_million_miss(c: &mut Criterion) {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let database = Database::open(tempdir.path()).unwrap();
     database
         .insert_blooms(999_999, iter::once(&Bloom::zero()))
@@ -76,7 +76,7 @@ fn bench_blooms_filter_1_million_miss(c: &mut Criterion) {
 }
 
 fn bench_blooms_filter_1_million_miss_and_ok(c: &mut Criterion) {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let database = Database::open(tempdir.path()).unwrap();
     database
         .insert_blooms(999_999, iter::once(&Bloom::zero()))

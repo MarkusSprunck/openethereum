@@ -221,7 +221,7 @@ mod test {
     use miner::Miner;
     use spec::Spec;
     use std::{str::FromStr, sync::Arc};
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use test_helpers;
     use types::transaction::{
         AccessListTx, Action, EIP1559TransactionTx, Transaction, TypedTransaction,
@@ -233,7 +233,7 @@ mod test {
         let spec_data = include_str!("../res/chainspec/test/contract_ver_2_genesis.json");
 
         let db = test_helpers::new_db();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let spec = Spec::load(&tempdir.path(), spec_data.as_bytes()).unwrap();
 
         let client = Client::new(
@@ -468,7 +468,7 @@ mod test {
         let spec_data = include_str!("../res/chainspec/test/contract_ver_3_genesis.json");
 
         let db = test_helpers::new_db();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let spec = Spec::load(&tempdir.path(), spec_data.as_bytes()).unwrap();
 
         let client = Client::new(
@@ -536,7 +536,7 @@ mod test {
         let spec_data = include_str!("../res/chainspec/test/contract_ver_4_genesis.json");
 
         let db = test_helpers::new_db();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let spec = Spec::load(&tempdir.path(), spec_data.as_bytes()).unwrap();
 
         let client = Client::new(
@@ -604,7 +604,7 @@ mod test {
         let spec_data = include_str!("../res/chainspec/test/contract_ver_4_genesis.json");
 
         let db = test_helpers::new_db();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let spec = Spec::load(&tempdir.path(), spec_data.as_bytes()).unwrap();
 
         let client = Client::new(
@@ -675,7 +675,7 @@ mod test {
         let spec_data = include_str!("../res/chainspec/test/deprecated_contract_genesis.json");
 
         let db = test_helpers::new_db();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let spec = Spec::load(&tempdir.path(), spec_data.as_bytes()).unwrap();
 
         let client = Client::new(

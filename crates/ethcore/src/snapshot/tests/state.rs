@@ -37,7 +37,7 @@ use journaldb::{self, Algorithm};
 use kvdb_rocksdb::{Database, DatabaseConfig};
 use parking_lot::Mutex;
 use rand::SeedableRng;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 const RNG_SEED: [u8; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
@@ -53,7 +53,7 @@ fn snap_and_restore() {
         producer.tick(&mut rng, &mut old_db);
     }
 
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let snap_file = tempdir.path().join("SNAP");
 
     let state_root = producer.state_root();
@@ -169,7 +169,7 @@ fn get_code_from_prev_chunk() {
     let chunk1 = make_chunk(acc.clone(), h1);
     let chunk2 = make_chunk(acc, h2);
 
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let db_cfg = DatabaseConfig::with_columns(::db::NUM_COLUMNS);
     let new_db = Database::open(&db_cfg, tempdir.path().to_str().unwrap()).unwrap();
     let new_db_with_metrics = Arc::new(db::DatabaseWithMetrics::new(new_db));
@@ -203,7 +203,7 @@ fn checks_flag() {
         producer.tick(&mut rng, &mut old_db);
     }
 
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let snap_file = tempdir.path().join("SNAP");
 
     let state_root = producer.state_root();
@@ -224,7 +224,7 @@ fn checks_flag() {
         })
         .unwrap();
 
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let db_path = tempdir.path().join("db");
     {
         let new_db = Database::open(&db_cfg, &db_path.to_string_lossy()).unwrap();

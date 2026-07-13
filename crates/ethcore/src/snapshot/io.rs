@@ -334,7 +334,7 @@ impl SnapshotReader for LooseReader {
 #[cfg(test)]
 mod tests {
     use hash::keccak;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use super::{
         LooseReader, LooseWriter, PackedReader, PackedWriter, SnapshotReader, SnapshotWriter,
@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn packed_write_and_read() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let path = tempdir.path().join("packed");
         let mut writer = PackedWriter::new(&path).unwrap();
 
@@ -395,7 +395,7 @@ mod tests {
 
     #[test]
     fn loose_write_and_read() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let mut writer = LooseWriter::new(tempdir.path().into()).unwrap();
 
         let mut state_hashes = Vec::new();

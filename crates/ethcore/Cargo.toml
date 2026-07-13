@@ -65,8 +65,7 @@ serde = "1.0.228"
 serde_derive = "1.0.228"
 serde_json = "1.0.140"
 stats = { path = "../util/stats" }
-tempdir = {version="0.3", optional = true}
-tempfile = "3.1.0"
+tempfile = { version = "3.27.0", optional = true }
 time-utils = { path = "../util/time-utils" }
 trace-time = "0.1"
 triehash-ethereum = { version = "0.2",  path = "../util/triehash-ethereum" }
@@ -88,7 +87,7 @@ fetch = { path = "../net/fetch" }
 kvdb-rocksdb = "0.1.6"
 parity-runtime = { path = "../runtime/runtime" }
 rlp_compress = { path = "../util/rlp-compress" }
-tempdir = "0.3.7"
+tempfile = "3.27.0"
 trie-standardmap = "0.15.2"
 
 [features]
@@ -120,7 +119,7 @@ ci-skip-tests = []
 # Run memory/cpu heavy tests.
 test-heavy = []
 # Compile test helpers
-test-helpers = ["tempdir", "kvdb-rocksdb", "blooms-db", "common-types/test-helpers"]
+test-helpers = ["tempfile", "kvdb-rocksdb", "blooms-db", "common-types/test-helpers"]
 # Enables slow 'to-pod-full' method for use in tests and evmbin.
 to-pod-full = []
 

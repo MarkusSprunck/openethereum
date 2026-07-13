@@ -40,7 +40,7 @@ extern crate vm;
 extern crate pretty_assertions;
 
 #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 
 use bytes::Bytes;
 use docopt::Docopt;

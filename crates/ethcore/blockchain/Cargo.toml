@@ -30,4 +30,4 @@ stats = { path = "../../util/stats" }
 
 [dev-dependencies]
 rustc-hex = "1.0.0"
-tempdir = "0.3.7"
+tempfile = "3.27.0"

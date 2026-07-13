@@ -97,7 +97,7 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate env_logger;
 #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 #[cfg(test)]
 #[macro_use]
 extern crate assert_matches;

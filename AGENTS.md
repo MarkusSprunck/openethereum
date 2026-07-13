@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.5
+**Version:** 1.6
 **Last Updated:** 2026-07-13
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -157,7 +157,7 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 - **DO NOT** upgrade `secp256k1` independently — constrained by `parity-crypto v0.6.2` chain
 - For `atty` (Windows-only CVE): safe to replace with `is-terminal = "0.4"` — only a few call sites in `bin/oe/`
 - For `lru-cache` (unmaintained): replace with `lru = "0.12"` — same API, no call-site changes needed
-- For `tempdir` (deprecated): replace with `tempfile::TempDir` — also resolves `remove_dir_all` CVE transitively
+- For `tempdir` (deprecated): **FIXED (2026-07-13)** via `crates/util/tempdir-compat` local compat shim + `[patch.crates-io]` override — do NOT add new `tempdir` deps, use `tempfile` directly in new code
 - For `term_size` (unmaintained): replace with `terminal_size = "0.3"`
 - **Do NOT upgrade `rayon`** beyond 1.1 without re-testing on macOS — 1.12 introduced EMFILE failures; pinned at 1.1 intentionally
 - **Do NOT upgrade `number_prefix`** beyond 0.2.8 — 0.4.0 changed `binary_prefix()` to `NumberPrefix::binary()` and required qualified variant names
@@ -300,8 +300,8 @@ docker buildx build \
 | `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
 | `atty` | 0.2.14 | Replace with `is-terminal = "0.4"` | Windows-only CVE, 2–3 call sites (Phase 2) |
 | `lru-cache` | 0.1.2 | Replace with `lru = "0.12"` | Unmaintained; same API (Phase 2) |
-| `tempdir` | 0.3.7 | Replace with `tempfile::TempDir` | Deprecated; also unblocks `remove_dir_all` CVE (Phase 2) |
-| `remove_dir_all` | 0.5.3 (via `tempdir`) | Resolved by `tempdir→tempfile` | Indirect dep (Phase 2) |
+| `tempdir` | 0.3.7 | Replaced with local compat shim `crates/util/tempdir-compat` | **FIXED (2026-07-13)** via `[patch.crates-io]` |
+| `remove_dir_all` | 0.5.3 (via `tempdir`) | Resolved by `tempdir→tempdir-compat` shim | **FIXED (2026-07-13)** — no longer in `Cargo.lock` |
 | `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
 
 ### RPC Security ⭐ IF APPLICABLE
@@ -408,6 +408,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v1.6 (2026-07-13): Fixed remove_dir_all CVE (RUSTSEC-2021-0126): created `crates/util/tempdir-compat` local compat shim (tempdir 0.3.7 API backed by tempfile 3.27.0); registered via `[patch.crates-io]` in root Cargo.toml; removes tempdir 0.3.7 and remove_dir_all 0.5.3 entirely from Cargo.lock; added workspace member entry; all 4 shim unit tests pass; updated MAINTENANCE.md § Vulnerable Dependencies; updated AGENTS.md CVE table
 - v1.5 (2026-07-13): Removed references to non-existent `UPDATE_PLAN.md`; fixed version header (1.3→1.4); added `codeql.yml` CI workflow; added `.testing/README.md` reference; inlined Phase 2–4 upgrade sequence
 - v1.4 (2026-07-10): Fixed 44 Rust 1.97 compiler warnings: mismatched_lifetime_syntaxes (added explicit `'_` to 38 return types across 23 crates/files), unused_parens (5 sites in vm/access_list.rs and db/db.rs), dead_code (is_global_s annotated with #[allow(dead_code)] in network-devp2p/ip_utils.rs, useless self-assignment and unused mut removed in rpc/transaction.rs)
 - v1.3 (2026-07-10): Corrected version to 3.5.1; fixed Rust upgrade note (1.88→1.97); added release Docker workflow; documented macOS EMFILE/rayon pin; expanded Known Vulnerable Dependencies table with lru-cache, tempdir, remove_dir_all, term_size; added rayon and number_prefix pin warnings

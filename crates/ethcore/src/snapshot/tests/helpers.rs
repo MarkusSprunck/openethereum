@@ -33,7 +33,7 @@ use snapshot::{
 use types::basic_account::BasicAccount;
 
 use rand::Rng;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 use self::trie_standardmap::{Alphabet, StandardMap, ValueMode};
 use ethereum_types::H256;
@@ -140,7 +140,7 @@ pub fn fill_storage(mut db: AccountDBMut, root: &mut H256, seed: &mut H256) {
 pub fn snap(client: &Client) -> (Box<dyn SnapshotReader>, TempDir) {
     use types::ids::BlockId;
 
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let path = tempdir.path().join("file");
     let writer = PackedWriter::new(&path).unwrap();
     let progress = Default::default();

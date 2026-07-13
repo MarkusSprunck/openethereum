@@ -79,9 +79,7 @@ extern crate globset;
 extern crate kvdb_rocksdb;
 #[cfg(test)]
 extern crate rlp_compress;
-#[cfg(any(test, feature = "tempdir"))]
-extern crate tempdir;
-#[cfg(feature = "json-tests")]
+#[cfg(any(test, feature = "tempfile", feature = "json-tests"))]
 extern crate tempfile;
 #[cfg(feature = "json-tests")]
 extern crate walkdir;

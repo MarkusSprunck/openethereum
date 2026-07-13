@@ -22,7 +22,7 @@ extern crate parking_lot;
 extern crate tiny_keccak;
 
 #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 
 mod db;
 mod file;

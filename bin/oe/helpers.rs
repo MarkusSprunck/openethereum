@@ -376,7 +376,7 @@ mod tests {
     use ethereum_types::U256;
     use ethkey::Password;
     use std::{collections::HashSet, fs::File, io::Write, time::Duration};
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     #[test]
     fn test_to_duration() {
@@ -514,7 +514,7 @@ mod tests {
 
     #[test]
     fn test_password() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let path = tempdir.path().join("file");
         let mut file = File::create(&path).unwrap();
         file.write_all(b"a bc ").unwrap();
@@ -528,7 +528,7 @@ mod tests {
 
     #[test]
     fn test_password_multiline() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let path = tempdir.path().join("file");
         let mut file = File::create(path.as_path()).unwrap();
         file.write_all(

@@ -16,11 +16,15 @@ query-filters:
   - exclude:
       id: rust/hardcoded-credentials
 
-# Disable the `test` cfg flag so the Rust extractor skips all #[cfg(test)]
-# blocks entirely. This prevents macro expansion failures for test-only macros
-# like assert_eq!, assert_ne!, etc. that CodeQL cannot fully resolve.
 extractor:
   rust:
+    # Disable the `test` cfg flag so the Rust extractor skips all #[cfg(test)]
+    # blocks entirely. This prevents macro expansion failures for test-only macros
+    # like assert_eq!, assert_ne!, etc. that CodeQL cannot fully resolve.
     cargo_cfg_overrides:
       - "-test"
 
+    # Index dependency crates (not just the workspace crates) to improve
+    # call-target resolution. This raises the "Percentage of calls with call
+    # target" metric which was below the 50% threshold with build-mode: none.
+    index_dependencies: true

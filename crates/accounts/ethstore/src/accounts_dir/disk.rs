@@ -418,9 +418,9 @@ fn account_filename(account: &SafeAccount) -> String {
 
 #[cfg(test)]
 mod test {
-    extern crate tempdir;
+    extern crate tempfile;
 
-    use self::tempdir::TempDir;
+    use tempfile::TempDir;
     use super::{KeyDirectory, RootDiskDirectory, VaultKey};
     use account::SafeAccount;
     use crypto::publickey::{Generator, Random};
@@ -557,7 +557,7 @@ mod test {
     #[test]
     fn should_list_vaults() {
         // given
-        let temp_path = TempDir::new("").unwrap();
+        let temp_path = TempDir::new().unwrap();
         let directory = RootDiskDirectory::create(&temp_path).unwrap();
         let vault_provider = directory.as_vault_provider().unwrap();
         let iter = NonZeroU32::new(1).expect("1 > 0; qed");
@@ -577,7 +577,7 @@ mod test {
 
     #[test]
     fn hash_of_files() {
-        let temp_path = TempDir::new("").unwrap();
+        let temp_path = TempDir::new().unwrap();
         let directory = RootDiskDirectory::create(&temp_path).unwrap();
 
         let hash = directory

@@ -26,7 +26,7 @@ extern crate rustc_hex;
 extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
-extern crate tempdir;
+extern crate tempfile;
 extern crate time;
 
 extern crate ethereum_types;

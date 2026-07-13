@@ -1236,13 +1236,13 @@ mod tests {
     use ethereum_types::{H160, H256};
     use state::State;
     use std::str::FromStr;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use test_helpers::get_temp_state_db;
     use types::{view, views::BlockView};
 
     #[test]
     fn test_load_empty() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         assert!(Spec::load(&tempdir.path(), &[] as &[u8]).is_err());
     }
 

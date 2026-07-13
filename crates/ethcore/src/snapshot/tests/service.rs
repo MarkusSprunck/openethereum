@@ -27,7 +27,7 @@ use snapshot::{
     ManifestData, Progress, RestorationStatus, SnapshotService,
 };
 use spec::Spec;
-use tempdir::TempDir;
+use tempfile::TempDir;
 use test_helpers::{
     generate_dummy_client_with_spec_and_data, new_db, new_temp_db, restoration_db_handler,
 };
@@ -54,7 +54,7 @@ fn restored_is_equivalent() {
         false,
     );
 
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let client_db = tempdir.path().join("client_db");
     let path = tempdir.path().join("snapshot");
 
@@ -117,7 +117,7 @@ fn guards_delete_folders() {
         generate_dummy_client_with_spec_and_data(Spec::new_null, 400, 5, &gas_prices, false);
 
     let spec = Spec::new_null();
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let service_params = ServiceParams {
         engine: spec.engine.clone(),
         genesis_block: spec.genesis_block(),
@@ -172,7 +172,7 @@ fn keep_ancient_blocks() {
     };
 
     // Temporary folders
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let snapshot_path = tempdir.path().join("SNAP");
 
     // Generate blocks
@@ -302,7 +302,7 @@ fn recover_aborted_recovery() {
         generate_dummy_client_with_spec_and_data(Spec::new_null, NUM_BLOCKS, 5, &gas_prices, false);
 
     let spec = Spec::new_null();
-    let tempdir = TempDir::new("oe_snapshot").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let db_config = DatabaseConfig::with_columns(::db::NUM_COLUMNS);
     let client_db = new_db();
     let client2 = Client::new(

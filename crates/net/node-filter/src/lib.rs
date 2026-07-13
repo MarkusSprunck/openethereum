@@ -32,7 +32,7 @@ extern crate ethcore_io as io;
 #[cfg(test)]
 extern crate kvdb_memorydb;
 #[cfg(test)]
-extern crate tempdir;
+extern crate tempfile;
 #[macro_use]
 extern crate log;
 
@@ -110,14 +110,14 @@ mod test {
         str::FromStr,
         sync::{Arc, Weak},
     };
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     /// Contract code: https://gist.github.com/arkpar/467dbcc73cbb85b0997a7a10ffa0695f
     #[test]
     fn node_filter() {
         let contract_addr = Address::from_str("0000000000000000000000000000000000000005").unwrap();
         let data = include_bytes!("../res/node_filter.json");
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let spec = Spec::load(&tempdir.path(), &data[..]).unwrap();
         let client_db = test_helpers::new_db();
 

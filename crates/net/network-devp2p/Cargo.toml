@@ -37,7 +37,7 @@ lru-cache = "0.1"
 
 [dev-dependencies]
 env_logger = "0.5"
-tempdir = "0.3.7"
+tempfile = "3.27.0"
 assert_matches = "1.2"
 
 [features]

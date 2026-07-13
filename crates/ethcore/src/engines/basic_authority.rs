@@ -232,14 +232,14 @@ mod tests {
     use hash::keccak;
     use spec::Spec;
     use std::sync::Arc;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use test_helpers::get_temp_state_db;
     use types::header::Header;
 
     /// Create a new test chain spec with `BasicAuthority` consensus engine.
     fn new_test_authority() -> Spec {
         let bytes: &[u8] = include_bytes!("../../res/chainspec/test/basic_authority.json");
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         Spec::load(&tempdir.path(), bytes).expect("invalid chain spec")
     }
 

@@ -1948,7 +1948,7 @@ mod tests {
     use crypto::publickey::Secret;
     use keccak_hash::keccak;
     use rustc_hex::FromHex;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     struct TestBlockChainDB {
         _blooms_dir: TempDir,
@@ -1977,8 +1977,8 @@ mod tests {
 
     /// Creates new test instance of `BlockChainDB`
     pub fn new_db() -> Arc<dyn BlockChainDB> {
-        let blooms_dir = TempDir::new("").unwrap();
-        let trace_blooms_dir = TempDir::new("").unwrap();
+        let blooms_dir = TempDir::new().unwrap();
+        let trace_blooms_dir = TempDir::new().unwrap();
 
         let db = TestBlockChainDB {
             blooms: blooms_db::Database::open(blooms_dir.path()).unwrap(),

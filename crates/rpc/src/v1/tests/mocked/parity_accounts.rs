@@ -19,7 +19,7 @@ use std::{str::FromStr, sync::Arc};
 use accounts::{AccountProvider, AccountProviderSettings};
 use ethereum_types::Address;
 use ethstore::{accounts_dir::RootDiskDirectory, EthStore};
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 use jsonrpc_core::IoHandler;
 use v1::{ParityAccounts, ParityAccountsClient, ParityAccountsInfo};
@@ -272,7 +272,7 @@ fn should_be_able_to_remove_address() {
 
 #[test]
 fn rpc_parity_new_vault() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     let request = r#"{"jsonrpc": "2.0", "method": "parity_newVault", "params":["vault1", "password1"], "id": 1}"#;
@@ -291,7 +291,7 @@ fn rpc_parity_new_vault() {
 
 #[test]
 fn rpc_parity_open_vault() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     assert!(tester
@@ -311,7 +311,7 @@ fn rpc_parity_open_vault() {
 
 #[test]
 fn rpc_parity_close_vault() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     assert!(tester
@@ -331,7 +331,7 @@ fn rpc_parity_close_vault() {
 
 #[test]
 fn rpc_parity_change_vault_password() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     assert!(tester
@@ -350,7 +350,7 @@ fn rpc_parity_change_vault_password() {
 
 #[test]
 fn rpc_parity_change_vault() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     let (address, _) = tester
@@ -375,7 +375,7 @@ fn rpc_parity_change_vault() {
 
 #[test]
 fn rpc_parity_vault_adds_vault_field_to_acount_meta() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     let (address1, _) = tester
@@ -420,7 +420,7 @@ fn rpc_parity_vault_adds_vault_field_to_acount_meta() {
 
 #[test]
 fn rpc_parity_list_vaults() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     assert!(tester
@@ -445,7 +445,7 @@ fn rpc_parity_list_vaults() {
 
 #[test]
 fn rpc_parity_list_opened_vaults() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     assert!(tester
@@ -476,7 +476,7 @@ fn rpc_parity_list_opened_vaults() {
 
 #[test]
 fn rpc_parity_get_set_vault_meta() {
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let tester = setup_with_vaults_support(tempdir.path().to_str().unwrap());
 
     assert!(tester

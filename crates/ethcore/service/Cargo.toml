@@ -20,7 +20,7 @@ trace-time = "0.1"
 [dev-dependencies]
 ethcore-db = { path = "../../db/db" }
 ethcore = { path = "..", features = ["test-helpers"] }
-tempdir = "0.3.7"
+tempfile = "3.27.0"
 kvdb-rocksdb = "0.1.6"
 
 [lints.rust]

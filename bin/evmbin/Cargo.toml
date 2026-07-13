@@ -28,7 +28,7 @@ vm = { path = "../../crates/vm/vm" }
 [dev-dependencies]
 criterion = "0.3.0"
 pretty_assertions = "0.1.2"
-tempdir = "0.3.7"
+tempfile = "3.27.0"
 
 [features]
 evm-debug = ["ethcore/evm-debug-tests"]

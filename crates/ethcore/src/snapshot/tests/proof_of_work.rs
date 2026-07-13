@@ -18,7 +18,7 @@
 
 use error::{Error, ErrorKind};
 use std::sync::atomic::AtomicBool;
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 use blockchain::{
     generator::{BlockBuilder, BlockGenerator},
@@ -47,7 +47,7 @@ fn chunk_and_restore(amount: u64) {
     let genesis = genesis.last();
 
     let engine = ::spec::Spec::new_test().engine;
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     let snapshot_path = tempdir.path().join("SNAP");
 
     let old_db = test_helpers::new_db();

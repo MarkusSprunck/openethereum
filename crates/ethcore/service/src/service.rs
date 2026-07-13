@@ -237,7 +237,7 @@ impl IoHandler<ClientIoMessage> for ClientIoHandler {
 mod tests {
     use std::{sync::Arc, thread, time};
 
-    use tempdir::TempDir;
+    use tempfile::TempDir;
 
     use super::*;
     use ethcore::{client::ClientConfig, miner::Miner, spec::Spec, test_helpers};
@@ -246,7 +246,7 @@ mod tests {
 
     #[test]
     fn it_can_be_started() {
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let client_path = tempdir.path().join("client");
         let snapshot_path = tempdir.path().join("snapshot");
 

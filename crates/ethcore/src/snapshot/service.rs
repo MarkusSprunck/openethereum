@@ -1013,7 +1013,7 @@ mod tests {
     use journaldb::Algorithm;
     use snapshot::{ManifestData, RestorationStatus, SnapshotService};
     use spec::Spec;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use test_helpers::{generate_dummy_client_with_spec_and_data, restoration_db_handler};
 
     #[test]
@@ -1024,7 +1024,7 @@ mod tests {
         let service = IoService::<ClientIoMessage>::start("Test").unwrap();
         let spec = Spec::new_test();
 
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
         let dir = tempdir.path().join("snapshot");
 
         let snapshot_params = ServiceParams {
@@ -1064,7 +1064,7 @@ mod tests {
         use kvdb_rocksdb::DatabaseConfig;
 
         let spec = Spec::new_test();
-        let tempdir = TempDir::new("").unwrap();
+        let tempdir = TempDir::new().unwrap();
 
         let state_hashes: Vec<_> = (0..5).map(|_| H256::random()).collect();
         let block_hashes: Vec<_> = (0..5).map(|_| H256::random()).collect();

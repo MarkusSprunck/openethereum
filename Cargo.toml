@@ -79,7 +79,7 @@ prometheus = "0.14.0"
 [dev-dependencies]
 pretty_assertions = "0.1.2"
 ipnetwork = "0.12.8"        # fixed minor
-tempdir = "0.3.7"
+tempfile = "3.27.0"
 lazy_static = "1.5.0"
 
 [patch.crates-io]
@@ -88,6 +88,10 @@ aesni = { path = "crates/util/aes/aesni" }
 aes-soft = { path = "crates/util/aes-soft" }
 block-cipher-trait = { path = "crates/util/block-cipher-trait" }
 stream-cipher = { path = "crates/util/stream-cipher" }
+# Replaces tempdir 0.3.7 (which depends on remove_dir_all 0.5.3, CVE RUSTSEC-2021-0126)
+# with a local compatibility shim backed by tempfile 3.x (uses remove_dir_all >= 0.8).
+# This also fixes the transitive chain: parity-rocksdb → local-encoding → skeptic → tempdir.
+tempdir = { path = "crates/util/tempdir-compat" }
 
 [features]
 default = ["accounts"]
@@ -138,4 +142,11 @@ lto = true
 # This should only list projects that are not
 # in the dependency tree in any other way
 # (i.e. pretty much only standalone CLI tools)
-members = ["bin/ethkey", "bin/ethstore", "bin/evmbin", "bin/chainspec"]
+# tempdir-compat is a [patch.crates-io] shim — must be a workspace member so Cargo resolves it
+members = [
+    "bin/ethkey",
+    "bin/ethstore",
+    "bin/evmbin",
+    "bin/chainspec",
+    "crates/util/tempdir-compat",
+]

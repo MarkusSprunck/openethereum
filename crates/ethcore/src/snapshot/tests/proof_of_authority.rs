@@ -23,7 +23,7 @@ use client::{BlockChainClient, ChainInfo, Client};
 use crypto::publickey::Secret;
 use snapshot::tests::helpers as snapshot_helpers;
 use spec::Spec;
-use tempdir::TempDir;
+use tempfile::TempDir;
 use test_helpers::generate_dummy_client_with_spec;
 use types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
 
@@ -59,7 +59,7 @@ lazy_static! {
 /// `test_validator_set::ValidatorSet` provides a native wrapper for the ABi.
 fn spec_fixed_to_contract() -> Spec {
     let data = include_bytes!("test_validator_contract.json");
-    let tempdir = TempDir::new("").unwrap();
+    let tempdir = TempDir::new().unwrap();
     Spec::load(&tempdir.path(), &data[..]).unwrap()
 }
 

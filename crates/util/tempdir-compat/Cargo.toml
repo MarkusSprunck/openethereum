@@ -1,0 +1,11 @@
+[package]
+name = "tempdir"
+version = "0.3.7"
+authors = ["OpenEthereum contributors"]
+description = "Compatibility shim: re-implements the tempdir 0.3.7 API using tempfile, eliminating the remove_dir_all 0.5.x CVE (RUSTSEC-2021-0126)."
+license = "MIT/Apache-2.0"
+edition = "2021"
+
+[dependencies]
+tempfile = "3.27.0"
+
