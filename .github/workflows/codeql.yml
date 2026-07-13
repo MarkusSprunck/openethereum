@@ -20,14 +20,30 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            yasm gcc g++ \
+            liblz4-dev libzstd-dev libsnappy-dev
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: rust
+          build-mode: manual
           config-file: ./.github/codeql/codeql-config.yml
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      # Manual build gives CodeQL full type and call-target information.
+      # autobuild often misses workspace crates and [patch.crates-io] overrides,
+      # which causes low "calls with call target" scores (was 45 %, threshold 50 %).
+      - name: Build (manual)
+        run: cargo build --all
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
