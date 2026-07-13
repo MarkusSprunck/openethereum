@@ -10,6 +10,11 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    # Cancel any in-progress run for the same ref to avoid duplicate analysis
+    # when a push to main simultaneously triggers both push and pull_request events.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     permissions:
       security-events: write
     steps:
