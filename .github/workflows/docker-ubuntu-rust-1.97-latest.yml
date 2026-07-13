@@ -28,12 +28,13 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      # Full build and test run on the runner first so CodeQL's internal
-      # cargo check can reuse the warm target/ cache for better analysis quality.
+      # Build and test directly on the runner — one single build for both
+      # CodeQL analysis and the Docker image (via Dockerfile.ci).
       - name: Build and test
         run: |
           cargo test --all
           cargo build --release --features final
+          strip target/release/openethereum
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
@@ -60,10 +61,13 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
 
+      # Dockerfile.ci copies the pre-built binary from target/release/ instead
+      # of rebuilding from source, keeping the Docker layer lean and fast.
       - name: Build and push image
         uses: docker/build-push-action@v7
         with:
+          context: .
           sbom: true
           push: true
           tags: "ihkmunich/openethereum:latest-rust-1.97"
-          file: ./.github/docker/ubuntu-rust-1.97/Dockerfile
+          file: ./.github/docker/ubuntu-rust-1.97/Dockerfile.ci
