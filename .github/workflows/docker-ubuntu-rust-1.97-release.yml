@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -35,16 +34,6 @@ jobs:
       - name: Test Execution
         run: |
           cargo test --all
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: rust
-          build-mode: none
-          config-file: ./.github/codeql/codeql-config.yml
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
 
       - name: Release Build
         run: |

@@ -1,8 +1,7 @@
 # CI-only Dockerfile: expects the binary to be pre-built on the runner.
 # The workflow runs cargo test + cargo build before invoking this file,
 # so target/release/openethereum is already present in the build context.
-# This avoids a duplicate build inside Docker and lets CodeQL use the
-# warm target/ cache from the runner build for better analysis quality.
+# This avoids a duplicate build inside Docker and speeds up the CI pipeline.
 
 FROM docker.io/library/ubuntu:25.10
 

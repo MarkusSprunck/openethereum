@@ -1398,7 +1398,27 @@ fn should_not_return_pending_external_transactions_with_too_low_priority_fee_if_
     // given
     let client = TestClient::new().with_balance(1_000_000);
     let block_base_fee = 1.into();
-    let txq = new_queue();
+    // Use usize::MAX for max_mem_usage so memory-pressure eviction never removes
+    // tx2 before the second pending() call. TEST_QUEUE_MAX_MEM is sized for 3
+    // transactions; on Linux the allocator measures each tx larger than on macOS,
+    // causing tx2 to be silently evicted when local tx3/tx4 are imported, making
+    // the non-enforced pending count 3 instead of 4.
+    let txq = TransactionQueue::new(
+        txpool::Options {
+            max_count: 4,
+            max_per_sender: 3,
+            max_mem_usage: usize::MAX,
+        },
+        verifier::Options {
+            minimal_gas_price: 1.into(),
+            block_gas_limit: 1_000_000.into(),
+            tx_gas_limit: 1_000_000.into(),
+            no_early_reject: false,
+            block_base_fee: None,
+            allow_non_eoa_sender: false,
+        },
+        PrioritizationStrategy::GasPriceOnly,
+    );
     txq.set_verifier_options(verifier::Options {
         minimal_gas_price: 3.into(),
         block_base_fee: Some(block_base_fee),
