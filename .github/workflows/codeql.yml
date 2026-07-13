@@ -36,14 +36,9 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: rust
-          build-mode: manual
+          build-mode: none
           config-file: ./.github/codeql/codeql-config.yml
 
-      # Manual build gives CodeQL full type and call-target information.
-      # autobuild often misses workspace crates and [patch.crates-io] overrides,
-      # which causes low "calls with call target" scores (was 45 %, threshold 50 %).
-      - name: Build (manual)
-        run: cargo build --all
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
