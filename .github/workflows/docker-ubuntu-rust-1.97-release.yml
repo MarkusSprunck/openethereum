@@ -11,6 +11,8 @@ env:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
