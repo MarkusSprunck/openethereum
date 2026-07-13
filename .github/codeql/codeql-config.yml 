@@ -1,6 +1,0 @@
-name: "CodeQL Config"
-
-paths-ignore:
-  - "**/*_test.rs"
-  - "**/tests/**"
-  - "**/test_*.rs"
