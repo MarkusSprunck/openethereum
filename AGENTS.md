@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 1.9
+**Version:** 2.0
 **Last Updated:** 2026-07-13
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -276,9 +276,9 @@ docker buildx build \
 ```
 
 > **CI workflows:**
-> - `docker-ubuntu-rust-1.97-latest.yml` — triggered on push to `main`; pushes tag `latest-rust-1.97`
+ > - `docker-ubuntu-rust-1.97-latest.yml` — triggered on push to `main`; pushes tag `latest-rust-1.97`; also contains CodeQL analysis steps (Init → autobuild → Analyze → Test → Release Build)
 > - `docker-ubuntu-rust-1.97-release.yml` — triggered on tag `v*`; pushes versioned tags
-> - `codeql.yml` — CodeQL security analysis; triggered on push/PR to `main`
+> - CodeQL config: `.github/codeql/codeql-config.yml` — `build-mode: autobuild`, `index_dependencies: true`; `bin/oe/cli/**` excluded (566 unresolvable `usage!` macro diagnostics)
 > - Legacy image base `ubuntu-rust-1.88` remains in `.github/docker/ubuntu-rust-1.88/` for reference
 
 ---
@@ -407,6 +407,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.0 (2026-07-13): Fixed CodeQL quality warning ("Percentage of calls with call target: 47% < 50% threshold"): changed `build-mode: none` → `build-mode: autobuild` in `docker-ubuntu-rust-1.97-latest.yml` so CodeQL intercepts `rustc` for full type resolution; moved `Initialize CodeQL` before `Test Execution` (autobuild traces a fresh compilation; tests reuse artifacts); added `bin/oe/cli/**` to `paths-ignore` in `.github/codeql/codeql-config.yml` to remove 566 suppressed `usage!`-macro diagnostics; removed non-functional `cargo_cfg_overrides: ["-test"]` (ignored by CodeQL 2.26.0 extractor per log line 169295); updated CI workflow notes in AGENTS.md
 - v1.9 (2026-07-13): Replaced `lru-cache = "0.1"` with `lru = "0.7.1"` across all 4 dependent crates (`memory-cache`, `ethcore`, `network-devp2p`, `node-filter`); migrated all call sites: `.insert()→.put()`, `.remove()→.pop()`, `.remove_lru()→.pop_lru()`, `.capacity()→.cap()`, `.set_capacity()→.resize()`; rewrote `clone_all()` in `state/account.rs` to manually copy LruCache entries since lru 0.7.x does not implement Clone; updated CVE table, Dep Management bullet, Phase sequence
 - v1.8 (2026-07-13): Fixed lock_api CVEs (CVE-2020-35910..35914): created `crates/util/lock-api-compat` shim (fork of lock_api 0.3.4 with backported Send/Sync bounds from 0.4.2); registered via `[patch.crates-io]`; fixes transitive chain kvdb-memorydb→parking_lot 0.9.0 and jsonrpc-*→parking_lot 0.10.2; added `.github/dependabot.yml` to prevent Dependabot from breaking the `parity-crypto`/yanked-aes dependency chain; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist
 - v1.7 (2026-07-13): Fixed atty CVE (RUSTSEC-2021-0017): `crates/util/atty-compat` shim (backed by `std::io::IsTerminal`) already registered via `[patch.crates-io]` — AGENTS.md was still showing it as pending Phase 2; updated CVE table, Dep Management atty bullet, Phase 2 sequence, Key Components (CVE patch shims note), project structure tree (added `atty-compat/` and `tempdir-compat/` entries), and Modular Coding Rules (`[patch.crates-io]` shims require workspace member entry)

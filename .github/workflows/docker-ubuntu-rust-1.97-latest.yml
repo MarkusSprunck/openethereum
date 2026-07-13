@@ -31,19 +31,32 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      - name: Test Execution
-        run: |
-          cargo test --all
-
+      # CodeQL Init must come BEFORE any cargo build so autobuild can trace
+      # the rustc invocations. Test Execution is placed AFTER CodeQL Analyze
+      # and reuses the debug artifacts produced by autobuild (incremental → fast).
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: rust
-          build-mode: none
+          # autobuild replaces build-mode: none; CodeQL intercepts rustc calls
+          # which resolves types and macro expansions, pushing the
+          # "Percentage of calls with call target" metric above the 50% threshold.
+          build-mode: autobuild
           config-file: ./.github/codeql/codeql-config.yml
+
+      # Explicit autobuild step: recommended pattern for build-mode: autobuild.
+      # Runs `cargo build` under CodeQL's compiler-tracing wrapper so all rustc
+      # invocations are captured before the Analyze step processes the database.
+      - name: Build for CodeQL
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
+
+      # Runs after CodeQL so debug artifacts from autobuild are reused (fast).
+      - name: Test Execution
+        run: |
+          cargo test --all
 
       - name: Release Build
         run: |

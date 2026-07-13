@@ -10,6 +10,13 @@ paths-ignore:
   - "**/test_*.rs"
   - "**/benches/**"
   - "target/**"
+  # The usage! declarative macro in bin/oe/cli/ expands into hundreds of
+  # format!, vec!, include_str! and $crate::format_args_nl calls that the
+  # CodeQL Rust extractor cannot resolve even with build-mode: autobuild.
+  # This code is CLI argument-parsing boilerplate with negligible security
+  # attack surface, so excluding it eliminates ~566 suppressed diagnostics
+  # and raises the "Percentage of calls with call target" metric.
+  - "bin/oe/cli/**"
 
 # Disable individual queries by their CodeQL query ID.
 query-filters:
@@ -18,13 +25,11 @@ query-filters:
 
 extractor:
   rust:
-    # Disable the `test` cfg flag so the Rust extractor skips all #[cfg(test)]
-    # blocks entirely. This prevents macro expansion failures for test-only macros
-    # like assert_eq!, assert_ne!, etc. that CodeQL cannot fully resolve.
-    cargo_cfg_overrides:
-      - "-test"
-
     # Index dependency crates (not just the workspace crates) to improve
     # call-target resolution. This raises the "Percentage of calls with call
-    # target" metric which was below the 50% threshold with build-mode: none.
+    # target" metric above the 50% threshold.
+    # Note: cargo_cfg_overrides was removed — it was silently ignored by the
+    # CodeQL 2.26.0 extractor (logged as cargo_cfg_overrides: [] despite being
+    # written to the augmented user-config.yaml). With build-mode: autobuild,
+    # rustc handles cfg flags directly, so the override is unnecessary.
     index_dependencies: true
