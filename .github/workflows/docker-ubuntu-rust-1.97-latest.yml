@@ -12,7 +12,39 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      security-events: write
     steps:
+      - uses: actions/checkout@v5
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            yasm gcc g++ \
+            liblz4-dev libzstd-dev libsnappy-dev
+
+      - name: Install Rust toolchain
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.97
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      # Full build and test run on the runner first so CodeQL's internal
+      # cargo check can reuse the warm target/ cache for better analysis quality.
+      - name: Build and test
+        run: |
+          cargo test --all
+          cargo build --release --features final
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: rust
+          build-mode: none
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v4
 
