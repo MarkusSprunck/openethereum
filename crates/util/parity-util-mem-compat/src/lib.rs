@@ -16,32 +16,29 @@
 extern crate alloc;
 
 cfg_if::cfg_if! {
-	if #[cfg(all(
-		feature = "jemalloc-global",
-		not(target_os = "windows"),
-		not(target_arch = "wasm32")
-	))] {
-		/// Global allocator
-		#[global_allocator]
-		pub static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
-	} else if #[cfg(feature = "dlmalloc-global")] {
-		/// Global allocator
-		#[global_allocator]
-		pub static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
-	} else if #[cfg(feature = "weealloc-global")] {
-		/// Global allocator
-		#[global_allocator]
-		pub static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-	} else if #[cfg(all(
-			feature = "mimalloc-global",
-			not(target_arch = "wasm32")
-		))] {
-		/// Global allocator
-		#[global_allocator]
-		pub static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
-	} else {
-		// default allocator used
-	}
+        if #[cfg(all(
+                feature = "jemalloc-global",
+                not(target_os = "windows"),
+                not(target_arch = "wasm32")
+        ))] {
+                /// Global allocator
+                #[global_allocator]
+                pub static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+        } else if #[cfg(feature = "dlmalloc-global")] {
+                /// Global allocator
+                #[global_allocator]
+                pub static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
+        // weealloc-global removed: wee_alloc is unmaintained and not used in this project
+        } else if #[cfg(all(
+                        feature = "mimalloc-global",
+                        not(target_arch = "wasm32")
+                ))] {
+                /// Global allocator
+                #[global_allocator]
+                pub static ALLOC: mimalloc::MiMalloc = mimalloc::MiMalloc;
+        } else {
+                // default allocator used
+        }
 }
 
 pub mod allocators;

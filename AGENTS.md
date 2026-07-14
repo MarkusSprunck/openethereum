@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 2.1
+**Version:** 2.2
 **Last Updated:** 2026-07-14
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -408,6 +408,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.2 (2026-07-14): Removed unmaintained `wee_alloc 0.4.5` from `parity-util-mem-compat`: deleted optional dep, removed `weealloc-global` feature, stripped dead cfg-branch from `allocators.rs` and `lib.rs`; `wee_alloc` fully absent from Cargo.lock; 0 warnings 0 errors
 - v2.1 (2026-07-14): Fixed lru RUSTSEC vulnerabilities (Dependabot #12/#18): created `crates/util/parity-util-mem-compat` local fork of `parity-util-mem 0.7.0` with `lru` upgraded from `0.5.3` to `0.7.8`; the `LruCache<K,V,S>` API used (`.iter()`, `.len()`) is identical in both versions so no source changes were required; registered via `[patch.crates-io]` and added to `[workspace] members`; `lru 0.5.3` fully removed from Cargo.lock; 0 warnings 0 errors; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist; updated MAINTENANCE.md § parity-util-mem to mark both Dependabot alerts as FIXED
 - v2.0 (2026-07-13): Removed CodeQL entirely from both CI workflows (unstable autobuild, non-deterministic results); deleted `.github/codeql/codeql-config.yml` and `.github/codeql/` directory; removed `security-events: write` permission from both workflow files; restored `Test Execution` to its original position (before Release Build) in `docker-ubuntu-rust-1.97-latest.yml`; cleaned up all CodeQL references in AGENTS.md; fixed flaky test `should_not_return_pending_external_transactions_with_too_low_priority_fee_if_priority_fees_are_enforced` by replacing `new_queue()` (max_mem_usage=100, enough for 3 txs only) with an inline queue using `max_mem_usage: usize::MAX` to prevent allocator-dependent eviction of tx2 on Linux CI
 - v1.9 (2026-07-13): Replaced `lru-cache = "0.1"` with `lru = "0.7.8"` across all 4 dependent crates (`memory-cache`, `ethcore`, `network-devp2p`, `node-filter`); migrated all call sites: `.insert()→.put()`, `.remove()→.pop()`, `.remove_lru()→.pop_lru()`, `.capacity()→.cap()`, `.set_capacity()→.resize()`; rewrote `clone_all()` in `state/account.rs` to manually copy LruCache entries since lru 0.7.x does not implement Clone; updated CVE table, Dep Management bullet, Phase sequence

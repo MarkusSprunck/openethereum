@@ -23,10 +23,7 @@ build = "build.rs"
 [dependencies]
 cfg-if = "0.1.10"
 dlmalloc = { version = "0.1.3", features = ["global"], optional = true }
-wee_alloc = { version = "0.4.5", optional = true }
-# Upgraded from lru 0.5.3 → 0.7.8 to fix RUSTSEC lru vulnerabilities.
-# The MallocSizeOf impl in malloc_size.rs uses only .iter() and .len(),
-# which have identical signatures in lru 0.5.x and 0.7.x.
+# wee_alloc removed: unmaintained crate (RUSTSEC), weealloc-global feature not used in this project.
 lru = { version = "0.7.8", optional = true }
 hashbrown = { version = "0.8", optional = true }
 mimalloc = { version = "0.1.18", optional = true }
@@ -50,7 +47,7 @@ optional = true
 default = ["std", "ethereum-impls", "lru", "hashbrown", "smallvec", "primitive-types"]
 std = ["parking_lot"]
 dlmalloc-global = ["dlmalloc", "estimate-heapsize"]
-weealloc-global = ["wee_alloc", "estimate-heapsize"]
+# weealloc-global removed: wee_alloc is unmaintained and not used in this project
 jemalloc-global = ["jemallocator"]
 mimalloc-global = ["mimalloc", "libmimalloc-sys"]
 ethereum-impls = ["ethereum-types", "primitive-types"]

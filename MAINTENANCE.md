@@ -111,7 +111,7 @@ jsonrpc-* v15 -> v18
 
 `parity-util-mem` is a direct dependency of several crates. It is currently used at version `0.7.0` and would need to be upgraded to `0.11.0` for the full migration. As it is pre-1.0, this will likely introduce breaking changes. This will also require upgrading `ethereum-types` (`0.9.2` -> `0.13`), causing additional code changes and version conflicts that need to be resolved.
 
-The transitive `lru 0.5.3` vulnerability has been **fixed (2026-07-14)** by forking `parity-util-mem 0.7.0` as a local shim (`crates/util/parity-util-mem-compat`) that upgrades `lru 0.5.3 → 0.7.8`, registered via `[patch.crates-io]`. The `lru::LruCache<K, V, S>` API used (`.iter()`, `.len()`) is identical in both versions.
+The transitive `lru 0.5.3` and `wee_alloc 0.4.5` vulnerabilities have been **fixed (2026-07-14)** by forking `parity-util-mem 0.7.0` as a local shim (`crates/util/parity-util-mem-compat`) that upgrades `lru 0.5.3 → 0.7.8` and removes the unmaintained `wee_alloc` optional dependency entirely (the `weealloc-global` feature was never activated in this project), registered via `[patch.crates-io]`.
 
 This upgrade will complete the remaining migration:
 

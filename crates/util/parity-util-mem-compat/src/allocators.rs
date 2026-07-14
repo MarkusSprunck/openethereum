@@ -50,8 +50,8 @@ mod usable_size {
 		if #[cfg(any(
 			target_arch = "wasm32",
 			feature = "estimate-heapsize",
-			feature = "weealloc-global",
 			feature = "dlmalloc-global",
+			// weealloc-global removed: wee_alloc is unmaintained and not used in this project
 		))] {
 
 			// do not try system allocator
