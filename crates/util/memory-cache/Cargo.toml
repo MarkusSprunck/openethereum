@@ -8,4 +8,4 @@ license = "GPL3"
 
 [dependencies]
 parity-util-mem = "0.7"
-lru = "0.7.1"
+lru = "0.7.8"

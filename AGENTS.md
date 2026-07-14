@@ -1,7 +1,7 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 2.0
-**Last Updated:** 2026-07-13
+**Version:** 2.1
+**Last Updated:** 2026-07-14
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
 
@@ -32,7 +32,7 @@ This file provides AI coding agents with the essential context to be immediately
 - **Full-node wiring:** `run.rs` connects client, sync, RPC, and miner subsystems
 - **Feature-gated subsystems:** `accounts` (default), `secretstore`, `json-tests`, `deadlock_detection`, `memory_profiling`
 - **Local crypto forks:** `aes`, `aesni`, `aes-soft`, `block-cipher-trait`, `stream-cipher` patched via `[patch.crates-io]`
-- **CVE patch shims:** `atty-compat` (RUSTSEC-2021-0017), `tempdir-compat` (RUSTSEC-2021-0126), and `lock-api-compat` (CVE-2020-35910..35914) are local shims registered via `[patch.crates-io]`; all three must be workspace members so Cargo resolves them
+- **CVE patch shims:** `atty-compat` (RUSTSEC-2021-0017), `tempdir-compat` (RUSTSEC-2021-0126), `lock-api-compat` (CVE-2020-35910..35914), and `parity-util-mem-compat` (lru RUSTSEC Dependabot #12/#18) are local shims registered via `[patch.crates-io]`; all four must be workspace members so Cargo resolves them
 - **Standalone workspace members:** `bin/ethkey`, `bin/ethstore`, `bin/evmbin`, `bin/chainspec` — NOT in main dependency tree
 
 ### Project Structure
@@ -120,6 +120,7 @@ openethereum/
 │   ├── stats/                     ← Moving average & histogram stats
 │   ├── keccak-hasher/             ← Keccak256 hasher for trie
 │   ├── lock-api-compat/           ← CVE shim replacing lock_api 0.3.4 (CVE-2020-35910..35914); **FIXED (2026-07-13)**
+│   ├── parity-util-mem-compat/    ← CVE shim: fork of parity-util-mem 0.7.0 with lru 0.5.3→0.7.8 (Dependabot #12/#18); **FIXED (2026-07-14)**
 │   ├── stream-cipher/             ← Local stream-cipher fork
 │   ├── tempdir-compat/            ← CVE shim replacing tempdir 0.3.7 (RUSTSEC-2021-0126); **FIXED (2026-07-13)**
 │   ├── version/                   ← parity-version: build version string
@@ -291,6 +292,7 @@ docker buildx build \
 - [ ] `secp256k1` version remains constrained by `parity-crypto v0.6.2`
 - [ ] `atty` replacement is safe but only relevant for Windows builds (already FIXED 2026-07-13)
 - [ ] `lock_api` CVE backport-fix is in place; full elimination requires Phase 3 `jsonrpc-*` upgrade
+- [ ] `lru` vulnerability in `parity-util-mem` fixed via `parity-util-mem-compat` shim (FIXED 2026-07-14); full elimination requires Phase 3 parity-util-mem 0.11.0 upgrade
 - [ ] New RPC endpoints require auth/CORS review in `crates/rpc-servers/src/`
 
 ### Known Vulnerable Dependencies ⚠️
@@ -298,7 +300,7 @@ docker buildx build \
 | Dependency | Current | Fix Available | Blocker |
 |---|---|---|---|
 | `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration (Phase 3) |
-| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3) |
+| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3); lru CVE fixed via local shim (2026-07-14) |
 | `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
 | `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
 
@@ -406,8 +408,9 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.1 (2026-07-14): Fixed lru RUSTSEC vulnerabilities (Dependabot #12/#18): created `crates/util/parity-util-mem-compat` local fork of `parity-util-mem 0.7.0` with `lru` upgraded from `0.5.3` to `0.7.8`; the `LruCache<K,V,S>` API used (`.iter()`, `.len()`) is identical in both versions so no source changes were required; registered via `[patch.crates-io]` and added to `[workspace] members`; `lru 0.5.3` fully removed from Cargo.lock; 0 warnings 0 errors; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist; updated MAINTENANCE.md § parity-util-mem to mark both Dependabot alerts as FIXED
 - v2.0 (2026-07-13): Removed CodeQL entirely from both CI workflows (unstable autobuild, non-deterministic results); deleted `.github/codeql/codeql-config.yml` and `.github/codeql/` directory; removed `security-events: write` permission from both workflow files; restored `Test Execution` to its original position (before Release Build) in `docker-ubuntu-rust-1.97-latest.yml`; cleaned up all CodeQL references in AGENTS.md; fixed flaky test `should_not_return_pending_external_transactions_with_too_low_priority_fee_if_priority_fees_are_enforced` by replacing `new_queue()` (max_mem_usage=100, enough for 3 txs only) with an inline queue using `max_mem_usage: usize::MAX` to prevent allocator-dependent eviction of tx2 on Linux CI
-- v1.9 (2026-07-13): Replaced `lru-cache = "0.1"` with `lru = "0.7.1"` across all 4 dependent crates (`memory-cache`, `ethcore`, `network-devp2p`, `node-filter`); migrated all call sites: `.insert()→.put()`, `.remove()→.pop()`, `.remove_lru()→.pop_lru()`, `.capacity()→.cap()`, `.set_capacity()→.resize()`; rewrote `clone_all()` in `state/account.rs` to manually copy LruCache entries since lru 0.7.x does not implement Clone; updated CVE table, Dep Management bullet, Phase sequence
+- v1.9 (2026-07-13): Replaced `lru-cache = "0.1"` with `lru = "0.7.8"` across all 4 dependent crates (`memory-cache`, `ethcore`, `network-devp2p`, `node-filter`); migrated all call sites: `.insert()→.put()`, `.remove()→.pop()`, `.remove_lru()→.pop_lru()`, `.capacity()→.cap()`, `.set_capacity()→.resize()`; rewrote `clone_all()` in `state/account.rs` to manually copy LruCache entries since lru 0.7.x does not implement Clone; updated CVE table, Dep Management bullet, Phase sequence
 - v1.8 (2026-07-13): Fixed lock_api CVEs (CVE-2020-35910..35914): created `crates/util/lock-api-compat` shim (fork of lock_api 0.3.4 with backported Send/Sync bounds from 0.4.2); registered via `[patch.crates-io]`; fixes transitive chain kvdb-memorydb→parking_lot 0.9.0 and jsonrpc-*→parking_lot 0.10.2; added `.github/dependabot.yml` to prevent Dependabot from breaking the `parity-crypto`/yanked-aes dependency chain; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist
 - v1.7 (2026-07-13): Fixed atty CVE (RUSTSEC-2021-0017): `crates/util/atty-compat` shim (backed by `std::io::IsTerminal`) already registered via `[patch.crates-io]` — AGENTS.md was still showing it as pending Phase 2; updated CVE table, Dep Management atty bullet, Phase 2 sequence, Key Components (CVE patch shims note), project structure tree (added `atty-compat/` and `tempdir-compat/` entries), and Modular Coding Rules (`[patch.crates-io]` shims require workspace member entry)
 - v1.6 (2026-07-13): Fixed remove_dir_all CVE (RUSTSEC-2021-0126): created `crates/util/tempdir-compat` local compat shim (tempdir 0.3.7 API backed by tempfile 3.27.0); registered via `[patch.crates-io]` in root Cargo.toml; removes tempdir 0.3.7 and remove_dir_all 0.5.3 entirely from Cargo.lock; added workspace member entry; all 4 shim unit tests pass; updated MAINTENANCE.md § Vulnerable Dependencies; updated AGENTS.md CVE table

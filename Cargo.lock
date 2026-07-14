@@ -59,15 +59,6 @@ dependencies = [
 
 [[package]]
 name = "ahash"
-version = "0.2.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29661b60bec623f0586702976ff4d0c9942dcb6723161c2df0eea78455cfedfb"
-dependencies = [
- "const-random",
-]
-
-[[package]]
-name = "ahash"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8fd72866655d1904d6b0997d0b07ba561047d070fbe29de039031c641b61217"
@@ -538,26 +529,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "const-random"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87e00182fe74b066627d63b85fd550ac2998d4b0bd86bfed477a0ae4c7c71359"
-dependencies = [
- "const-random-macro",
-]
-
-[[package]]
-name = "const-random-macro"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
-dependencies = [
- "getrandom 0.2.17",
- "once_cell",
- "tiny-keccak 2.0.2",
-]
-
-[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -932,6 +903,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dlmalloc"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35055b1021724f4eb5262eb49130eebff23fc59fc5a14160e05faad8eeb36673"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "docopt"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1196,7 +1176,7 @@ dependencies = [
  "lazy_static",
  "len-caching-lock",
  "log",
- "lru 0.7.8",
+ "lru",
  "macros",
  "maplit",
  "memory-cache",
@@ -1430,7 +1410,7 @@ dependencies = [
  "keccak-hash",
  "libc",
  "log",
- "lru 0.7.8",
+ "lru",
  "mio 0.6.23",
  "parity-bytes",
  "parity-crypto",
@@ -1814,6 +1794,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs_extra"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
+
+[[package]]
 name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2099,16 +2085,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92c171d55b98633f4ed3860808f004099b36c1cc29c42cfc53aa8591b21efcf2"
 dependencies = [
  "crunchy 0.2.4",
-]
-
-[[package]]
-name = "hashbrown"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e6073d0ca812575946eb5f35ff68dbe519907b25c42530389ff946dc84c6ead"
-dependencies = [
- "ahash 0.2.19",
- "autocfg 0.1.8",
 ]
 
 [[package]]
@@ -2611,6 +2587,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "jemalloc-sys"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d3b9f3f5c9b31aa0f5ed3260385ac205db665baa41d49bb8338008ae94ede45"
+dependencies = [
+ "cc",
+ "fs_extra",
+ "libc",
+]
+
+[[package]]
+name = "jemallocator"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43ae63fcfc45e99ab3d1b29a46782ad679e98436c3169d15a167a1108a724b69"
+dependencies = [
+ "jemalloc-sys",
+ "libc",
+]
+
+[[package]]
 name = "journaldb"
 version = "0.2.0"
 dependencies = [
@@ -2880,6 +2877,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "libmimalloc-sys"
+version = "0.1.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d1eacfa31c33ec25e873c136ba5669f00f9866d0688bea7be4d3f7e43067df6"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2955,15 +2961,6 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35c456c123957de3a220cd03786e0d86aa542a88b46029973b542f426da6ef34"
-dependencies = [
- "hashbrown 0.6.3",
-]
-
-[[package]]
-name = "lru"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e999beba7b6e8345721bd280141ed958096a2e4abdf74f67ff4ce49b4b54e47a"
@@ -3022,7 +3019,7 @@ dependencies = [
 name = "memory-cache"
 version = "0.1.0"
 dependencies = [
- "lru 0.7.8",
+ "lru",
  "parity-util-mem",
 ]
 
@@ -3053,6 +3050,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71d96e3f3c0b6325d8ccd83c33b28acb183edcb6c67938ba104ec546854b0882"
 
 [[package]]
+name = "memory_units"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
+
+[[package]]
 name = "migration-rocksdb"
 version = "0.1.0"
 dependencies = [
@@ -3061,6 +3064,15 @@ dependencies = [
  "log",
  "macros",
  "tempfile",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3627c4272df786b9260cabaa46aec1d59c93ede723d4c3ef646c503816b0640"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]
@@ -3189,7 +3201,7 @@ dependencies = [
  "ethereum-types 0.9.2",
  "kvdb-memorydb",
  "log",
- "lru 0.7.8",
+ "lru",
  "parking_lot 0.12.5",
  "tempfile",
 ]
@@ -3682,18 +3694,21 @@ dependencies = [
 [[package]]
 name = "parity-util-mem"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "297ff91fa36aec49ce183484b102f6b75b46776822bd81525bfc4cc9b0dd0f5c"
 dependencies = [
  "cfg-if 0.1.10",
+ "dlmalloc",
  "ethereum-types 0.9.2",
  "hashbrown 0.8.2",
  "impl-trait-for-tuples",
- "lru 0.5.3",
+ "jemallocator",
+ "libmimalloc-sys",
+ "lru",
+ "mimalloc",
  "parity-util-mem-derive",
  "parking_lot 0.10.2",
  "primitive-types 0.7.3",
  "smallvec 1.15.2",
+ "wee_alloc",
  "winapi 0.3.9",
 ]
 
@@ -5861,7 +5876,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4a6d379e9332b1b1f52c5a87f2481c85c7c931d8ec411963dfb8f26b1ec1e3"
 dependencies = [
  "byteorder",
- "memory_units",
+ "memory_units 0.3.0",
  "nan-preserving-float",
  "parity-wasm",
 ]
@@ -5874,6 +5889,18 @@ checksum = "8622dcb61c0bcc9fffa6938bed81210af2da9a7e4a1a834b2e37a59b6dfb6141"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "wee_alloc"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbb3b5a6b2bb17cb6ad44a2e68a43e8d2722c997da10e928665c72ec6c0a0b8e"
+dependencies = [
+ "cfg-if 0.1.10",
+ "libc",
+ "memory_units 0.4.0",
+ "winapi 0.3.9",
 ]
 
 [[package]]

@@ -100,6 +100,11 @@ tempdir = { path = "crates/util/tempdir-compat" }
 # Fixes the transitive chain: kvdb-memorydb 0.1.2 → parking_lot 0.9.0 → lock_api 0.3.4
 #                              jsonrpc-* v15       → parking_lot 0.10.2 → lock_api 0.3.4
 lock_api = { path = "crates/util/lock-api-compat" }
+# Replaces parity-util-mem 0.7.0 (which depends on lru 0.5.3, RUSTSEC vulnerabilities
+# Dependabot #12/#18) with a local fork that upgrades lru 0.5.3 → 0.7.8.
+# The lru::LruCache<K, V, S> API used (.iter(), .len()) is identical in both versions.
+# Remove when Phase 3 (parity-util-mem 0.11.0 + ethereum-types upgrade) is complete.
+parity-util-mem = { path = "crates/util/parity-util-mem-compat" }
 
 [features]
 default = ["accounts"]
@@ -152,6 +157,7 @@ lto = true
 # (i.e. pretty much only standalone CLI tools)
 # tempdir-compat and atty-compat are [patch.crates-io] shims — must be workspace members so Cargo resolves them
 # lock-api-compat is a [patch.crates-io] shim — must be a workspace member so Cargo resolves it
+# parity-util-mem-compat is a [patch.crates-io] shim — must be a workspace member so Cargo resolves it
 members = [
     "bin/ethkey",
     "bin/ethstore",
@@ -160,4 +166,5 @@ members = [
     "crates/util/atty-compat",
     "crates/util/tempdir-compat",
     "crates/util/lock-api-compat",
+    "crates/util/parity-util-mem-compat",
 ]
