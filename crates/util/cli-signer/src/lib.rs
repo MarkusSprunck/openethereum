@@ -126,7 +126,7 @@ pub fn signer_sign(
             Err(e) => return Err(format!("Could not open password file: {e}")),
         },
         None => {
-            password = match rpassword::prompt_password_stdout("Password: ") {
+            password = match rpassword::prompt_password("Password: ") {
                 Ok(p) => p,
                 Err(e) => return Err(format!("{e}")),
             }
