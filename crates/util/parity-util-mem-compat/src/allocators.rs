@@ -99,8 +99,8 @@ mod usable_size {
 
 		} else if #[cfg(any(target_os = "linux", target_os = "android"))] {
 
-			/// Linux call system allocator (currently malloc).
-			extern "C" {
+            // Linux call system allocator (currently malloc).
+            extern "C" {
 				pub fn malloc_usable_size(ptr: *const c_void) -> usize;
 			}
 
