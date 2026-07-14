@@ -16,12 +16,12 @@
 
 use client::{Rpc, RpcError};
 use ethereum_types::U256;
-use futures::Canceled;
 use rpc::signer::{ConfirmationRequest, TransactionCondition, TransactionModification};
 use serde;
 use serde_json::{to_value, Value as JsonValue};
-use std::path::PathBuf;
-use BoxFuture;
+use std::{path::PathBuf, pin::Pin};
+
+type BoxFuture<T> = Pin<Box<dyn std::future::Future<Output = Result<T, RpcError>> + Send>>;
 
 pub struct SignerRpc {
     rpc: Rpc,
@@ -34,9 +34,7 @@ impl SignerRpc {
         })
     }
 
-    pub fn requests_to_confirm(
-        &mut self,
-    ) -> BoxFuture<Result<Vec<ConfirmationRequest>, RpcError>, Canceled> {
+    pub fn requests_to_confirm(&mut self) -> BoxFuture<Vec<ConfirmationRequest>> {
         self.rpc.request("signer_requestsToConfirm", vec![])
     }
 
@@ -47,7 +45,7 @@ impl SignerRpc {
         new_gas_price: Option<U256>,
         new_condition: Option<Option<TransactionCondition>>,
         pwd: &str,
-    ) -> BoxFuture<Result<U256, RpcError>, Canceled> {
+    ) -> BoxFuture<U256> {
         self.rpc.request(
             "signer_confirmRequest",
             vec![
@@ -63,7 +61,7 @@ impl SignerRpc {
         )
     }
 
-    pub fn reject_request(&mut self, id: U256) -> BoxFuture<Result<bool, RpcError>, Canceled> {
+    pub fn reject_request(&mut self, id: U256) -> BoxFuture<bool> {
         self.rpc.request(
             "signer_rejectRequest",
             vec![JsonValue::String(format!("{id:#x}"))],

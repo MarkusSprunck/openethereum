@@ -19,11 +19,11 @@ use rustc_hex::FromHex;
 use std::{str::FromStr, sync::Arc};
 
 use ethcore::{client::TestBlockChainClient, miner::MinerService};
-use sync::ManageNetwork;
+use crate::sync::ManageNetwork;
 
 use super::manage_network::TestManageNetwork;
 use jsonrpc_core::IoHandler;
-use v1::{tests::helpers::TestMinerService, ParitySet, ParitySetClient};
+use crate::v1::{tests::helpers::TestMinerService, ParitySet, ParitySetClient};
 
 use fake_fetch::FakeFetch;
 
@@ -178,7 +178,7 @@ fn rpc_parity_set_hash_content() {
 
 #[test]
 fn rpc_parity_remove_transaction() {
-    use types::transaction::{Action, Transaction, TypedTransaction};
+    use crate::types::transaction::{Action, Transaction, TypedTransaction};
 
     let miner = miner_service();
     let client = client_service();
@@ -211,8 +211,8 @@ fn rpc_parity_remove_transaction() {
 #[test]
 fn rpc_parity_set_engine_signer() {
     use accounts::AccountProvider;
-    use bytes::ToPretty;
-    use v1::{impls::ParitySetAccountsClient, traits::ParitySetAccounts};
+    use crate::bytes::ToPretty;
+    use crate::v1::{impls::ParitySetAccountsClient, traits::ParitySetAccounts};
 
     let account_provider = Arc::new(AccountProvider::transient_provider());
     account_provider

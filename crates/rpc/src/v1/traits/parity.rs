@@ -23,7 +23,7 @@ use jsonrpc_core::{BoxFuture, Result};
 use jsonrpc_derive::rpc;
 
 use ethcore::miner::TransactionFilter;
-use v1::types::{
+use crate::v1::types::{
     BlockNumber, Bytes, CallRequest, ChainStatus, Histogram, LocalTransactionStatus, Peers,
     Receipt, RecoveredAccount, RichHeader, RpcSettings, Transaction, TransactionStats,
 };
@@ -85,7 +85,7 @@ pub trait Parity {
 
     /// Returns distribution of gas price in latest blocks.
     #[rpc(name = "parity_gasPriceHistogram")]
-    fn gas_price_histogram(&self) -> BoxFuture<Histogram>;
+    fn gas_price_histogram(&self) -> BoxFuture<Result<Histogram>>;
 
     /// Returns number of unsigned transactions waiting in the signer queue (if signer enabled)
     /// Returns error when signer is disabled
@@ -169,7 +169,7 @@ pub trait Parity {
 
     /// Returns next nonce for particular sender. Should include all transactions in the queue.
     #[rpc(name = "parity_nextNonce")]
-    fn next_nonce(&self, _: H160) -> BoxFuture<U256>;
+    fn next_nonce(&self, _: H160) -> BoxFuture<Result<U256>>;
 
     /// Get the mode. Returns one of: "active", "passive", "dark", "offline".
     #[rpc(name = "parity_mode")]
@@ -189,18 +189,18 @@ pub trait Parity {
 
     /// Get node kind info.
     #[rpc(name = "parity_nodeKind")]
-    fn node_kind(&self) -> Result<::v1::types::NodeKind>;
+    fn node_kind(&self) -> Result<crate::v1::types::NodeKind>;
 
     /// Get block header.
     /// Same as `eth_getBlockByNumber` but without uncles and transactions.
     #[rpc(name = "parity_getBlockHeaderByNumber")]
-    fn block_header(&self, _: Option<BlockNumber>) -> BoxFuture<RichHeader>;
+    fn block_header(&self, _: Option<BlockNumber>) -> BoxFuture<Result<RichHeader>>;
 
     /// Get block receipts.
     /// Allows you to fetch receipts from the entire block at once.
     /// If no parameter is provided defaults to `latest`.
     #[rpc(name = "parity_getBlockReceipts")]
-    fn block_receipts(&self, _: Option<BlockNumber>) -> BoxFuture<Vec<Receipt>>;
+    fn block_receipts(&self, _: Option<BlockNumber>) -> BoxFuture<Result<Vec<Receipt>>>;
 
     /// Call contract, returning the output data.
     #[rpc(name = "parity_call")]

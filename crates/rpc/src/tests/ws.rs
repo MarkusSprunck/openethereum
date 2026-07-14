@@ -21,11 +21,11 @@ use std::sync::Arc;
 use jsonrpc_core::MetaIoHandler;
 use ws;
 
-use tests::{
+use crate::tests::{
     helpers::{GuardedAuthCodes, Server},
     http_client,
 };
-use v1::{extractors, informant};
+use crate::v1::{extractors, informant};
 
 /// Setup a mock signer for tests
 #[must_use]
@@ -63,7 +63,7 @@ pub fn request(server: Server<ws::Server>, request: &str) -> http_client::Respon
 #[cfg(test)]
 mod testing {
     use super::{http_client, request, serve};
-    use hash::keccak;
+    use crate::hash::keccak;
     use std::time;
 
     #[test]

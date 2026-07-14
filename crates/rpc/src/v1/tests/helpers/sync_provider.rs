@@ -17,11 +17,11 @@
 //! Test implementation of `SyncProvider`.
 
 use ethereum_types::{H256, H512};
-use network::client_version::ClientVersion;
+use crate::network::client_version::ClientVersion;
 use parking_lot::RwLock;
 use stats::{PrometheusMetrics, PrometheusRegistry};
 use std::collections::BTreeMap;
-use sync::{EthProtocolInfo, PeerInfo, SyncProvider, SyncState, SyncStatus, TransactionStats};
+use crate::sync::{EthProtocolInfo, PeerInfo, SyncProvider, SyncState, SyncStatus, TransactionStats};
 
 /// `TestSyncProvider` config.
 pub struct Config {

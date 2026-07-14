@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 use super::oneshot;
 use ethereum_types::U256;
 use parking_lot::{Mutex, RwLock};
-use v1::{
+use crate::v1::{
     helpers::{
         errors,
         requests::{ConfirmationPayload, ConfirmationRequest},
@@ -235,10 +235,9 @@ impl SigningQueue for ConfirmationsQueue {
 #[cfg(test)]
 mod test {
     use ethereum_types::{Address, H256, U256};
-    use jsonrpc_core::futures::Future;
     use parking_lot::Mutex;
     use std::sync::Arc;
-    use v1::{
+    use crate::v1::{
         helpers::{
             external_signer::{ConfirmationsQueue, QueueEvent, SigningQueue},
             ConfirmationPayload, FilledTransactionRequest,
@@ -281,7 +280,7 @@ mod test {
         );
 
         // then
-        let confirmation = future.wait().unwrap();
+        let confirmation = futures::executor::block_on(future).unwrap();
         assert_eq!(
             confirmation,
             Ok(ConfirmationResponse::SendTransaction(

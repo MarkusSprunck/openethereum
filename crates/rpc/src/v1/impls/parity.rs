@@ -17,7 +17,7 @@
 //! Parity-specific rpc implementation.
 use std::{collections::BTreeMap, str::FromStr, sync::Arc};
 
-use crypto::{publickey::ecies, DEFAULT_MAC};
+use crate::crypto::{publickey::ecies, DEFAULT_MAC};
 use ethcore::{
     client::{BlockChainClient, Call, EngineInfo, StateClient},
     miner::{self, MinerService, TransactionFilter},
@@ -30,9 +30,9 @@ use ethkey::Brain;
 use ethstore::random_phrase;
 use jsonrpc_core::{futures::future, BoxFuture, Result};
 use stats::PrometheusMetrics;
-use sync::{ManageNetwork, SyncProvider};
-use types::ids::BlockId;
-use v1::{
+use crate::sync::{ManageNetwork, SyncProvider};
+use crate::types::ids::BlockId;
+use crate::v1::{
     helpers::{
         self,
         block_import::is_major_importing,
@@ -47,8 +47,8 @@ use v1::{
         Transaction, TransactionStats,
     },
 };
-use version::version_data;
-use Host;
+use crate::version::version_data;
+use crate::Host;
 
 /// Parity implementation.
 pub struct ParityClient<C, M>
@@ -188,8 +188,8 @@ where
         Ok(Bytes::new(version_data()))
     }
 
-    fn gas_price_histogram(&self) -> BoxFuture<Histogram> {
-        Box::new(future::done(
+    fn gas_price_histogram(&self) -> BoxFuture<Result<Histogram>> {
+        Box::pin(future::ready(
             self.client
                 .gas_price_corpus(100)
                 .histogram(10)
@@ -325,8 +325,8 @@ where
         helpers::to_url(&self.ws_address).ok_or_else(errors::ws_disabled)
     }
 
-    fn next_nonce(&self, address: H160) -> BoxFuture<U256> {
-        Box::new(future::ok(self.miner.next_nonce(&*self.client, &address)))
+    fn next_nonce(&self, address: H160) -> BoxFuture<Result<U256>> {
+        Box::pin(future::ok(self.miner.next_nonce(&*self.client, &address)))
     }
 
     fn mode(&self) -> Result<String> {
@@ -352,8 +352,8 @@ where
         Ok(ChainStatus { block_gap: gap })
     }
 
-    fn node_kind(&self) -> Result<::v1::types::NodeKind> {
-        use v1::types::{Availability, Capability, NodeKind};
+    fn node_kind(&self) -> Result<crate::v1::types::NodeKind> {
+        use crate::v1::types::{Availability, Capability, NodeKind};
 
         Ok(NodeKind {
             availability: Availability::Personal,
@@ -361,7 +361,7 @@ where
         })
     }
 
-    fn block_header(&self, number: Option<BlockNumber>) -> BoxFuture<RichHeader> {
+    fn block_header(&self, number: Option<BlockNumber>) -> BoxFuture<Result<RichHeader>> {
         const EXTRA_INFO_PROOF: &str = "Object exists in blockchain (fetched earlier), extra_info is always available if object exists; qed";
         let number = number.unwrap_or_default();
 
@@ -391,13 +391,13 @@ where
             (header, Some(info))
         };
 
-        Box::new(future::ok(RichHeader {
+        Box::pin(future::ok(RichHeader {
             inner: Header::new(&header, self.client.engine().params().eip1559_transition),
             extra_info: extra.unwrap_or_default(),
         }))
     }
 
-    fn block_receipts(&self, number: Option<BlockNumber>) -> BoxFuture<Vec<Receipt>> {
+    fn block_receipts(&self, number: Option<BlockNumber>) -> BoxFuture<Result<Vec<Receipt>>> {
         let number = number.unwrap_or_default();
 
         let id = match number {
@@ -407,7 +407,7 @@ where
                     .miner
                     .pending_receipts(info.best_block_number)
                     .ok_or_else(errors::unknown_block));
-                return Box::new(future::ok(receipts.into_iter().map(Into::into).collect()));
+                return Box::pin(future::ok(receipts.into_iter().map(Into::into).collect()));
             }
             BlockNumber::Hash { hash, .. } => BlockId::Hash(hash),
             BlockNumber::Num(num) => BlockId::Number(num),
@@ -418,7 +418,7 @@ where
             .client
             .localized_block_receipts(id)
             .ok_or_else(errors::unknown_block));
-        Box::new(future::ok(receipts.into_iter().map(Into::into).collect()))
+        Box::pin(future::ok(receipts.into_iter().map(Into::into).collect()))
     }
 
     fn call(&self, requests: Vec<CallRequest>, num: Option<BlockNumber>) -> Result<Vec<Bytes>> {

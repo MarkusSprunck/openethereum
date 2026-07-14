@@ -16,25 +16,22 @@
 
 use std::sync::{atomic, Arc};
 
-use jsonrpc_core::{
-    self as core,
-    futures::{self, Future, Stream},
-    MetaIoHandler,
-};
+use futures::StreamExt;
+use jsonrpc_core::{self as core, MetaIoHandler};
 use jsonrpc_pubsub::Session;
 
 use parity_runtime::Runtime;
-use v1::{Metadata, PubSub, PubSubClient};
+use crate::v1::{Metadata, PubSub, PubSubClient};
 
 fn rpc() -> MetaIoHandler<Metadata, core::NoopMiddleware> {
     let mut io = MetaIoHandler::default();
     let called = atomic::AtomicBool::new(false);
     io.add_method("hello", move |_| {
         if called.load(atomic::Ordering::SeqCst) {
-            Ok(core::Value::String("world".into()))
+            futures::future::ready(Ok(core::Value::String("world".into())))
         } else {
             called.store(true, atomic::Ordering::SeqCst);
-            Ok(core::Value::String("hello".into()))
+            futures::future::ready(Ok(core::Value::String("hello".into())))
         }
     });
     io
@@ -42,7 +39,10 @@ fn rpc() -> MetaIoHandler<Metadata, core::NoopMiddleware> {
 
 #[test]
 fn should_subscribe_to_a_method() {
-    // given
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
     let el = Runtime::with_thread_per_future();
     let rpc = rpc();
     let pubsub = PubSubClient::new_test(rpc, el.executor()).to_delegate();
@@ -51,7 +51,7 @@ fn should_subscribe_to_a_method() {
     io.extend_with(pubsub);
 
     let mut metadata = Metadata::default();
-    let (sender, receiver) = futures::sync::mpsc::channel(8);
+    let (sender, mut receiver) = futures::channel::mpsc::unbounded::<String>();
     metadata.session = Some(Arc::new(Session::new(sender)));
 
     // Subscribe
@@ -64,13 +64,13 @@ fn should_subscribe_to_a_method() {
     );
 
     // Check notifications
-    let (res, receiver) = receiver.into_future().wait().unwrap();
+    let res = rt.block_on(receiver.next());
     let response = r#"{"jsonrpc":"2.0","method":"parity_subscription","params":{"result":"hello","subscription":"0x43ca64edf03768e1"}}"#;
-    assert_eq!(res, Some(response.into()));
+    assert_eq!(res, Some(response.to_owned()));
 
-    let (res, receiver) = receiver.into_future().wait().unwrap();
+    let res = rt.block_on(receiver.next());
     let response = r#"{"jsonrpc":"2.0","method":"parity_subscription","params":{"result":"world","subscription":"0x43ca64edf03768e1"}}"#;
-    assert_eq!(res, Some(response.into()));
+    assert_eq!(res, Some(response.to_owned()));
 
     // And unsubscribe
     let request = r#"{"jsonrpc": "2.0", "method": "parity_unsubscribe", "params": ["0x43ca64edf03768e1"], "id": 1}"#;
@@ -80,6 +80,6 @@ fn should_subscribe_to_a_method() {
         Some(response.to_owned())
     );
 
-    let (res, _receiver) = receiver.into_future().wait().unwrap();
+    let res = rt.block_on(receiver.next());
     assert_eq!(res, None);
 }

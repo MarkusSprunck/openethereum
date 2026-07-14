@@ -18,21 +18,20 @@
 
 use std::sync::Arc;
 
-use crypto::publickey;
+use crate::crypto::publickey;
 use ethereum_types::{H520, U256};
 use parity_runtime::Executor;
 use parking_lot::Mutex;
-use types::transaction::{PendingTransaction, SignedTransaction, TypedTransaction};
+use crate::types::transaction::{PendingTransaction, SignedTransaction, TypedTransaction};
 
 use jsonrpc_core::{
-    futures::{future, future::Either, Future, IntoFuture},
     BoxFuture, Error, Result,
 };
 use jsonrpc_pubsub::{
     typed::{Sink, Subscriber},
     SubscriptionId,
 };
-use v1::{
+use crate::v1::{
     helpers::{
         deprecated::{self, DeprecationNotice},
         dispatch::{self, eth_data_hash, Dispatcher, WithToken},
@@ -101,53 +100,52 @@ impl<D: Dispatcher + 'static> SignerClient<D> {
         id: U256,
         modification: TransactionModification,
         f: F,
-    ) -> BoxFuture<WithToken<ConfirmationResponse>>
+    ) -> BoxFuture<Result<WithToken<ConfirmationResponse>>>
     where
-        F: FnOnce(D, &Arc<dyn dispatch::Accounts>, ConfirmationPayload) -> T,
-        T: IntoFuture<Item = WithToken<ConfirmationResponse>, Error = Error>,
-        T::Future: Send + 'static,
+        F: FnOnce(D, &Arc<dyn dispatch::Accounts>, ConfirmationPayload) -> T + Send + 'static,
+        T: std::future::Future<Output = std::result::Result<WithToken<ConfirmationResponse>, Error>>
+            + Send
+            + 'static,
     {
         let dispatcher = self.dispatcher.clone();
+        let accounts = self.accounts.clone();
         let signer = self.signer.clone();
 
-        Box::new(
-            signer
-                .take(&id)
-                .map(|sender| {
-                    let mut payload = sender.request.payload.clone();
-                    // Modify payload
-                    if let ConfirmationPayload::SendTransaction(ref mut request) = payload {
-                        if let Some(sender) = modification.sender {
-                            request.from = sender;
-                            // Altering sender should always reset the nonce.
-                            request.nonce = None;
-                        }
-                        if modification.gas_price.is_some() {
-                            request.gas_price = modification.gas_price;
-                        }
-                        if let Some(gas) = modification.gas {
-                            request.gas = gas;
-                        }
-                        if let Some(ref condition) = modification.condition {
-                            request.condition = condition.clone();
-                        }
-                    }
-                    let fut = f(dispatcher, &self.accounts, payload);
-                    Either::A(fut.into_future().then(move |result| {
-                        // Execute
-                        if let Ok(ref response) = result {
-                            signer.request_confirmed(sender, Ok((*response).clone()));
-                        } else {
-                            signer.request_untouched(sender);
-                        }
+        Box::pin(async move {
+            let sender = match signer.take(&id) {
+                Some(s) => s,
+                None => {
+                    return Err(errors::invalid_params("Unknown RequestID", id));
+                }
+            };
 
-                        result
-                    }))
-                })
-                .unwrap_or_else(|| {
-                    Either::B(future::err(errors::invalid_params("Unknown RequestID", id)))
-                }),
-        )
+            let mut payload = sender.request.payload.clone();
+            // Modify payload
+            if let ConfirmationPayload::SendTransaction(ref mut request) = payload {
+                if let Some(sender_addr) = modification.sender {
+                    request.from = sender_addr;
+                    // Altering sender should always reset the nonce.
+                    request.nonce = None;
+                }
+                if modification.gas_price.is_some() {
+                    request.gas_price = modification.gas_price;
+                }
+                if let Some(gas) = modification.gas {
+                    request.gas = gas;
+                }
+                if let Some(ref condition) = modification.condition {
+                    request.condition = condition.clone();
+                }
+            }
+
+            let result = f(dispatcher, &accounts, payload).await;
+            if let Ok(ref response) = result {
+                signer.request_confirmed(sender, Ok((*response).clone()));
+            } else {
+                signer.request_untouched(sender);
+            }
+            result
+        })
     }
 
     fn verify_transaction<F>(
@@ -217,21 +215,18 @@ impl<D: Dispatcher + 'static> Signer for SignerClient<D> {
         id: U256,
         modification: TransactionModification,
         pass: String,
-    ) -> BoxFuture<ConfirmationResponse> {
+    ) -> BoxFuture<Result<ConfirmationResponse>> {
         self.deprecation_notice
             .print("signer_confirmRequest", deprecated::msgs::ACCOUNTS);
-
-        Box::new(
-            self.confirm_internal(id, modification, move |dis, accounts, payload| {
-                dispatch::execute(
-                    dis,
-                    accounts,
-                    payload,
-                    dispatch::SignWith::Password(pass.into()),
-                )
-            })
-            .map(dispatch::WithToken::into_value),
-        )
+        let fut = self.confirm_internal(id, modification, move |dis, accounts, payload| {
+            dispatch::execute(
+                dis,
+                accounts,
+                payload,
+                dispatch::SignWith::Password(pass.into()),
+            )
+        });
+        Box::pin(async move { fut.await.map(dispatch::WithToken::into_value) })
     }
 
     fn confirm_request_with_token(
@@ -239,27 +234,28 @@ impl<D: Dispatcher + 'static> Signer for SignerClient<D> {
         id: U256,
         modification: TransactionModification,
         token: String,
-    ) -> BoxFuture<ConfirmationResponseWithToken> {
+    ) -> BoxFuture<Result<ConfirmationResponseWithToken>> {
         self.deprecation_notice
             .print("signer_confirmRequestWithToken", deprecated::msgs::ACCOUNTS);
-
-        Box::new(
-            self.confirm_internal(id, modification, move |dis, accounts, payload| {
-                dispatch::execute(
-                    dis,
-                    accounts,
-                    payload,
-                    dispatch::SignWith::Token(token.into()),
-                )
-            })
-            .and_then(|v| match v {
-                WithToken::No(_) => Err(errors::internal("Unexpected response without token.", "")),
+        let fut = self.confirm_internal(id, modification, move |dis, accounts, payload| {
+            dispatch::execute(
+                dis,
+                accounts,
+                payload,
+                dispatch::SignWith::Token(token.into()),
+            )
+        });
+        Box::pin(async move {
+            match fut.await? {
+                WithToken::No(_) => {
+                    Err(errors::internal("Unexpected response without token.", ""))
+                }
                 WithToken::Yes(response, token) => Ok(ConfirmationResponseWithToken {
                     result: response,
                     token,
                 }),
-            }),
-        )
+            }
+        })
     }
 
     fn confirm_request_raw(&self, id: U256, bytes: Bytes) -> Result<ConfirmationResponse> {

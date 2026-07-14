@@ -16,8 +16,8 @@
 
 use std::{str::FromStr, sync::Arc, thread, time::Duration};
 
-use jsonrpc_core::{futures::Future, IoHandler, Success};
-use v1::{
+use jsonrpc_core::{IoHandler, Success};
+use crate::v1::{
     helpers::dispatch,
     helpers::external_signer::SignerService,
     helpers::external_signer::SigningQueue,
@@ -30,15 +30,15 @@ use v1::{
 };
 
 use accounts::AccountProvider;
-use bytes::ToPretty;
-use crypto::publickey::{Generator, Random, Secret};
+use crate::bytes::ToPretty;
+use crate::crypto::publickey::{Generator, Random, Secret};
 use dispatch::FullDispatcher;
 use ethcore::client::TestBlockChainClient;
 use ethereum_types::{Address, H256, H520, U256};
 use parity_runtime::{Executor, Runtime};
 use parking_lot::Mutex;
 use serde_json;
-use types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
+use crate::types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
 
 #[allow(dead_code)]
 struct SigningTester {
@@ -165,7 +165,7 @@ fn should_add_sign_to_queue() {
         ::std::thread::sleep(Duration::from_millis(100));
     });
 
-    let res = promise.wait().unwrap();
+    let res = futures::executor::block_on(promise);
     assert_eq!(res, Some(response.to_owned()));
 }
 
@@ -358,7 +358,7 @@ fn should_add_transaction_to_queue() {
         ::std::thread::sleep(Duration::from_millis(100));
     });
 
-    let res = promise.wait().unwrap();
+    let res = futures::executor::block_on(promise);
     assert_eq!(res, Some(response.to_owned()));
 }
 
@@ -454,7 +454,7 @@ fn should_add_sign_transaction_to_the_queue() {
         ::std::thread::sleep(Duration::from_millis(100));
     });
 
-    let res = promise.wait().unwrap();
+    let res = futures::executor::block_on(promise);
     assert_eq!(res, Some(response.clone()));
 }
 
@@ -594,7 +594,7 @@ fn should_add_decryption_to_the_queue() {
     });
 
     // check response: will deadlock if unsuccessful.
-    let res = promise.wait().unwrap();
+    let res = futures::executor::block_on(promise);
     assert_eq!(res, Some(response.to_owned()));
 }
 
@@ -623,6 +623,6 @@ fn should_compose_transaction() {
         + r#"","gas":"0x5208","gasPrice":"0x4a817c800","nonce":"0x0","to":null,"value":"0x5"},"id":1}"#;
 
     // then
-    let res = tester.io.handle_request(&request).wait().unwrap();
+    let res = futures::executor::block_on(tester.io.handle_request(&request));
     assert_eq!(res, Some(response.clone()));
 }

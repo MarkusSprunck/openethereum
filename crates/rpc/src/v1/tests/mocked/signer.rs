@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use bytes::ToPretty;
+use crate::bytes::ToPretty;
 use ethereum_types::{Address, H520, U256};
 use std::{str::FromStr, sync::Arc};
 
@@ -22,11 +22,11 @@ use accounts::AccountProvider;
 use ethcore::client::TestBlockChainClient;
 use parity_runtime::Runtime;
 use parking_lot::Mutex;
-use types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
+use crate::types::transaction::{Action, SignedTransaction, Transaction, TypedTransaction};
 
 use jsonrpc_core::IoHandler;
 use serde_json;
-use v1::{
+use crate::v1::{
     helpers::{
         dispatch::{self, eth_data_hash, FullDispatcher},
         external_signer::{SignerService, SigningQueue},

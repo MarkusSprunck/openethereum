@@ -287,20 +287,20 @@ docker buildx build \
 
 ### Always Check
 
-- [ ] No upgrade to `jsonrpc-*` or `parity-util-mem` without migration plan
+- [ ] No upgrade to `parity-util-mem` without migration plan
 - [ ] CVE status in `MAINTENANCE.md` § 6.0 reviewed before touching dependencies
 - [ ] `secp256k1` version remains constrained by `parity-crypto v0.6.2`
-- [ ] `atty` replacement is safe but only relevant for Windows builds (already FIXED 2026-07-13)
-- [ ] `lock_api` CVE backport-fix is in place; full elimination requires Phase 3 `jsonrpc-*` upgrade
-- [ ] `lru` vulnerability in `parity-util-mem` fixed via `parity-util-mem-compat` shim (FIXED 2026-07-14); full elimination requires Phase 3 parity-util-mem 0.11.0 upgrade
+- [ ] `atty` replacement is safe (already FIXED 2026-07-13)
+- [ ] `lock_api` CVE backport-fix is in place for kvdb-memorydb chain; jsonrpc chain eliminated (Phase 3 DONE)
+- [ ] `lru` vulnerability in `parity-util-mem` fixed via `parity-util-mem-compat` shim (FIXED 2026-07-14)
 - [ ] New RPC endpoints require auth/CORS review in `crates/rpc-servers/src/`
 
 ### Known Vulnerable Dependencies ⚠️
 
 | Dependency | Current | Fix Available | Blocker |
 |---|---|---|---|
-| `jsonrpc-*` | v15 | v18 | Requires hyper/tokio migration (Phase 3) |
-| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 3); lru CVE fixed via local shim (2026-07-14) |
+| `jsonrpc-*` | v18 | ✅ **DONE (2026-07-14)** | Phase 3 complete |
+| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 4); lru CVE fixed via local shim (2026-07-14) |
 | `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
 | `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
 
@@ -408,6 +408,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.3 (2026-07-14): Phase 3 complete — migrated `jsonrpc-*` from v15 to v18; all RPC code migrated from futures 0.1 to futures 0.3 + async/await; `parity-rpc` edition updated to 2021; removed `tokio 0.1.22`, `hyper 0.12.36`, `h2 0.1.26` (CVE-2023-44487), `crossbeam-utils 0.7.2`, `time 0.1.45` (RUSTSEC-2020-0071), `net2 0.2.39`, `parity-tokio-ipc 0.4`, `parity-ws 0.10.1`, `futures-cpupool` from Cargo.lock; `lock-api-compat` shim no longer needed for jsonrpc chain (still needed for kvdb-memorydb); `cli-signer` migrated to futures 0.3; `ethcore-stratum` updated for v18 API; 0 errors, 0 test regressions
 - v2.2 (2026-07-14): Removed unmaintained `wee_alloc 0.4.5` from `parity-util-mem-compat`: deleted optional dep, removed `weealloc-global` feature, stripped dead cfg-branch from `allocators.rs` and `lib.rs`; `wee_alloc` fully absent from Cargo.lock; 0 warnings 0 errors
 - v2.1 (2026-07-14): Fixed lru RUSTSEC vulnerabilities (Dependabot #12/#18): created `crates/util/parity-util-mem-compat` local fork of `parity-util-mem 0.7.0` with `lru` upgraded from `0.5.3` to `0.7.8`; the `LruCache<K,V,S>` API used (`.iter()`, `.len()`) is identical in both versions so no source changes were required; registered via `[patch.crates-io]` and added to `[workspace] members`; `lru 0.5.3` fully removed from Cargo.lock; 0 warnings 0 errors; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist; updated MAINTENANCE.md § parity-util-mem to mark both Dependabot alerts as FIXED
 - v2.0 (2026-07-13): Removed CodeQL entirely from both CI workflows (unstable autobuild, non-deterministic results); deleted `.github/codeql/codeql-config.yml` and `.github/codeql/` directory; removed `security-events: write` permission from both workflow files; restored `Test Execution` to its original position (before Release Build) in `docker-ubuntu-rust-1.97-latest.yml`; cleaned up all CodeQL references in AGENTS.md; fixed flaky test `should_not_return_pending_external_transactions_with_too_low_priority_fee_if_priority_fees_are_enforced` by replacing `new_queue()` (max_mem_usage=100, enough for 3 txs only) with an inline queue using `max_mem_usage: usize::MAX` to prevent allocator-dependent eviction of tx2 on Linux CI

@@ -17,7 +17,7 @@
 use std::sync::Arc;
 
 use accounts::AccountProvider;
-use crypto::publickey::{self, Address, Error, Public};
+use crate::crypto::publickey::{self, Address, Error, Public};
 use ethkey::Password;
 
 /// An implementation of `EngineSigner` using internal account management.

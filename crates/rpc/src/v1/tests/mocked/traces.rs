@@ -29,7 +29,7 @@ use ethereum_types::{Address, H256};
 use vm::CallType;
 
 use jsonrpc_core::IoHandler;
-use v1::{tests::helpers::TestMinerService, Metadata, Traces, TracesClient};
+use crate::v1::{tests::helpers::TestMinerService, Metadata, Traces, TracesClient};
 
 struct Tester {
     client: Arc<TestBlockChainClient>,

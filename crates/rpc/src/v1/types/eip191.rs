@@ -18,7 +18,7 @@
 
 use ethereum_types::H160;
 use serde::{de, Deserialize, Deserializer};
-use v1::types::Bytes;
+use crate::v1::types::Bytes;
 
 /// EIP-191 version specifier
 #[derive(Debug)]

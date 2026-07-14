@@ -17,6 +17,7 @@
 //! Stratum protocol implementation for parity ethereum/bitcoin clients
 
 extern crate ethereum_types;
+extern crate futures;
 extern crate jsonrpc_core;
 extern crate jsonrpc_tcp_server;
 extern crate keccak_hash as hash;
@@ -83,9 +84,15 @@ impl Stratum {
         });
 
         let mut delegate = IoDelegate::<StratumImpl, SocketMetadata>::new(implementation.clone());
-        delegate.add_method_with_meta("mining.subscribe", StratumImpl::subscribe);
-        delegate.add_method_with_meta("mining.authorize", StratumImpl::authorize);
-        delegate.add_method_with_meta("mining.submit", StratumImpl::submit);
+        delegate.add_method_with_meta("mining.subscribe", |s: &StratumImpl, p, m| {
+            futures::future::ready(s.subscribe(p, m))
+        });
+        delegate.add_method_with_meta("mining.authorize", |s: &StratumImpl, p, m| {
+            futures::future::ready(s.authorize(p, m))
+        });
+        delegate.add_method_with_meta("mining.submit", |s: &StratumImpl, p, m| {
+            futures::future::ready(s.submit(p, m))
+        });
         let mut handler = MetaIoHandler::<SocketMetadata>::with_compatibility(Compatibility::Both);
         handler.extend_with(delegate);
 

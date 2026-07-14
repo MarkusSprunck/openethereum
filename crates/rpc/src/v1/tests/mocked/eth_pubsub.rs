@@ -16,15 +16,13 @@
 
 use std::sync::Arc;
 
-use jsonrpc_core::{
-    futures::{self, Future, Stream},
-    MetaIoHandler,
-};
+use futures::StreamExt;
+use jsonrpc_core::MetaIoHandler;
 use jsonrpc_pubsub::Session;
 
 use std::time::Duration;
 
-use v1::{EthPubSub, EthPubSubClient, Metadata};
+use crate::v1::{EthPubSub, EthPubSubClient, Metadata};
 
 use ethcore::client::{
     ChainNotify, ChainRoute, ChainRouteType, EachBlockWith, NewBlocks, TestBlockChainClient,
@@ -33,6 +31,10 @@ use ethereum_types::{Address, H256};
 use parity_runtime::Runtime;
 
 const DURATION_ZERO: Duration = Duration::from_millis(0);
+
+fn block_recv<T>(rt: &tokio::runtime::Runtime, receiver: &mut futures::channel::mpsc::UnboundedReceiver<T>) -> Option<T> {
+    rt.block_on(receiver.next())
+}
 
 #[test]
 fn should_subscribe_to_new_heads() {
@@ -53,7 +55,8 @@ fn should_subscribe_to_new_heads() {
     io.extend_with(pubsub);
 
     let mut metadata = Metadata::default();
-    let (sender, receiver) = futures::sync::mpsc::channel(8);
+    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    let (sender, mut receiver) = futures::channel::mpsc::unbounded::<String>();
     metadata.session = Some(Arc::new(Session::new(sender)));
 
     // Subscribe
@@ -75,7 +78,7 @@ fn should_subscribe_to_new_heads() {
         DURATION_ZERO,
         true,
     ));
-    let (res, receiver) = receiver.into_future().wait().unwrap();
+    let res = block_recv(&rt, &mut receiver);
     let response = r#"{"jsonrpc":"2.0","method":"eth_subscription","params":{"result":{"author":"0x0000000000000000000000000000000000000000","difficulty":"0x1","extraData":"0x","gasLimit":"0xf4240","gasUsed":"0x0","hash":"0x3457d2fa2e3dd33c78ac681cf542e429becf718859053448748383af67e23218","logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000","miner":"0x0000000000000000000000000000000000000000","number":"0x1","parentHash":"0x0cd786a2425d16f152c658316c423e6ce1181e15c3295826d7c9904cba9ce303","receiptsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421","sealFields":[],"sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347","size":"0x1c9","stateRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421","timestamp":"0x0","transactionsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"},"subscription":"0x43ca64edf03768e1"}}"#;
     assert_eq!(res, Some(response.into()));
 
@@ -96,8 +99,8 @@ fn should_subscribe_to_new_heads() {
     // Receive both — collect into a Vec first, then compare as a set to avoid
     // ordering races: executor.spawn() dispatches h2 and h3 as independent async
     // tasks that may arrive in any order depending on thread scheduling.
-    let (res2, receiver) = receiver.into_future().wait().unwrap();
-    let (res3, receiver) = receiver.into_future().wait().unwrap();
+    let res2 = block_recv(&rt, &mut receiver);
+    let res3 = block_recv(&rt, &mut receiver);
     let mut received: Vec<String> = vec![
         res2.expect("expected h2 notification"),
         res3.expect("expected h3 notification"),
@@ -119,14 +122,14 @@ fn should_subscribe_to_new_heads() {
         Some(response.to_owned())
     );
 
-    let (res, _receiver) = receiver.into_future().wait().unwrap();
+    let res = block_recv(&rt, &mut receiver);
     assert_eq!(res, None);
 }
 
 #[test]
 fn should_subscribe_to_logs() {
     use ethcore::client::BlockInfo;
-    use types::{
+    use crate::types::{
         ids::BlockId,
         log_entry::{LocalizedLogEntry, LogEntry},
     };
@@ -166,7 +169,8 @@ fn should_subscribe_to_logs() {
     io.extend_with(pubsub);
 
     let mut metadata = Metadata::default();
-    let (sender, receiver) = futures::sync::mpsc::channel(8);
+    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    let (sender, mut receiver) = futures::channel::mpsc::unbounded::<String>();
     metadata.session = Some(Arc::new(Session::new(sender)));
 
     // Subscribe
@@ -188,7 +192,7 @@ fn should_subscribe_to_logs() {
         DURATION_ZERO,
         false,
     ));
-    let (res, receiver) = receiver.into_future().wait().unwrap();
+    let res = block_recv(&rt, &mut receiver);
     let response = r#"{"jsonrpc":"2.0","method":"eth_subscription","params":{"result":{"address":"0x0000000000000000000000000000000000000005","blockHash":"0x3457d2fa2e3dd33c78ac681cf542e429becf718859053448748383af67e23218","blockNumber":"0x1","data":"0x","logIndex":"0x0","removed":false,"topics":["0x0000000000000000000000000000000000000000000000000000000000000001","0x0000000000000000000000000000000000000000000000000000000000000002","0x0000000000000000000000000000000000000000000000000000000000000000","0x0000000000000000000000000000000000000000000000000000000000000000"],"transactionHash":""#.to_owned()
 		+ &format!("0x{tx_hash:x}")
 		+ r#"","transactionIndex":"0x0","transactionLogIndex":"0x0","type":"mined"},"subscription":"0x43ca64edf03768e1"}}"#;
@@ -204,7 +208,7 @@ fn should_subscribe_to_logs() {
         DURATION_ZERO,
         false,
     ));
-    let (res, receiver) = receiver.into_future().wait().unwrap();
+    let res = block_recv(&rt, &mut receiver);
     let response = r#"{"jsonrpc":"2.0","method":"eth_subscription","params":{"result":{"address":"0x0000000000000000000000000000000000000005","blockHash":"0x3457d2fa2e3dd33c78ac681cf542e429becf718859053448748383af67e23218","blockNumber":"0x1","data":"0x","logIndex":"0x0","removed":true,"topics":["0x0000000000000000000000000000000000000000000000000000000000000001","0x0000000000000000000000000000000000000000000000000000000000000002","0x0000000000000000000000000000000000000000000000000000000000000000","0x0000000000000000000000000000000000000000000000000000000000000000"],"transactionHash":""#.to_owned()
 		+ &format!("0x{tx_hash:x}")
 		+ r#"","transactionIndex":"0x0","transactionLogIndex":"0x0","type":"removed"},"subscription":"0x43ca64edf03768e1"}}"#;
@@ -218,7 +222,7 @@ fn should_subscribe_to_logs() {
         Some(response.to_owned())
     );
 
-    let (res, _receiver) = receiver.into_future().wait().unwrap();
+    let res = block_recv(&rt, &mut receiver);
     assert_eq!(res, None);
 }
 
@@ -236,7 +240,8 @@ fn should_subscribe_to_pending_transactions() {
     io.extend_with(pubsub);
 
     let mut metadata = Metadata::default();
-    let (sender, receiver) = futures::sync::mpsc::channel(8);
+    let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+    let (sender, mut receiver) = futures::channel::mpsc::unbounded::<String>();
     metadata.session = Some(Arc::new(Session::new(sender)));
 
     // Fail if params are provided
@@ -260,8 +265,8 @@ fn should_subscribe_to_pending_transactions() {
 
     // Collect both notifications and compare as a set — executor.spawn() dispatches
     // each hash as an independent async task, so arrival order is not guaranteed.
-    let (res5, receiver) = receiver.into_future().wait().unwrap();
-    let (res7, receiver) = receiver.into_future().wait().unwrap();
+    let res5 = block_recv(&rt, &mut receiver);
+    let res7 = block_recv(&rt, &mut receiver);
     let mut received: Vec<String> = vec![
         res5.expect("expected tx 0x5 notification"),
         res7.expect("expected tx 0x7 notification"),
@@ -283,7 +288,7 @@ fn should_subscribe_to_pending_transactions() {
         Some(response.to_owned())
     );
 
-    let (res, _receiver) = receiver.into_future().wait().unwrap();
+    let res = block_recv(&rt, &mut receiver);
     assert_eq!(res, None);
 }
 
@@ -299,7 +304,7 @@ fn should_return_unimplemented() {
     io.extend_with(pubsub);
 
     let mut metadata = Metadata::default();
-    let (sender, _receiver) = futures::sync::mpsc::channel(8);
+    let (sender, _receiver) = futures::channel::mpsc::unbounded::<String>();
     metadata.session = Some(Arc::new(Session::new(sender)));
 
     // Subscribe

@@ -20,7 +20,7 @@ use ethereum_types::{H160, H256, U256};
 use jsonrpc_core::{BoxFuture, Result};
 use jsonrpc_derive::rpc;
 
-use v1::types::{Bytes, Transaction};
+use crate::v1::types::{Bytes, Transaction};
 
 /// Parity-specific rpc interface for operations altering the account-related settings.
 #[rpc(server)]
@@ -107,7 +107,7 @@ pub trait ParitySet {
 
     /// Hash a file content under given URL.
     #[rpc(name = "parity_hashContent")]
-    fn hash_content(&self, _: String) -> BoxFuture<H256>;
+    fn hash_content(&self, _: String) -> BoxFuture<Result<H256>>;
 
     /// Removes transaction from transaction queue.
     /// Makes sense only for transactions that were not propagated to other peers yet

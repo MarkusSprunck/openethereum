@@ -66,7 +66,7 @@ brew install lz4 zstd snappy rocksdb
 
 ### 3.3 Install CMake (Version 3.28.3)
 
-See: [CMake on MacOS](https://gist.github.com/fscm/29fd23093221cf4d96ccfaac5a1a5c90)
+See: [CMake on macOS](https://gist.github.com/fscm/29fd23093221cf4d96ccfaac5a1a5c90)
 
 ---
 
@@ -94,18 +94,19 @@ Resolving all vulnerabilities caused by transitive dependencies will likely requ
 
 ### jsonrpc-\*
 
-The `jsonrpc` dependencies are currently used at version `15.x.x` and require an upgrade to `18.0.0`. This upgrade will in turn update several outdated, vulnerable dependencies (simplified view):
+The `jsonrpc` dependencies have been **upgraded from version `15.x.x` to `18.0.0` (2026-07-14, Phase 3 complete)**. This migration removed the entire vulnerable dependency chain:
 
 ```
-jsonrpc-* v15 -> v18
-└───hyper v0.12.36 -> 0.14.12
-│   └───tokio v0.1.22 -> 1.8.4
-│   └───crossbeam-utils v0.7.2 -> 0.8.7
-│   └───h2 v0.1.26 -> 0.3.26
-│   └───memoffset v0.5.6 -> 0.6.2
-│   └───time v0.1.45 -> 0.2.23
-└───lock_api v0.3.4 -> 0.4.2
+jsonrpc-* v15 → v18  ✅ DONE
+└───hyper v0.12.36 → 0.14.32  ✅ REMOVED
+│   └───tokio v0.1.22 → gone   ✅ REMOVED (CVE chain)
+│   └───h2 v0.1.26 → 0.3.27   ✅ REMOVED (CVE-2023-44487)
+│   └───crossbeam-utils v0.7.2 → 0.8.22  ✅ REMOVED
+│   └───time v0.1.45 → 0.3.53  ✅ REMOVED (RUSTSEC-2020-0071)
+└───lock_api v0.3.4 (now only from kvdb-memorydb, still shim'd)
 ```
+
+**Why tokio 0.1.22 has been removed:** The full Phase 3 `jsonrpc-*` v15 → v18 migration was completed on 2026-07-14, including migrating all RPC code from futures 0.1 to futures 0.3 and async/await.
 
 ### parity-util-mem
 

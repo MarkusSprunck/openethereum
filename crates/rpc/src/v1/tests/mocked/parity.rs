@@ -14,27 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use crypto::publickey::{Generator, Random};
+use crate::crypto::publickey::{Generator, Random};
 use ethcore::client::{Executed, TestBlockChainClient, TransactionId};
 use ethcore_logger::RotatingLogger;
 use ethereum_types::{Address, BigEndianHash, Bloom, H256, U256};
-use miner::pool::local_transactions::Status as LocalTransactionStatus;
+use crate::miner::pool::local_transactions::Status as LocalTransactionStatus;
 use std::{str::FromStr, sync::Arc};
-use sync::ManageNetwork;
-use types::{
+use crate::sync::ManageNetwork;
+use crate::types::{
     receipt::{LocalizedReceipt, TransactionOutcome},
     transaction::TypedTxId,
 };
 
 use super::manage_network::TestManageNetwork;
 use jsonrpc_core::IoHandler;
-use v1::{
+use crate::v1::{
     helpers::{external_signer::SignerService, NetworkSettings},
     metadata::Metadata,
     tests::helpers::{Config, TestMinerService, TestSyncProvider},
     Parity, ParityClient,
 };
-use Host;
+use crate::Host;
 
 pub type TestParityClient = ParityClient<TestBlockChainClient, TestMinerService>;
 
@@ -112,8 +112,8 @@ fn rpc_parity_extra_data() {
 
 #[test]
 fn rpc_parity_default_extra_data() {
-    use bytes::ToPretty;
-    use version::version_data;
+    use crate::bytes::ToPretty;
+    use crate::version::version_data;
 
     let deps = Dependencies::new();
     let io = deps.default_client();
@@ -306,7 +306,7 @@ fn assert_txs_filtered(io: &IoHandler<Metadata>, filter: &str, expected: Vec<u8>
 
 #[test]
 fn rpc_parity_pending_transactions_with_filter() {
-    use types::transaction::{Action, Transaction, TypedTransaction};
+    use crate::types::transaction::{Action, Transaction, TypedTransaction};
     let deps = Dependencies::new();
     let io = deps.default_client();
 
@@ -449,7 +449,7 @@ fn rpc_parity_transactions_stats() {
 
 #[test]
 fn rpc_parity_local_transactions() {
-    use types::transaction::{Transaction, TypedTransaction};
+    use crate::types::transaction::{Transaction, TypedTransaction};
     let deps = Dependencies::new();
     let io = deps.default_client();
     let tx = TypedTransaction::Legacy(Transaction {

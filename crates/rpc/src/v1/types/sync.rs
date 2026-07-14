@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use network::client_version::ClientVersion;
+use crate::network::client_version::ClientVersion;
 use std::collections::BTreeMap;
 
 use ethereum_types::{H512, U256};
 use serde::{Serialize, Serializer};
-use sync::{self, PeerInfo as SyncPeerInfo, TransactionStats as SyncTransactionStats};
+use crate::sync::{self, PeerInfo as SyncPeerInfo, TransactionStats as SyncTransactionStats};
 
 /// Sync info
 #[derive(Default, Debug, Serialize, PartialEq)]

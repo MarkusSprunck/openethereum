@@ -17,23 +17,26 @@
 //! Generic poll manager for Pub-Sub.
 
 use parking_lot::Mutex;
-use std::sync::{
-    atomic::{self, AtomicBool},
-    Arc,
+use std::{
+    pin::Pin,
+    sync::{
+        atomic::{self, AtomicBool},
+        Arc,
+    },
 };
 
+use futures::{
+    channel::mpsc,
+    future,
+    FutureExt, SinkExt,
+};
 use jsonrpc_core::{
     self as core,
-    futures::{
-        future::{self, Either},
-        sync::mpsc,
-        Future, Sink,
-    },
     MetaIoHandler,
 };
 use jsonrpc_pubsub::SubscriptionId;
 
-use v1::{helpers::Subscribers, metadata::Metadata};
+use crate::v1::{helpers::Subscribers, metadata::Metadata};
 
 #[derive(Debug)]
 struct Subscription {
@@ -46,8 +49,6 @@ struct Subscription {
 }
 
 /// A struct managing all subscriptions.
-/// TODO [`ToDr`] Depending on the method decide on poll interval.
-/// For most of the methods it will be enough to poll on new block instead of time-interval.
 pub struct GenericPollManager<S: core::Middleware<Metadata>> {
     subscribers: Subscribers<Subscription>,
     rpc: MetaIoHandler<Metadata, S>,
@@ -70,7 +71,6 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
         manager
     }
 
-    /// Subscribes to update from polling given method.
     pub fn subscribe(
         &mut self,
         metadata: Metadata,
@@ -105,9 +105,8 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
             .is_some()
     }
 
-    pub fn tick(&self) -> Box<dyn Future<Item = (), Error = ()> + Send> {
+    pub fn tick(&self) -> Pin<Box<dyn future::Future<Output = ()> + Send>> {
         let mut futures = Vec::new();
-        // poll all subscriptions
         for (id, subscription) in self.subscribers.iter() {
             let call = core::MethodCall {
                 jsonrpc: Some(core::Version::V2),
@@ -121,36 +120,39 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
                 .handle_call(call.into(), subscription.metadata.clone());
 
             let last_result = subscription.last_result.clone();
-            let sender = subscription.sink.clone();
+            let mut sender = subscription.sink.clone();
 
-            let result = result.and_then(move |response| {
+            let result = result.then(move |response| async move {
                 // quick check if the subscription is still valid
                 if last_result.0.load(atomic::Ordering::SeqCst) {
-                    return Either::B(future::ok(()));
+                    return;
                 }
 
-                let mut last_result = last_result.1.lock();
-                if *last_result != response && response.is_some() {
-                    let output = response.expect("Existence proved by the condition.");
-                    debug!(target: "pubsub", "Got new response, sending: {output:?}");
-                    *last_result = Some(output.clone());
+                // Check and update last result (drop the guard before await)
+                let should_send = {
+                    let mut last = last_result.1.lock();
+                    if *last != response && response.is_some() {
+                        let output = response.as_ref().expect("Existence proved by the condition.");
+                        debug!(target: "pubsub", "Got new response, sending: {output:?}");
+                        *last = response.clone();
+                        Some(match response.expect("checked above") {
+                            core::Output::Success(core::Success { result, .. }) => Ok(result),
+                            core::Output::Failure(core::Failure { error, .. }) => Err(error),
+                        })
+                    } else {
+                        trace!(target: "pubsub", "Response was not changed: {response:?}");
+                        None
+                    }
+                }; // MutexGuard dropped here, before any await
 
-                    let send = match output {
-                        core::Output::Success(core::Success { result, .. }) => Ok(result),
-                        core::Output::Failure(core::Failure { error, .. }) => Err(error),
-                    };
-                    Either::A(sender.send(send).map(|_| ()).map_err(|_| ()))
-                } else {
-                    trace!(target: "pubsub", "Response was not changed: {response:?}");
-                    Either::B(future::ok(()))
+                if let Some(send) = should_send {
+                    let _ = sender.send(send).await;
                 }
             });
 
             futures.push(result);
         }
-
-        // return a future represeting all the polls
-        Box::new(future::join_all(futures).map(|_| ()))
+        Box::pin(future::join_all(futures).map(|_| ()))
     }
 }
 
@@ -158,11 +160,8 @@ impl<S: core::Middleware<Metadata>> GenericPollManager<S> {
 mod tests {
     use std::sync::atomic::{self, AtomicBool};
 
-    use http::tokio::runtime::Runtime;
-    use jsonrpc_core::{
-        futures::{Future, Stream},
-        MetaIoHandler, NoopMiddleware, Params, Value,
-    };
+    use futures::StreamExt;
+    use jsonrpc_core::{MetaIoHandler, NoopMiddleware, Params, Value};
     use jsonrpc_pubsub::SubscriptionId;
 
     use super::GenericPollManager;
@@ -172,10 +171,10 @@ mod tests {
         let called = AtomicBool::new(false);
         io.add_method("hello", move |_| {
             if called.load(atomic::Ordering::SeqCst) {
-                Ok(Value::String("world".into()))
+                futures::future::ready(Ok(Value::String("world".into())))
             } else {
                 called.store(true, atomic::Ordering::SeqCst);
-                Ok(Value::String("hello".into()))
+                futures::future::ready(Ok(Value::String("hello".into())))
             }
         });
         GenericPollManager::new_test(io)
@@ -183,26 +182,24 @@ mod tests {
 
     #[test]
     fn should_poll_subscribed_method() {
-        // given
-        let mut el = Runtime::new().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
         let mut poll_manager = poll_manager();
-        let (id, rx) = poll_manager.subscribe(Default::default(), "hello".into(), Params::None);
+        let (id, mut rx) =
+            poll_manager.subscribe(Default::default(), "hello".into(), Params::None);
         assert_eq!(id, SubscriptionId::String("0x43ca64edf03768e1".into()));
 
-        // then
-        poll_manager.tick().wait().unwrap();
-        let (res, rx) = el.block_on(rx.into_future()).unwrap();
+        rt.block_on(poll_manager.tick());
+        let res = rt.block_on(rx.next());
         assert_eq!(res, Some(Ok(Value::String("hello".into()))));
 
-        // retrieve second item
-        poll_manager.tick().wait().unwrap();
-        let (res, rx) = el.block_on(rx.into_future()).unwrap();
+        rt.block_on(poll_manager.tick());
+        let res = rt.block_on(rx.next());
         assert_eq!(res, Some(Ok(Value::String("world".into()))));
 
-        // and no more notifications
-        poll_manager.tick().wait().unwrap();
-        // we need to unsubscribe otherwise the future will never finish.
+        rt.block_on(poll_manager.tick());
         poll_manager.unsubscribe(&id);
-        assert_eq!(el.block_on(rx.into_future()).unwrap().0, None);
+        assert_eq!(rt.block_on(rx.next()), None);
     }
 }

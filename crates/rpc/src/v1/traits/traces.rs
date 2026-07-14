@@ -19,7 +19,7 @@
 use ethereum_types::H256;
 use jsonrpc_core::Result;
 use jsonrpc_derive::rpc;
-use v1::types::{
+use crate::v1::types::{
     BlockNumber, Bytes, CallRequest, Index, LocalizedTrace, TraceFilter, TraceOptions,
     TraceResults, TraceResultsWithTransactionHash,
 };

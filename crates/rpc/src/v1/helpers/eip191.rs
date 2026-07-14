@@ -17,11 +17,11 @@
 //! EIP-191 compliant decoding + hashing
 use eip_712::{hash_structured_data, EIP712};
 use ethereum_types::H256;
-use hash::keccak;
+use crate::hash::keccak;
 use jsonrpc_core::Error;
 use serde_json::{from_value, Value};
 use std::fmt::Display;
-use v1::{
+use crate::v1::{
     helpers::{dispatch::eth_data_hash, errors},
     types::{Bytes, EIP191Version, PresignedTransaction},
 };

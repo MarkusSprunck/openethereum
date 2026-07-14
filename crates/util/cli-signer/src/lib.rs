@@ -30,7 +30,9 @@ use std::{
     path::PathBuf,
 };
 
-use futures::Future;
+fn block_on<F: std::future::Future>(f: F) -> F::Output {
+    futures::executor::block_on(f)
+}
 
 fn sign_interactive(signer: &mut SignerRpc, password: &str, request: ConfirmationRequest) {
     print!("\n{request}\nSign this transaction? (y)es/(N)o/(r)eject: ");
@@ -50,61 +52,43 @@ fn sign_interactive(signer: &mut SignerRpc, password: &str, request: Confirmatio
 }
 
 fn sign_transactions(signer: &mut SignerRpc, password: String) -> Result<String, String> {
-    signer
-        .requests_to_confirm()
-        .map(|reqs| match reqs {
-            Ok(ref reqs) if reqs.is_empty() => Ok("No transactions in signing queue".to_owned()),
-            Ok(reqs) => {
-                for r in reqs {
-                    sign_interactive(signer, &password, r)
-                }
-                Ok("".to_owned())
-            }
-            Err(err) => Err(format!("error: {err:?}")),
-        })
-        .map_err(|err| format!("{err:?}"))
-        .wait()?
+    let reqs = block_on(signer.requests_to_confirm())
+        .map_err(|err| format!("{err:?}"))?;
+    if reqs.is_empty() {
+        return Ok("No transactions in signing queue".to_owned());
+    }
+    for r in reqs {
+        sign_interactive(signer, &password, r);
+    }
+    Ok("".to_owned())
 }
 
 fn list_transactions(signer: &mut SignerRpc) -> Result<String, String> {
-    signer
-        .requests_to_confirm()
-        .map(|reqs| match reqs {
-            Ok(ref reqs) if reqs.is_empty() => Ok("No transactions in signing queue".to_owned()),
-            Ok(ref reqs) => Ok(format!(
-                "Transaction queue:\n{}",
-                reqs.iter()
-                    .map(|r| format!("{r}"))
-                    .collect::<Vec<String>>()
-                    .join("\n")
-            )),
-            Err(err) => Err(format!("error: {err:?}")),
-        })
-        .map_err(|err| format!("{err:?}"))
-        .wait()?
+    let reqs = block_on(signer.requests_to_confirm())
+        .map_err(|err| format!("{err:?}"))?;
+    if reqs.is_empty() {
+        return Ok("No transactions in signing queue".to_owned());
+    }
+    Ok(format!(
+        "Transaction queue:\n{}",
+        reqs.iter()
+            .map(|r| format!("{r}"))
+            .collect::<Vec<String>>()
+            .join("\n")
+    ))
 }
 
 fn sign_transaction(signer: &mut SignerRpc, id: U256, password: &str) -> Result<String, String> {
-    signer
-        .confirm_request(id, None, None, None, password)
-        .map(|res| match res {
-            Ok(u) => Ok(format!("Signed transaction id: {u:#x}")),
-            Err(e) => Err(format!("{e:?}")),
-        })
-        .map_err(|err| format!("{err:?}"))
-        .wait()?
+    block_on(signer.confirm_request(id, None, None, None, password))
+        .map(|u| format!("Signed transaction id: {u:#x}"))
+        .map_err(|e| format!("{e:?}"))
 }
 
 fn reject_transaction(signer: &mut SignerRpc, id: U256) -> Result<String, String> {
-    signer
-        .reject_request(id)
-        .map(|res| match res {
-            Ok(true) => Ok(format!("Rejected transaction id {id:#x}")),
-            Ok(false) => Err("No such request".to_string()),
-            Err(e) => Err(format!("{e:?}")),
-        })
-        .map_err(|err| format!("{err:?}"))
-        .wait()?
+    match block_on(signer.reject_request(id)).map_err(|e| format!("{e:?}"))? {
+        true => Ok(format!("Rejected transaction id {id:#x}")),
+        false => Err("No such request".to_string()),
+    }
 }
 
 // cmds

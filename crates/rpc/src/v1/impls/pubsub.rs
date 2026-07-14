@@ -21,14 +21,12 @@ use std::{sync::Arc, time::Duration};
 
 use jsonrpc_core::{
     self as core,
-    futures::{future, Future, Sink, Stream},
     MetaIoHandler, Result,
 };
 use jsonrpc_pubsub::{typed::Subscriber, SubscriptionId};
-use tokio_timer;
 
 use parity_runtime::Executor;
-use v1::{helpers::GenericPollManager, metadata::Metadata, traits::PubSub};
+use crate::v1::{helpers::GenericPollManager, metadata::Metadata, traits::PubSub};
 
 /// Parity `PubSub` implementation.
 pub struct PubSubClient<S: core::Middleware<Metadata>> {
@@ -42,23 +40,20 @@ impl<S: core::Middleware<Metadata>> PubSubClient<S> {
         let poll_manager = Arc::new(RwLock::new(GenericPollManager::new(rpc)));
         let pm2 = Arc::downgrade(&poll_manager);
 
-        let timer = tokio_timer::wheel()
-            .tick_duration(Duration::from_millis(500))
-            .build();
-
-        // Start ticking
-        let interval = timer.interval(Duration::from_millis(1000));
-        executor.spawn(
-            interval
-                .map_err(|e| warn!("Polling timer error: {e:?}"))
-                .for_each(move |()| {
-                    if let Some(pm2) = pm2.upgrade() {
-                        pm2.read().tick()
-                    } else {
-                        Box::new(future::err(()))
-                    }
-                }),
-        );
+        // Start ticking every 1000ms using tokio::time::interval
+        executor.spawn_03(async move {
+            let mut interval = tokio::time::interval(Duration::from_millis(1000));
+            loop {
+                interval.tick().await;
+                if let Some(pm) = pm2.upgrade() {
+                    // Get the tick future while holding the lock, then drop the lock before awaiting
+                    let tick_fut = pm.read().tick();
+                    tick_fut.await;
+                } else {
+                    break;
+                }
+            }
+        });
 
         PubSubClient {
             poll_manager,
@@ -81,40 +76,41 @@ impl PubSubClient<core::NoopMiddleware> {
     }
 }
 
-impl<S: core::Middleware<Metadata>> PubSub for PubSubClient<S> {
+impl<S: core::Middleware<Metadata> + Unpin + 'static> PubSub for PubSubClient<S> {
     type Metadata = Metadata;
 
     fn parity_subscribe(
         &self,
-        mut meta: Metadata,
+        _meta: Metadata,
         subscriber: Subscriber<core::Value>,
         method: String,
         params: Option<core::Params>,
     ) {
-        let params = params.unwrap_or_else(|| core::Params::Array(vec![]));
-        // Make sure to get rid of PubSub session otherwise it will never be dropped.
-        meta.session = None;
+        let params = params.unwrap_or(core::Params::None);
+        let (id, mut stream) = {
+            let mut manager = self.poll_manager.write();
+            manager.subscribe(Default::default(), method, params)
+        };
 
-        let mut poll_manager = self.poll_manager.write();
-        let (id, receiver) = poll_manager.subscribe(meta, method, params);
-        match subscriber.assign_id(id.clone()) {
-            Ok(sink) => {
-                self.executor.spawn(
-                    receiver
-                        .forward(sink.sink_map_err(|e| {
-                            warn!("Cannot send notification: {e:?}");
-                        }))
-                        .map(|_| ()),
-                );
-            }
-            Err(()) => {
-                poll_manager.unsubscribe(&id);
-            }
+        // Assign the subscription ID to complete the jsonrpc-pubsub handshake.
+        // If the session is already closed, assign_id returns Err(()), so we just return.
+        if let Ok(sink) = subscriber.assign_id(id) {
+            // Spawn a task that forwards notifications from the poll-manager's stream
+            // to the subscriber's typed sink.
+            self.executor.spawn_03(async move {
+                use futures::StreamExt;
+                while let Some(item) = stream.next().await {
+                    if sink.notify(item).is_err() {
+                        // Subscriber was dropped / session closed
+                        break;
+                    }
+                }
+            });
         }
     }
 
-    fn parity_unsubscribe(&self, _: Option<Self::Metadata>, id: SubscriptionId) -> Result<bool> {
-        let res = self.poll_manager.write().unsubscribe(&id);
-        Ok(res)
+    fn parity_unsubscribe(&self, _meta: Option<Self::Metadata>, id: SubscriptionId) -> Result<bool> {
+        let mut manager = self.poll_manager.write();
+        Ok(manager.unsubscribe(&id))
     }
 }

@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use bytes::Bytes;
-use crypto::publickey::{self, ec_math_utils, Generator, Public, Random, Secret};
+use crate::bytes::Bytes;
+use crate::crypto::publickey::{self, ec_math_utils, Generator, Public, Random, Secret};
 use ethereum_types::{H256, H512};
 use jsonrpc_core::Error;
 use rand::{rngs::OsRng, RngCore};
 use std::collections::BTreeSet;
 use tiny_keccak::Keccak;
-use v1::{helpers::errors, types::EncryptedDocumentKey};
+use crate::v1::{helpers::errors, types::EncryptedDocumentKey};
 
 /// Initialization vector length.
 const INIT_VEC_LEN: usize = 16;
@@ -178,7 +178,7 @@ fn encrypt_secret(secret: &Public, joint_public: &Public) -> Result<(Public, Pub
 #[cfg(test)]
 mod tests {
     use super::{decrypt_document, decrypt_document_with_shadow, encrypt_document};
-    use bytes::Bytes;
+    use crate::bytes::Bytes;
     use rustc_hex::FromHex;
 
     #[test]

@@ -16,7 +16,7 @@
 
 use self::ethcore_network::{NetworkContext, ProtocolId};
 use std::ops::RangeInclusive;
-use sync::ManageNetwork;
+use crate::sync::ManageNetwork;
 
 extern crate ethcore_network;
 

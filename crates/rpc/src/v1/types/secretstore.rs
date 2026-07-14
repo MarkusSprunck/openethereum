@@ -15,7 +15,7 @@
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
 use ethereum_types::H512;
-use v1::types::Bytes;
+use crate::v1::types::Bytes;
 
 /// Encrypted document key.
 #[derive(Default, Debug, Serialize, PartialEq)]

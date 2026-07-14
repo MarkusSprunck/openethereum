@@ -21,7 +21,7 @@ use std::{
     sync::Arc,
 };
 
-use authcodes;
+use crate::authcodes;
 use ethereum_types::H256;
 use http::hyper;
 use ipc;
@@ -30,7 +30,7 @@ use jsonrpc_core::futures::future::Either;
 use jsonrpc_pubsub::Session;
 use ws;
 
-use v1::{informant::RpcStats, Metadata, Origin};
+use crate::v1::{informant::RpcStats, Metadata, Origin};
 
 /// Common HTTP & IPC metadata extractor.
 pub struct RpcExtractor;
@@ -230,7 +230,7 @@ impl<M: core::Middleware<Metadata>> WsDispatcher<M> {
 }
 
 impl<M: core::Middleware<Metadata>> core::Middleware<Metadata> for WsDispatcher<M> {
-    type Future = Either<core::FutureRpcResult<M::Future, M::CallFuture>, core::FutureResponse>;
+    type Future = core::FutureResponse;
     type CallFuture = core::middleware::NoopCallFuture;
 
     fn on_request<F, X>(
@@ -240,20 +240,17 @@ impl<M: core::Middleware<Metadata>> core::Middleware<Metadata> for WsDispatcher<
         process: F,
     ) -> Either<Self::Future, X>
     where
-        F: FnOnce(core::Request, Metadata) -> X,
-        X: core::futures::Future<Item = Option<core::Response>, Error = ()> + Send + 'static,
+        F: Fn(core::Request, Metadata) -> X + Send + Sync,
+        X: core::futures::Future<Output = Option<core::Response>> + Send + 'static,
     {
-        let use_full = match &meta.origin {
-            Origin::Signer { .. } => true,
-            _ => false,
-        };
+        let use_full = matches!(&meta.origin, Origin::Signer { .. });
 
         if use_full {
-            Either::A(Either::A(
+            Either::Left(Box::pin(
                 self.full_handler.handle_rpc_request(request, meta),
             ))
         } else {
-            Either::B(process(request, meta))
+            Either::Right(process(request, meta))
         }
     }
 }
@@ -265,7 +262,7 @@ mod tests {
         hyper::{Body, Request},
         MetaExtractor,
     };
-    use Origin;
+    use crate::Origin;
 
     #[test]
     fn should_extract_rpc_origin() {

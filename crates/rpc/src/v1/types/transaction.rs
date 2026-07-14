@@ -20,11 +20,11 @@ use ethcore::{contract_address, CreateContractAddress};
 use ethereum_types::{H160, H256, H512, U256, U64};
 use miner;
 use serde::{ser::SerializeStruct, Serialize, Serializer};
-use types::transaction::{
+use crate::types::transaction::{
     Action, LocalizedTransaction, PendingTransaction, SignedTransaction, TypedTransaction,
     TypedTxId,
 };
-use v1::types::{AccessList, Bytes, TransactionCondition};
+use crate::v1::types::{AccessList, Bytes, TransactionCondition};
 
 /// Transaction
 #[derive(Debug, Default, Clone, PartialEq, Serialize)]
@@ -341,7 +341,7 @@ impl LocalTransactionStatus {
         let convert = |tx: Arc<miner::pool::VerifiedTransaction>| {
             Transaction::from_signed(tx.signed().clone())
         };
-        use miner::pool::local_transactions::Status::{
+        use crate::miner::pool::local_transactions::Status::{
             Canceled, Culled, Dropped, Invalid, Mined, Pending, Rejected, Replaced,
         };
         match s {
@@ -366,8 +366,8 @@ mod tests {
     use super::{LocalTransactionStatus, Transaction};
     use ethereum_types::H256;
     use serde_json;
-    use types::transaction::TypedTxId;
-    use v1::types::transaction_access_list::AccessListItem;
+    use crate::types::transaction::TypedTxId;
+    use crate::v1::types::transaction_access_list::AccessListItem;
 
     #[test]
     fn test_transaction_serialize() {

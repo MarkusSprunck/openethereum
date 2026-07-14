@@ -22,7 +22,7 @@ use std::{
 };
 
 use ethereum_types::H256;
-use hash::keccak;
+use crate::hash::keccak;
 use itertools::Itertools;
 use rand::{distributions::Alphanumeric, rngs::OsRng, Rng};
 
@@ -226,7 +226,7 @@ impl<T: TimeProvider> AuthCodes<T> {
 
 #[cfg(test)]
 mod tests {
-    use hash::keccak;
+    use crate::hash::keccak;
     use std::{
         cell::Cell,
         fs,

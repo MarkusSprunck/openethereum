@@ -22,8 +22,8 @@ use std::{
     collections::{BTreeSet, HashSet, VecDeque},
     sync::Arc,
 };
-use types::filter::Filter;
-use v1::types::Log;
+use crate::types::filter::Filter;
+use crate::v1::types::Log;
 
 pub type BlockNumber = u64;
 
@@ -68,7 +68,7 @@ pub enum PollFilter {
 }
 
 impl PollFilter {
-    pub(in v1) const MAX_BLOCK_HISTORY_SIZE: usize = 32;
+    pub(in crate::v1) const MAX_BLOCK_HISTORY_SIZE: usize = 32;
 }
 
 /// Returns only last `n` logs

@@ -34,10 +34,10 @@ use ethcore::{
     miner::{self, MinerService},
     snapshot::SnapshotService,
 };
-use hash::keccak;
-use miner::external::ExternalMinerService;
-use sync::SyncProvider;
-use types::{
+use crate::hash::keccak;
+use crate::miner::external::ExternalMinerService;
+use crate::sync::SyncProvider;
+use crate::types::{
     encoded,
     filter::Filter as EthcoreFilter,
     header::Header,
@@ -47,7 +47,7 @@ use types::{
 
 use jsonrpc_core::{futures::future, BoxFuture, Result};
 
-use v1::{
+use crate::v1::{
     helpers::{
         self,
         block_import::is_major_importing,
@@ -558,7 +558,7 @@ fn check_known<C>(client: &C, number: BlockNumber) -> Result<()>
 where
     C: BlockChainClient,
 {
-    use types::block_status::BlockStatus;
+    use crate::types::block_status::BlockStatus;
 
     let id = match number {
         BlockNumber::Pending => return Ok(()),
@@ -677,27 +677,27 @@ where
         Ok(self.external_miner.hashrate())
     }
 
-    fn gas_price(&self) -> BoxFuture<U256> {
-        Box::new(future::ok(default_gas_price(
+    fn gas_price(&self) -> BoxFuture<Result<U256>> {
+        Box::pin(future::ok(default_gas_price(
             &*self.client,
             &*self.miner,
             self.options.gas_price_percentile,
         )))
     }
 
-    fn max_priority_fee_per_gas(&self) -> BoxFuture<U256> {
+    fn max_priority_fee_per_gas(&self) -> BoxFuture<Result<U256>> {
         let latest_block = self.client.chain_info().best_block_number;
         let eip1559_transition = self.client.engine().params().eip1559_transition;
 
         if latest_block + 1 >= eip1559_transition {
-            Box::new(future::ok(default_max_priority_fee_per_gas(
+            Box::pin(future::ok(default_max_priority_fee_per_gas(
                 &*self.client,
                 &*self.miner,
                 self.options.gas_price_percentile,
                 eip1559_transition,
             )))
         } else {
-            Box::new(future::done(Err(errors::eip1559_not_activated())))
+            Box::pin(future::ready(Err(errors::eip1559_not_activated())))
         }
     }
 
@@ -706,11 +706,11 @@ where
         mut block_count: U256,
         newest_block: BlockNumber,
         reward_percentiles: Option<Vec<f64>>,
-    ) -> BoxFuture<EthFeeHistory> {
+    ) -> BoxFuture<Result<EthFeeHistory>> {
         let mut result = EthFeeHistory::default();
 
         if block_count < 1.into() {
-            return Box::new(future::done(Ok(result)));
+            return Box::pin(future::ready(Ok(result)));
         }
 
         if block_count > 1024.into() {
@@ -901,7 +901,7 @@ where
             result.reward = Some(reward_final);
         }
 
-        Box::new(future::done(Ok(result)))
+        Box::pin(future::ready(Ok(result)))
     }
 
     fn accounts(&self) -> Result<Vec<H160>> {
@@ -916,7 +916,7 @@ where
         Ok(U256::from(self.client.chain_info().best_block_number))
     }
 
-    fn balance(&self, address: H160, num: Option<BlockNumber>) -> BoxFuture<U256> {
+    fn balance(&self, address: H160, num: Option<BlockNumber>) -> BoxFuture<Result<U256>> {
         let num = num.unwrap_or_default();
 
         try_bf!(check_known(&*self.client, num.clone()));
@@ -925,7 +925,7 @@ where
             .balance(&address, self.get_state(num))
             .ok_or_else(errors::state_pruned);
 
-        Box::new(future::done(res))
+        Box::pin(future::ready(res))
     }
 
     fn proof(
@@ -933,7 +933,7 @@ where
         address: H160,
         values: Vec<H256>,
         num: Option<BlockNumber>,
-    ) -> BoxFuture<EthAccount> {
+    ) -> BoxFuture<Result<EthAccount>> {
         try_bf!(errors::require_experimental(
             self.options.allow_experimental_rpcs,
             "1186"
@@ -980,7 +980,7 @@ where
             None => Err(errors::state_pruned()),
         };
 
-        Box::new(future::done(res))
+        Box::pin(future::ready(res))
     }
 
     fn storage_at(
@@ -988,7 +988,7 @@ where
         address: H160,
         position: U256,
         num: Option<BlockNumber>,
-    ) -> BoxFuture<H256> {
+    ) -> BoxFuture<Result<H256>> {
         let num = num.unwrap_or_default();
 
         try_bf!(check_known(&*self.client, num.clone()));
@@ -1001,10 +1001,10 @@ where
             None => Err(errors::state_pruned()),
         };
 
-        Box::new(future::done(res))
+        Box::pin(future::ready(res))
     }
 
-    fn transaction_count(&self, address: H160, num: Option<BlockNumber>) -> BoxFuture<U256> {
+    fn transaction_count(&self, address: H160, num: Option<BlockNumber>) -> BoxFuture<Result<U256>> {
         let res = match num.unwrap_or_default() {
             BlockNumber::Pending => {
                 let info = self.client.chain_info();
@@ -1027,20 +1027,20 @@ where
             }
         };
 
-        Box::new(future::done(res))
+        Box::pin(future::ready(res))
     }
 
-    fn block_transaction_count_by_hash(&self, hash: H256) -> BoxFuture<Option<U256>> {
+    fn block_transaction_count_by_hash(&self, hash: H256) -> BoxFuture<Result<Option<U256>>> {
         let trx_count = self
             .client
             .block(BlockId::Hash(hash))
             .map(|block| block.transactions_count().into());
         let result = Ok(trx_count).and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
-    fn block_transaction_count_by_number(&self, num: BlockNumber) -> BoxFuture<Option<U256>> {
-        Box::new(future::done(if num == BlockNumber::Pending {
+    fn block_transaction_count_by_number(&self, num: BlockNumber) -> BoxFuture<Result<Option<U256>>> {
+        Box::pin(future::ready(if num == BlockNumber::Pending {
             Ok(Some(
                 self.miner
                     .pending_transaction_hashes(&*self.client)
@@ -1060,17 +1060,17 @@ where
         }))
     }
 
-    fn block_uncles_count_by_hash(&self, hash: H256) -> BoxFuture<Option<U256>> {
+    fn block_uncles_count_by_hash(&self, hash: H256) -> BoxFuture<Result<Option<U256>>> {
         let uncle_count = self
             .client
             .block(BlockId::Hash(hash))
             .map(|block| block.uncles_count().into());
         let result = Ok(uncle_count).and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
-    fn block_uncles_count_by_number(&self, num: BlockNumber) -> BoxFuture<Option<U256>> {
-        Box::new(future::done(if num == BlockNumber::Pending {
+    fn block_uncles_count_by_number(&self, num: BlockNumber) -> BoxFuture<Result<Option<U256>>> {
+        Box::pin(future::ready(if num == BlockNumber::Pending {
             Ok(Some(0.into()))
         } else {
             let uncles_count = self
@@ -1085,7 +1085,7 @@ where
         }))
     }
 
-    fn code_at(&self, address: H160, num: Option<BlockNumber>) -> BoxFuture<Bytes> {
+    fn code_at(&self, address: H160, num: Option<BlockNumber>) -> BoxFuture<Result<Bytes>> {
         let address: Address = H160::into(address);
 
         let num = num.unwrap_or_default();
@@ -1096,38 +1096,38 @@ where
             None => Err(errors::state_pruned()),
         };
 
-        Box::new(future::done(res))
+        Box::pin(future::ready(res))
     }
 
-    fn block_by_hash(&self, hash: H256, include_txs: bool) -> BoxFuture<Option<RichBlock>> {
+    fn block_by_hash(&self, hash: H256, include_txs: bool) -> BoxFuture<Result<Option<RichBlock>>> {
         let result = self
             .rich_block(BlockId::Hash(hash).into(), include_txs)
             .and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
-    fn block_by_number(&self, num: BlockNumber, include_txs: bool) -> BoxFuture<Option<RichBlock>> {
+    fn block_by_number(&self, num: BlockNumber, include_txs: bool) -> BoxFuture<Result<Option<RichBlock>>> {
         let result = self.rich_block(num.clone().into(), include_txs).and_then(
             errors::check_block_number_existence(&*self.client, num, self.options),
         );
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
-    fn transaction_by_hash(&self, hash: H256) -> BoxFuture<Option<Transaction>> {
+    fn transaction_by_hash(&self, hash: H256) -> BoxFuture<Result<Option<Transaction>>> {
         let tx = try_bf!(self.transaction(PendingTransactionId::Hash(hash))).or_else(|| {
             self.miner
                 .transaction(&hash)
                 .map(|t| Transaction::from_pending(t.pending().clone()))
         });
         let result = Ok(tx).and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
     fn transaction_by_block_hash_and_index(
         &self,
         hash: H256,
         index: Index,
-    ) -> BoxFuture<Option<Transaction>> {
+    ) -> BoxFuture<Result<Option<Transaction>>> {
         let id = PendingTransactionId::Location(
             PendingOrBlock::Block(BlockId::Hash(hash)),
             index.value(),
@@ -1135,14 +1135,14 @@ where
         let result = self
             .transaction(id)
             .and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
     fn transaction_by_block_number_and_index(
         &self,
         num: BlockNumber,
         index: Index,
-    ) -> BoxFuture<Option<Transaction>> {
+    ) -> BoxFuture<Result<Option<Transaction>>> {
         let block_id = match num {
             BlockNumber::Hash { hash, .. } => PendingOrBlock::Block(BlockId::Hash(hash)),
             BlockNumber::Latest => PendingOrBlock::Block(BlockId::Latest),
@@ -1159,40 +1159,40 @@ where
                     num,
                     self.options,
                 ));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
-    fn transaction_receipt(&self, hash: H256) -> BoxFuture<Option<Receipt>> {
+    fn transaction_receipt(&self, hash: H256) -> BoxFuture<Result<Option<Receipt>>> {
         let best_block = self.client.chain_info().best_block_number;
         if let Some(receipt) = self.miner.pending_receipt(best_block, &hash) {
-            return Box::new(future::ok(Some(receipt.into())));
+            return Box::pin(future::ok(Some(receipt.into())));
         }
 
         let receipt = self.client.transaction_receipt(TransactionId::Hash(hash));
         let result = Ok(receipt.map(Into::into))
             .and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
     fn uncle_by_block_hash_and_index(
         &self,
         hash: H256,
         index: Index,
-    ) -> BoxFuture<Option<RichBlock>> {
+    ) -> BoxFuture<Result<Option<RichBlock>>> {
         let result = self
             .uncle(PendingUncleId {
                 id: PendingOrBlock::Block(BlockId::Hash(hash)),
                 position: index.value(),
             })
             .and_then(errors::check_block_gap(&*self.client, self.options));
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
     fn uncle_by_block_number_and_index(
         &self,
         num: BlockNumber,
         index: Index,
-    ) -> BoxFuture<Option<RichBlock>> {
+    ) -> BoxFuture<Result<Option<RichBlock>>> {
         let id = match num {
             BlockNumber::Hash { hash, .. } => PendingUncleId {
                 id: PendingOrBlock::Block(BlockId::Hash(hash)),
@@ -1225,7 +1225,7 @@ where
                 self.options,
             ));
 
-        Box::new(future::done(result))
+        Box::pin(future::ready(result))
     }
 
     fn compilers(&self) -> Result<Vec<String>> {
@@ -1234,15 +1234,15 @@ where
         ))
     }
 
-    fn logs(&self, filter: Filter) -> BoxFuture<Vec<Log>> {
+    fn logs(&self, filter: Filter) -> BoxFuture<Result<Vec<Log>>> {
         let include_pending = filter.to_block == Some(BlockNumber::Pending);
         let filter: EthcoreFilter = match filter.try_into() {
             Ok(value) => value,
-            Err(err) => return Box::new(future::err(err)),
+            Err(err) => return Box::pin(future::err(err)),
         };
         let mut logs = match self.client.logs(filter.clone()) {
             Ok(logs) => logs.into_iter().map(From::from).collect::<Vec<Log>>(),
-            Err(id) => return Box::new(future::err(errors::filter_block_not_found(id))),
+            Err(id) => return Box::pin(future::err(errors::filter_block_not_found(id))),
         };
 
         if include_pending {
@@ -1253,7 +1253,7 @@ where
 
         let logs = limit_logs(logs, filter.limit);
 
-        Box::new(future::ok(logs))
+        Box::pin(future::ok(logs))
     }
 
     fn work(&self, no_new_work_timeout: Option<u64>) -> Result<Work> {
@@ -1337,7 +1337,7 @@ where
         self.send_raw_transaction(raw)
     }
 
-    fn call(&self, request: CallRequest, num: Option<BlockNumber>) -> BoxFuture<Bytes> {
+    fn call(&self, request: CallRequest, num: Option<BlockNumber>) -> BoxFuture<Result<Bytes>> {
         let request = CallRequest::into(request);
         let signed = try_bf!(fake_sign::sign_call(request));
 
@@ -1370,7 +1370,7 @@ where
             .client
             .call(&signed, Default::default(), &mut state, &header);
 
-        Box::new(future::done(
+        Box::pin(future::ready(
             result
                 .map_err(errors::call)
                 .and_then(|executed| match executed.exception {
@@ -1381,7 +1381,7 @@ where
         ))
     }
 
-    fn estimate_gas(&self, request: CallRequest, num: Option<BlockNumber>) -> BoxFuture<U256> {
+    fn estimate_gas(&self, request: CallRequest, num: Option<BlockNumber>) -> BoxFuture<Result<U256>> {
         let request = CallRequest::into(request);
         let signed = try_bf!(fake_sign::sign_call(request));
         let num = num.unwrap_or_default();
@@ -1408,7 +1408,7 @@ where
             (state, header)
         };
 
-        Box::new(future::done(
+        Box::pin(future::ready(
             self.client
                 .estimate_gas(&signed, &state, &header)
                 .map_err(errors::call),

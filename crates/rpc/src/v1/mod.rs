@@ -19,12 +19,12 @@
 //! Compliant with ethereum rpc.
 
 // short for "try_boxfuture"
-// unwrap a result, returning a BoxFuture<_, Err> on failure.
+// unwrap a result, returning a BoxFuture<Result<_, Err>> on failure.
 macro_rules! try_bf {
     ($res: expr) => {
         match $res {
             Ok(val) => val,
-            Err(e) => return Box::new(::jsonrpc_core::futures::future::err(e.into())),
+            Err(e) => return Box::pin(::futures::future::err(e.into())),
         }
     };
 }

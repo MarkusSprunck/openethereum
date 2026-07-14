@@ -22,7 +22,7 @@ use ethkey::Password;
 use ethstore::KeyFile;
 use jsonrpc_core::Result;
 use jsonrpc_derive::rpc;
-use v1::types::{AccountInfo, DeriveHash, DeriveHierarchical, ExtAccountInfo};
+use crate::v1::types::{AccountInfo, DeriveHash, DeriveHierarchical, ExtAccountInfo};
 
 /// Parity-specific read-only accounts rpc interface.
 #[rpc(server)]

@@ -53,6 +53,6 @@ pub use self::{
     work::submit_work_detail,
 };
 
-pub fn to_url(address: &Option<::Host>) -> Option<String> {
+pub fn to_url(address: &Option<crate::Host>) -> Option<String> {
     address.as_ref().map(|host| (**host).to_owned())
 }

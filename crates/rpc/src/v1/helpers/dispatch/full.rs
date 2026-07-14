@@ -22,19 +22,19 @@ use ethcore::{
 };
 use ethereum_types::{Address, H256, U256};
 use parking_lot::Mutex;
-use types::transaction::{PendingTransaction, SignedTransaction};
+use crate::types::transaction::{PendingTransaction, SignedTransaction};
 
 use jsonrpc_core::{
-    futures::{future, Future, IntoFuture},
+    futures::future,
     BoxFuture, Result,
 };
-use v1::{
+use crate::v1::{
     helpers::{errors, nonce, FilledTransactionRequest, TransactionRequest},
     types::RichRawTransaction as RpcRichRawTransaction,
 };
 
 use super::{
-    default_gas_price, prospective_signer::ProspectiveSigner, Accounts, Dispatcher, PostSign,
+    default_gas_price, prospective_signer, Accounts, Dispatcher, PostSign,
     SignWith,
 };
 
@@ -110,7 +110,7 @@ impl<C: miner::BlockChainClient + BlockChainClient, M: MinerService> Dispatcher
         request: TransactionRequest,
         default_sender: Address,
         force_nonce: bool,
-    ) -> BoxFuture<FilledTransactionRequest> {
+    ) -> BoxFuture<Result<FilledTransactionRequest>> {
         let request = request;
         let from = request.from.unwrap_or(default_sender);
         let nonce = if force_nonce {
@@ -119,7 +119,7 @@ impl<C: miner::BlockChainClient + BlockChainClient, M: MinerService> Dispatcher
             request.nonce
         };
 
-        Box::new(future::ok(FilledTransactionRequest {
+        Box::pin(future::ready(Ok(FilledTransactionRequest {
             transaction_type: request.transaction_type,
             from,
             used_default_from: request.from.is_none(),
@@ -137,7 +137,7 @@ impl<C: miner::BlockChainClient + BlockChainClient, M: MinerService> Dispatcher
             condition: request.condition,
             access_list: request.access_list,
             max_priority_fee_per_gas: request.max_priority_fee_per_gas,
-        }))
+        })))
     }
 
     fn sign<P>(
@@ -146,31 +146,25 @@ impl<C: miner::BlockChainClient + BlockChainClient, M: MinerService> Dispatcher
         signer: &Arc<dyn Accounts>,
         password: SignWith,
         post_sign: P,
-    ) -> BoxFuture<P::Item>
+    ) -> BoxFuture<Result<P::Item>>
     where
         P: PostSign + 'static,
-        <P::Out as IntoFuture>::Future: Send,
+        P::Out: Send + 'static,
+        P::Item: Send,
     {
         let chain_id = self.client.signing_chain_id();
 
         if let Some(nonce) = filled.nonce {
-            let future = signer
-                .sign_transaction(filled, chain_id, nonce, password)
-                .into_future()
-                .and_then(move |signed| post_sign.execute(signed));
-            Box::new(future)
+            let signer = signer.clone();
+            Box::pin(async move {
+                let signed =
+                    signer.sign_transaction(filled, chain_id, nonce, password)?;
+                post_sign.execute(signed).await
+            })
         } else {
             let state = self.state_nonce(&filled.from);
             let reserved = self.nonces.lock().reserve(filled.from, state);
-
-            Box::new(ProspectiveSigner::new(
-                signer.clone(),
-                filled,
-                chain_id,
-                reserved,
-                password,
-                post_sign,
-            ))
+            prospective_signer::new(signer.clone(), filled, chain_id, reserved, password, post_sign)
         }
     }
 

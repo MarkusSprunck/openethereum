@@ -27,13 +27,13 @@ use ethcore::{
 };
 use ethereum_types::{H256, U256};
 use parking_lot::Mutex;
-use types::filter::Filter as EthcoreFilter;
+use crate::types::filter::Filter as EthcoreFilter;
 
 use jsonrpc_core::{
-    futures::{future, future::Either, Future},
+    futures::{future, future::Either, TryFutureExt},
     BoxFuture, Result,
 };
-use v1::{
+use crate::v1::{
     helpers::{errors, limit_logs, PollFilter, PollManager, SyncPollFilter},
     impls::eth::pending_logs,
     traits::EthFilter,
@@ -52,7 +52,7 @@ pub trait Filterable {
     fn pending_transaction_hashes(&self) -> BTreeSet<H256>;
 
     /// Get logs that match the given filter.
-    fn logs(&self, filter: EthcoreFilter) -> BoxFuture<Vec<Log>>;
+    fn logs(&self, filter: EthcoreFilter) -> BoxFuture<Result<Vec<Log>>>;
 
     /// Get logs from the pending block.
     fn pending_logs(&self, block_number: u64, filter: &EthcoreFilter) -> Vec<Log>;
@@ -99,15 +99,15 @@ where
         self.miner.pending_transaction_hashes(&*self.client)
     }
 
-    fn logs(&self, filter: EthcoreFilter) -> BoxFuture<Vec<Log>> {
-        Box::new(future::ok(
+    fn logs(&self, filter: EthcoreFilter) -> BoxFuture<Result<Vec<Log>>> {
+        Box::pin(future::ready(Ok(
             self.client
                 .logs(filter)
                 .unwrap_or_default()
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-        ))
+        )))
     }
 
     fn pending_logs(&self, block_number: u64, filter: &EthcoreFilter) -> Vec<Log> {
@@ -206,13 +206,13 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
         Ok(id.into())
     }
 
-    fn filter_changes(&self, index: Index) -> BoxFuture<FilterChanges> {
+    fn filter_changes(&self, index: Index) -> BoxFuture<Result<FilterChanges>> {
         let filter = match self.polls().lock().poll_mut(&index.value()) {
             Some(filter) => filter.clone(),
-            None => return Box::new(future::err(errors::filter_not_found())),
+            None => return Box::pin(future::err(errors::filter_not_found())),
         };
 
-        Box::new(filter.modify(|filter| match *filter {
+        Box::pin(filter.modify(|filter| match *filter {
             PollFilter::Block {
                 ref mut last_block_number,
                 ref mut recent_reported_hashes,
@@ -240,7 +240,7 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                     }
                 }
 
-                Either::A(future::ok(FilterChanges::Hashes(hashes)))
+                Either::Left(future::ready(Ok(FilterChanges::Hashes(hashes))))
             }
             PollFilter::PendingTransaction(ref mut previous_hashes) => {
                 // get hashes of pending transactions
@@ -258,7 +258,7 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                 *previous_hashes = current_hashes;
 
                 // return new hashes
-                Either::A(future::ok(FilterChanges::Hashes(new_hashes)))
+                Either::Left(future::ready(Ok(FilterChanges::Hashes(new_hashes))))
             }
             PollFilter::Logs {
                 ref mut block_number,
@@ -273,7 +273,7 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                 let mut filter = filter.clone();
 
                 // retrieve reorg logs
-                let (mut reorg, reorg_len) = last_block_hash
+                let (reorg, reorg_len) = last_block_hash
                     .map_or_else(|| (Vec::new(), 0), |h| self.removed_logs(h, &filter));
                 *block_number -= reorg_len;
 
@@ -309,24 +309,25 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
 
                 // retrieve logs in range from_block..min(BlockId::Latest..to_block)
                 let limit = filter.limit;
-                Either::B(
+                Either::Right(
                     self.logs(filter)
-                        .map(move |logs| {
-                            reorg.extend(logs);
-                            reorg
-                        }) // append reorg logs in the front
-                        .map(move |mut logs| {
+                        .map_ok(move |logs| {
+                            let mut all = reorg;
+                            all.extend(logs);
+                            all
+                        })
+                        .map_ok(move |mut logs| {
                             logs.extend(pending);
                             logs
-                        }) // append fetched pending logs
-                        .map(move |logs| limit_logs(logs, limit)) // limit the logs
-                        .map(FilterChanges::Logs),
+                        })
+                        .map_ok(move |logs| limit_logs(logs, limit))
+                        .map_ok(FilterChanges::Logs),
                 )
             }
         }))
     }
 
-    fn filter_logs(&self, index: Index) -> BoxFuture<Vec<Log>> {
+    fn filter_logs(&self, index: Index) -> BoxFuture<Result<Vec<Log>>> {
         let (filter, include_pending) = {
             let mut polls = self.polls().lock();
 
@@ -340,8 +341,8 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
                     _ => None,
                 })
             }) {
-                Some((filter, include_pending)) => (filter, include_pending),
-                None => return Box::new(future::err(errors::filter_not_found())),
+            Some((filter, include_pending)) => (filter, include_pending),
+            None => return Box::pin(future::ready(Err(errors::filter_not_found()))),
             }
         };
 
@@ -356,12 +357,12 @@ impl<T: Filterable + Send + Sync + 'static> EthFilter for T {
         // retrieve logs asynchronously, appending pending logs.
         let limit = filter.limit;
         let logs = self.logs(filter);
-        Box::new(
-            logs.map(move |mut logs| {
+        Box::pin(
+            logs.map_ok(move |mut logs| {
                 logs.extend(pending);
                 logs
             })
-            .map(move |logs| limit_logs(logs, limit)),
+            .map_ok(move |logs| limit_logs(logs, limit)),
         )
     }
 

@@ -22,7 +22,7 @@ use ethstore::{accounts_dir::RootDiskDirectory, EthStore};
 use tempfile::TempDir;
 
 use jsonrpc_core::IoHandler;
-use v1::{ParityAccounts, ParityAccountsClient, ParityAccountsInfo};
+use crate::v1::{ParityAccounts, ParityAccountsClient, ParityAccountsInfo};
 
 struct ParityAccountsTester {
     accounts: Arc<AccountProvider>,

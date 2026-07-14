@@ -28,13 +28,13 @@ use ethcore::{
 use ethereum_types::{Address, H256, U256};
 use ethjson::{blockchain::BlockChain, spec::ForkSpec};
 use io::IoChannel;
-use miner::external::ExternalMiner;
+use crate::miner::external::ExternalMiner;
 use parity_runtime::Runtime;
 use parking_lot::Mutex;
-use types::ids::BlockId;
+use crate::types::ids::BlockId;
 
 use jsonrpc_core::IoHandler;
-use v1::{
+use crate::v1::{
     helpers::{
         dispatch::{self, FullDispatcher},
         nonce,

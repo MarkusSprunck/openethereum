@@ -17,7 +17,7 @@
 //! Block import analysis functions.
 
 use ethcore::client::BlockQueueInfo;
-use sync::SyncState;
+use crate::sync::SyncState;
 
 /// Check if client is during major sync or during block import and allows defining whether 'waiting for peers' should
 /// be considered a syncing state.
@@ -46,7 +46,7 @@ pub fn is_major_importing(sync_state: Option<SyncState>, queue_info: BlockQueueI
 mod tests {
     use super::is_major_importing;
     use ethcore::client::BlockQueueInfo;
-    use sync::SyncState;
+    use crate::sync::SyncState;
 
     fn queue_info(unverified: usize, verified: usize) -> BlockQueueInfo {
         BlockQueueInfo {

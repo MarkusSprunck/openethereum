@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use bytes::Bytes;
+use crate::bytes::Bytes;
 use ethereum_types::{Address, H256, U256, U64};
 
-use v1::types::{AccessList, Origin, TransactionCondition};
+use crate::v1::types::{AccessList, Origin, TransactionCondition};
 
 /// Transaction request coming from RPC
 #[derive(Debug, Clone, Default, Eq, PartialEq, Hash)]

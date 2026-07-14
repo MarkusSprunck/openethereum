@@ -18,8 +18,8 @@ use std::{collections::BTreeMap, ops::Deref};
 
 use ethereum_types::{Bloom as H2048, H160, H256, U256};
 use serde::{ser::Error, Serialize, Serializer};
-use types::{encoded::Header as EthHeader, BlockNumber};
-use v1::types::{Bytes, Transaction};
+use crate::types::{encoded::Header as EthHeader, BlockNumber};
+use crate::v1::types::{Bytes, Transaction};
 
 /// Block Transactions
 #[derive(Debug)]
@@ -221,7 +221,7 @@ mod tests {
     use ethereum_types::{Bloom as H2048, H160, H256, H64, U256};
     use serde_json;
     use std::collections::BTreeMap;
-    use v1::types::{Bytes, Transaction};
+    use crate::v1::types::{Bytes, Transaction};
 
     #[test]
     fn test_serialize_block_transactions() {

@@ -17,7 +17,7 @@
 //! RPC generic methods implementation.
 use jsonrpc_core::Result;
 use std::collections::BTreeMap;
-use v1::traits::Rpc;
+use crate::v1::traits::Rpc;
 
 /// RPC generic methods implementation.
 pub struct RpcClient {

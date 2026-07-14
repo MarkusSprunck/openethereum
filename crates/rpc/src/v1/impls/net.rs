@@ -17,8 +17,8 @@
 //! Net rpc implementation.
 use jsonrpc_core::Result;
 use std::sync::Arc;
-use sync::SyncProvider;
-use v1::traits::Net;
+use crate::sync::SyncProvider;
+use crate::v1::traits::Net;
 
 /// Net rpc implementation.
 pub struct NetClient<S: ?Sized> {

@@ -21,7 +21,7 @@ use std::{
     sync::Arc,
 };
 
-use bytes::Bytes;
+use crate::bytes::Bytes;
 use ethcore::{
     block::SealedBlock,
     client::{
@@ -33,12 +33,12 @@ use ethcore::{
     miner::{self, AuthoringParams, MinerService, TransactionFilter},
 };
 use ethereum_types::{Address, H256, U256};
-use miner::pool::{
+use crate::miner::pool::{
     local_transactions::Status as LocalTransactionStatus, verifier, QueueStatus,
     VerifiedTransaction,
 };
 use parking_lot::{Mutex, RwLock};
-use types::{
+use crate::types::{
     block::Block,
     header::Header,
     ids::BlockId,

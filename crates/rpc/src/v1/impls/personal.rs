@@ -18,18 +18,18 @@
 use std::sync::Arc;
 
 use accounts::AccountProvider;
-use bytes::Bytes;
-use crypto::publickey::{public_to_address, recover, Signature};
+use crate::bytes::Bytes;
+use crate::crypto::publickey::{public_to_address, recover, Signature};
 use eip_712::{hash_structured_data, EIP712};
 use ethereum_types::{Address, H160, H256, H520, U128};
-use types::transaction::{PendingTransaction, SignedTransaction};
+use crate::types::transaction::{PendingTransaction, SignedTransaction};
 
 use jsonrpc_core::{
-    futures::{future, Future},
+    futures::future,
     types::Value,
     BoxFuture, Result,
 };
-use v1::{
+use crate::v1::{
     helpers::{
         deprecated::{self, DeprecationNotice},
         dispatch::{self, eth_data_hash, Dispatcher, PostSign, SignWith, WithToken},
@@ -75,10 +75,11 @@ impl<D: Dispatcher + 'static> PersonalClient<D> {
         request: TransactionRequest,
         password: String,
         post_sign: P,
-    ) -> BoxFuture<P::Item>
+    ) -> BoxFuture<Result<P::Item>>
     where
         P: PostSign + 'static,
-        <P::Out as futures::future::IntoFuture>::Future: Send,
+        P::Out: Send + 'static,
+        P::Item: Send,
     {
         let dispatcher = self.dispatcher.clone();
         let accounts = self.accounts.clone();
@@ -92,22 +93,18 @@ impl<D: Dispatcher + 'static> PersonalClient<D> {
 
         let default = match default {
             Ok(default) => default,
-            Err(e) => return Box::new(future::err(e)),
+            Err(e) => return Box::pin(future::err(e)),
         };
 
         let accounts = Arc::new(dispatch::Signer::new(accounts)) as _;
-        Box::new(
-            dispatcher
+        Box::pin(async move {
+            let filled = dispatcher
                 .fill_optional_fields(request.into(), default, false)
-                .and_then(move |filled| {
-                    dispatcher.sign(
-                        filled,
-                        &accounts,
-                        SignWith::Password(password.into()),
-                        post_sign,
-                    )
-                }),
-        )
+                .await?;
+            dispatcher
+                .sign(filled, &accounts, SignWith::Password(password.into()), post_sign)
+                .await
+        })
     }
 }
 
@@ -170,31 +167,27 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         }
     }
 
-    fn sign(&self, data: RpcBytes, account: H160, password: String) -> BoxFuture<H520> {
+    fn sign(&self, data: RpcBytes, account: H160, password: String) -> BoxFuture<Result<H520>> {
         self.deprecation_notice
             .print("personal_sign", deprecated::msgs::ACCOUNTS);
         let dispatcher = self.dispatcher.clone();
         let accounts = Arc::new(dispatch::Signer::new(self.accounts.clone())) as _;
-
         let payload = RpcConfirmationPayload::EthSignMessage((account, data).into());
-
-        Box::new(
-            dispatch::from_rpc(payload, account, &dispatcher)
-                .and_then(move |payload| {
-                    dispatch::execute(
-                        dispatcher,
-                        &accounts,
-                        payload,
-                        dispatch::SignWith::Password(password.into()),
-                    )
-                })
-                .map(super::super::helpers::dispatch::WithToken::into_value)
-                .then(|res| match res {
-                    Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
-                    Err(e) => Err(e),
-                    e => Err(errors::internal("Unexpected result", e)),
-                }),
-        )
+        Box::pin(async move {
+            let payload = dispatch::from_rpc(payload, account, &dispatcher).await?;
+            let result = dispatch::execute(
+                dispatcher,
+                &accounts,
+                payload,
+                dispatch::SignWith::Password(password.into()),
+            )
+            .await?
+            .into_value();
+            match result {
+                RpcConfirmationResponse::Signature(signature) => Ok(signature),
+                e => Err(errors::internal("Unexpected result", e)),
+            }
+        })
     }
 
     fn sign_191(
@@ -203,37 +196,32 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         data: Value,
         account: H160,
         password: String,
-    ) -> BoxFuture<H520> {
+    ) -> BoxFuture<Result<H520>> {
         self.deprecation_notice
             .print("personal_sign191", deprecated::msgs::ACCOUNTS);
         try_bf!(errors::require_experimental(
             self.allow_experimental_rpcs,
             "191"
         ));
-
         let data = try_bf!(eip191::hash_message(version, data));
         let dispatcher = self.dispatcher.clone();
         let accounts = Arc::new(dispatch::Signer::new(self.accounts.clone())) as _;
-
         let payload = RpcConfirmationPayload::EIP191SignMessage((account, data).into());
-
-        Box::new(
-            dispatch::from_rpc(payload, account, &dispatcher)
-                .and_then(move |payload| {
-                    dispatch::execute(
-                        dispatcher,
-                        &accounts,
-                        payload,
-                        dispatch::SignWith::Password(password.into()),
-                    )
-                })
-                .map(super::super::helpers::dispatch::WithToken::into_value)
-                .then(|res| match res {
-                    Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
-                    Err(e) => Err(e),
-                    e => Err(errors::internal("Unexpected result", e)),
-                }),
-        )
+        Box::pin(async move {
+            let payload = dispatch::from_rpc(payload, account, &dispatcher).await?;
+            let result = dispatch::execute(
+                dispatcher,
+                &accounts,
+                payload,
+                dispatch::SignWith::Password(password.into()),
+            )
+            .await?
+            .into_value();
+            match result {
+                RpcConfirmationResponse::Signature(signature) => Ok(signature),
+                e => Err(errors::internal("Unexpected result", e)),
+            }
+        })
     }
 
     fn sign_typed_data(
@@ -241,53 +229,46 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         typed_data: EIP712,
         account: H160,
         password: String,
-    ) -> BoxFuture<H520> {
+    ) -> BoxFuture<Result<H520>> {
         self.deprecation_notice
             .print("personal_signTypedData", deprecated::msgs::ACCOUNTS);
         try_bf!(errors::require_experimental(
             self.allow_experimental_rpcs,
             "712"
         ));
-
         let data = match hash_structured_data(typed_data) {
             Ok(d) => d,
-            Err(err) => return Box::new(future::err(errors::invalid_call_data(err.kind()))),
+            Err(err) => return Box::pin(future::err(errors::invalid_call_data(err.kind()))),
         };
         let dispatcher = self.dispatcher.clone();
         let accounts = Arc::new(dispatch::Signer::new(self.accounts.clone())) as _;
-
         let payload = RpcConfirmationPayload::EIP191SignMessage((account, data).into());
-
-        Box::new(
-            dispatch::from_rpc(payload, account, &dispatcher)
-                .and_then(move |payload| {
-                    dispatch::execute(
-                        dispatcher,
-                        &accounts,
-                        payload,
-                        dispatch::SignWith::Password(password.into()),
-                    )
-                })
-                .map(super::super::helpers::dispatch::WithToken::into_value)
-                .then(|res| match res {
-                    Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
-                    Err(e) => Err(e),
-                    e => Err(errors::internal("Unexpected result", e)),
-                }),
-        )
+        Box::pin(async move {
+            let payload = dispatch::from_rpc(payload, account, &dispatcher).await?;
+            let result = dispatch::execute(
+                dispatcher,
+                &accounts,
+                payload,
+                dispatch::SignWith::Password(password.into()),
+            )
+            .await?
+            .into_value();
+            match result {
+                RpcConfirmationResponse::Signature(signature) => Ok(signature),
+                e => Err(errors::internal("Unexpected result", e)),
+            }
+        })
     }
 
-    fn ec_recover(&self, data: RpcBytes, signature: H520) -> BoxFuture<H160> {
+    fn ec_recover(&self, data: RpcBytes, signature: H520) -> BoxFuture<Result<H160>> {
         let signature: H520 = signature;
         let signature = Signature::from_electrum(signature.as_bytes());
         let data: Bytes = data.into();
-
         let hash = eth_data_hash(data);
         let account = recover(&signature, &hash)
             .map_err(errors::encryption)
             .map(|public| public_to_address(&public));
-
-        Box::new(future::done(account))
+        Box::pin(future::ready(account))
     }
 
     fn sign_transaction(
@@ -295,17 +276,17 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         meta: Metadata,
         request: TransactionRequest,
         password: String,
-    ) -> BoxFuture<RpcRichRawTransaction> {
+    ) -> BoxFuture<Result<RpcRichRawTransaction>> {
         self.deprecation_notice
             .print("personal_signTransaction", deprecated::msgs::ACCOUNTS);
-
         let condition = request.condition.clone().map(Into::into);
         let dispatcher = self.dispatcher.clone();
-        Box::new(
-            self.do_sign_transaction(meta, request, password, ())
-                .map(move |tx| PendingTransaction::new(tx.into_value(), condition))
-                .map(move |pending_tx| dispatcher.enrich(pending_tx.transaction)),
-        )
+        let fut = self.do_sign_transaction(meta, request, password, ());
+        Box::pin(async move {
+            let tx = fut.await?;
+            let pending_tx = PendingTransaction::new(tx.into_value(), condition);
+            Ok(dispatcher.enrich(pending_tx.transaction))
+        })
     }
 
     fn send_transaction(
@@ -313,20 +294,22 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         meta: Metadata,
         request: TransactionRequest,
         password: String,
-    ) -> BoxFuture<H256> {
+    ) -> BoxFuture<Result<H256>> {
         self.deprecation_notice
             .print("personal_sendTransaction", deprecated::msgs::ACCOUNTS);
         let condition = request.condition.clone().map(Into::into);
         let dispatcher = self.dispatcher.clone();
-        Box::new(self.do_sign_transaction(
+        self.do_sign_transaction(
             meta,
             request,
             password,
             move |signed: WithToken<SignedTransaction>| {
-                dispatcher
-                    .dispatch_transaction(PendingTransaction::new(signed.into_value(), condition))
+                dispatcher.dispatch_transaction(PendingTransaction::new(
+                    signed.into_value(),
+                    condition,
+                ))
             },
-        ))
+        )
     }
 
     fn sign_and_send_transaction(
@@ -334,7 +317,7 @@ impl<D: Dispatcher + 'static> Personal for PersonalClient<D> {
         meta: Metadata,
         request: TransactionRequest,
         password: String,
-    ) -> BoxFuture<H256> {
+    ) -> BoxFuture<Result<H256>> {
         self.deprecation_notice.print(
             "personal_signAndSendTransaction",
             Some("use personal_sendTransaction instead."),

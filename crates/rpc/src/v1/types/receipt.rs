@@ -15,8 +15,8 @@
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
 use ethereum_types::{Bloom as H2048, H160, H256, U256, U64};
-use types::receipt::{LocalizedReceipt, RichReceipt, TransactionOutcome, TypedReceipt};
-use v1::types::Log;
+use crate::types::receipt::{LocalizedReceipt, RichReceipt, TransactionOutcome, TypedReceipt};
+use crate::v1::types::Log;
 
 /// Receipt
 #[derive(Debug, Serialize)]
@@ -147,8 +147,8 @@ impl From<TypedReceipt> for Receipt {
 mod tests {
     use ethereum_types::{Bloom, H256};
     use serde_json;
-    use types::transaction::TypedTxId;
-    use v1::types::{Log, Receipt};
+    use crate::types::transaction::TypedTxId;
+    use crate::v1::types::{Log, Receipt};
 
     #[test]
     fn receipt_serialization() {

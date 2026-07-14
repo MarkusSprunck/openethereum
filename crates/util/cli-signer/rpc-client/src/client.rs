@@ -38,7 +38,8 @@ use ws::ws::{
 use serde::de::DeserializeOwned;
 use serde_json::{self as json, Error as JsonError, Value as JsonValue};
 
-use futures::{done, oneshot, Canceled, Complete, Future};
+use futures::{channel::oneshot, future, FutureExt};
+use futures::channel::oneshot::Canceled;
 
 use jsonrpc_core::{
     request::MethodCall,
@@ -46,21 +47,17 @@ use jsonrpc_core::{
     Error as JsonRpcError, Id, Params, Version,
 };
 
-use BoxFuture;
-
 /// The actual websocket connection handler, passed into the
 /// event loop of ws-rs
 struct RpcHandler {
     pending: Pending,
-    // Option is used here as temporary storage until connection
-    // is setup and the values are moved into the new `Rpc`
-    complete: Option<Complete<Result<Rpc, RpcError>>>,
+    complete: Option<oneshot::Sender<Result<Rpc, RpcError>>>,
     auth_code: String,
     out: Option<Sender>,
 }
 
 impl RpcHandler {
-    fn new(out: Sender, auth_code: String, complete: Complete<Result<Rpc, RpcError>>) -> Self {
+    fn new(out: Sender, auth_code: String, complete: oneshot::Sender<Result<Rpc, RpcError>>) -> Self {
         RpcHandler {
             out: Some(out),
             auth_code,
@@ -168,16 +165,16 @@ impl Handler for RpcHandler {
 
 /// Keeping track of issued requests to be matched up with responses
 #[derive(Clone)]
-struct Pending(Arc<Mutex<BTreeMap<usize, Complete<Result<JsonValue, RpcError>>>>>);
+struct Pending(Arc<Mutex<BTreeMap<usize, oneshot::Sender<Result<JsonValue, RpcError>>>>>);
 
 impl Pending {
     fn new() -> Self {
         Pending(Arc::new(Mutex::new(BTreeMap::new())))
     }
-    fn insert(&mut self, k: usize, v: Complete<Result<JsonValue, RpcError>>) {
+    fn insert(&mut self, k: usize, v: oneshot::Sender<Result<JsonValue, RpcError>>) {
         self.0.lock().insert(k, v);
     }
-    fn remove(&mut self, k: usize) -> Option<Complete<Result<JsonValue, RpcError>>> {
+    fn remove(&mut self, k: usize) -> Option<oneshot::Sender<Result<JsonValue, RpcError>>> {
         self.0.lock().remove(&k)
     }
 }
@@ -206,39 +203,34 @@ pub struct Rpc {
 impl Rpc {
     /// Blocking, returns a new initialized connection or RpcError
     pub fn new(url: &str, authpath: &PathBuf) -> Result<Self, RpcError> {
-        Self::connect(url, authpath).map(|rpc| rpc).wait()?
+        futures::executor::block_on(Self::connect(url, authpath))
     }
 
     /// Non-blocking, returns a future
-    pub fn connect(url: &str, authpath: &PathBuf) -> BoxFuture<Result<Self, RpcError>, Canceled> {
-        let (c, p) = oneshot::<Result<Self, RpcError>>();
+    pub fn connect(
+        url: &str,
+        authpath: &PathBuf,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Self, RpcError>> + Send>> {
+        let (tx, rx) = oneshot::channel::<Result<Self, RpcError>>();
         match get_authcode(authpath) {
-            Err(e) => Box::new(done(Ok(Err(e)))),
+            Err(e) => Box::pin(future::ready(Err(e))),
             Ok(code) => {
                 let url = String::from(url);
-                // The ws::connect takes a FnMut closure, which means c cannot
-                // be moved into it, since it's consumed on complete.
-                // Therefore we wrap it in an option and pick it out once.
-                let mut once = Some(c);
+                let mut once = Some(tx);
                 thread::spawn(move || {
                     let conn = ws::connect(url, |out| {
-                        // this will panic if the closure is called twice,
-                        // which it should never be.
                         let c = once.take().expect("connection closure called only once");
                         RpcHandler::new(out, code.clone(), c)
                     });
                     match conn {
                         Err(err) => {
-                            // since ws::connect is only called once, it cannot
-                            // both fail and succeed.
                             let c = once.take().expect("connection closure called only once");
                             let _ = c.send(Err(RpcError::WsError(err)));
                         }
-                        // c will complete on the `on_open` event in the Handler
                         _ => (),
                     }
                 });
-                Box::new(p)
+                Box::pin(rx.map(|r| r.unwrap_or(Err(RpcError::NoAuthCode))))
             }
         }
     }
@@ -248,14 +240,14 @@ impl Rpc {
         &mut self,
         method: &'static str,
         params: Vec<JsonValue>,
-    ) -> BoxFuture<Result<T, RpcError>, Canceled>
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, RpcError>> + Send>>
     where
-        T: DeserializeOwned + Send + Sized,
+        T: DeserializeOwned + Send + Sized + 'static,
     {
-        let (c, p) = oneshot::<Result<JsonValue, RpcError>>();
+        let (tx, rx) = oneshot::channel::<Result<JsonValue, RpcError>>();
 
         let id = self.counter.fetch_add(1, Ordering::SeqCst);
-        self.pending.insert(id, c);
+        self.pending.insert(id, tx);
 
         let request = MethodCall {
             jsonrpc: Some(Version::V2),
@@ -267,12 +259,10 @@ impl Rpc {
         let serialized = json::to_string(&request).expect("request is serializable");
         let _ = self.out.send(serialized);
 
-        Box::new(p.map(|result| match result {
-            Ok(json) => {
-                let t: T = json::from_value(json)?;
-                Ok(t)
-            }
-            Err(err) => Err(err),
+        Box::pin(rx.map(|r| match r {
+            Ok(Ok(json)) => json::from_value(json).map_err(RpcError::ParseError),
+            Ok(Err(err)) => Err(err),
+            Err(_canceled) => Err(RpcError::NoAuthCode),
         }))
     }
 }

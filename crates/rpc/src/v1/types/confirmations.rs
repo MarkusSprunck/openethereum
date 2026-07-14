@@ -17,13 +17,13 @@
 //! Types used in Confirmations queue (Trusted Signer)
 
 use ansi_term::Colour;
-use bytes::ToPretty;
+use crate::bytes::ToPretty;
 use serde::{Serialize, Serializer};
 use std::fmt;
 
 use ethereum_types::{H160, H256, H520, U256};
 use ethkey::Password;
-use v1::{
+use crate::v1::{
     helpers,
     types::{Bytes, Origin, RichRawTransaction, TransactionCondition, TransactionRequest},
 };
@@ -305,7 +305,7 @@ mod tests {
     use ethereum_types::{Address, H256, U256};
     use serde_json;
     use std::str::FromStr;
-    use v1::{helpers, types::TransactionCondition};
+    use crate::v1::{helpers, types::TransactionCondition};
 
     #[test]
     fn should_serialize_sign_confirmation() {

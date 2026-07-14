@@ -19,7 +19,7 @@ use log::{debug, error, trace};
 use bytes::Bytes;
 use futures::channel::oneshot;
 use futures::task::{Context, Poll};
-use futures::{executor, Future, FutureExt, Stream};
+use futures::{Future, FutureExt, Stream};
 use http::header::{self, IntoHeaderName};
 use http::{HeaderMap, HeaderValue, Method, StatusCode};
 use hyper::body::HttpBody;
@@ -592,19 +592,45 @@ impl io::Read for BodyReader {
                     .take()
                     .expect("loop condition ensures `self.body` is always defined; qed");
 
-                // Use futures::executor::block_on to efficiently bridge async/sync
-                let result = executor::block_on(async {
-                    use hyper::body::HttpBody;
-                    match body.data().await {
-                        Some(Ok(chunk)) => Ok(Some(chunk)),
-                        Some(Err(e)) => Err(io::Error::other(format!("body read error: {e}"))),
-                        None => Ok(None),
+                // Bridge async body to sync I/O. We need to handle two contexts:
+                // 1. Inside a tokio runtime: use block_in_place + handle.block_on
+                // 2. Outside any async executor (e.g., inside futures::executor::block_on
+                //    from jsonrpc's handle_request_sync): create a temporary tokio runtime
+                //
+                // The async block returns (body, result) so we can put `body` back.
+                let (body_back, result) = match tokio::runtime::Handle::try_current() {
+                    Ok(handle) => {
+                        tokio::task::block_in_place(|| handle.block_on(async move {
+                            use hyper::body::HttpBody;
+                            let result = match body.data().await {
+                                Some(Ok(chunk)) => Ok(Some(chunk)),
+                                Some(Err(e)) => Err(io::Error::other(format!("body read error: {e}"))),
+                                None => Ok(None),
+                            };
+                            (body, result)
+                        }))
                     }
-                });
+                    Err(_) => {
+                        // No tokio runtime available – create a minimal one (handles nested
+                        // futures::executor::block_on contexts from jsonrpc's handle_request_sync)
+                        tokio::runtime::Builder::new_current_thread()
+                            .build()
+                            .expect("tokio runtime for body reader")
+                            .block_on(async move {
+                                use hyper::body::HttpBody;
+                                let result = match body.data().await {
+                                    Some(Ok(chunk)) => Ok(Some(chunk)),
+                                    Some(Err(e)) => Err(io::Error::other(format!("body read error: {e}"))),
+                                    None => Ok(None),
+                                };
+                                (body, result)
+                            })
+                    }
+                };
 
                 match result {
                     Ok(Some(chunk)) => {
-                        self.body = Some(body);
+                        self.body = Some(body_back);
                         self.chunk = chunk;
                         self.offset = 0;
                     }

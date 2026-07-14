@@ -23,12 +23,12 @@ use ethcore::{
     miner::{self, MinerService},
 };
 use ethereum_types::{H160, H256, U256};
-use fetch::{self, ClientCompatExt, Fetch};
-use hash::keccak_buffer;
-use sync::ManageNetwork;
+use fetch::{self, Fetch};
+use crate::hash::keccak_buffer;
+use crate::sync::ManageNetwork;
 
-use jsonrpc_core::{futures::Future, BoxFuture, Result};
-use v1::{
+use jsonrpc_core::{BoxFuture, Result};
+use crate::v1::{
     helpers::errors,
     traits::ParitySet,
     types::{Bytes, Transaction},
@@ -38,7 +38,7 @@ use v1::{
 pub mod accounts {
     use super::{miner, Arc, MinerService, Result, H160};
     use accounts::AccountProvider;
-    use v1::{
+    use crate::v1::{
         helpers::{deprecated::DeprecationNotice, engine_signer::EngineSigner},
         traits::ParitySetAccounts,
     };
@@ -106,7 +106,7 @@ impl<C, M, F> ParitySet for ParitySetClient<C, M, F>
 where
     C: BlockChainClient + 'static,
     M: MinerService + 'static,
-    F: Fetch + ClientCompatExt + 'static,
+    F: Fetch + 'static,
 {
     fn set_min_gas_price(&self, gas_price: U256) -> Result<bool> {
         self.miner
@@ -216,17 +216,13 @@ where
             .map_err(|()| errors::cannot_restart())
     }
 
-    fn hash_content(&self, url: String) -> BoxFuture<H256> {
-        let future = self
-            .fetch
-            .get_compat(&url, Default::default())
-            .then(move |result| {
-                result.map_err(errors::fetch).and_then(move |response| {
-                    let mut reader = io::BufReader::new(fetch::BodyReader::new(response));
-                    keccak_buffer(&mut reader).map_err(errors::fetch)
-                })
-            });
-        Box::new(future)
+    fn hash_content(&self, url: String) -> BoxFuture<Result<H256>> {
+        let fetch = self.fetch.clone();
+        Box::pin(async move {
+            let response = fetch.get(&url, Default::default()).await.map_err(errors::fetch)?;
+            let mut reader = io::BufReader::new(fetch::BodyReader::new(response));
+            keccak_buffer(&mut reader).map_err(errors::fetch)
+        })
     }
 
     fn remove_transaction(&self, hash: H256) -> Result<Option<Transaction>> {

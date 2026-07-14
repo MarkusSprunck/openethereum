@@ -18,7 +18,7 @@
 
 use ethcore::{client, client::BlockId};
 use ethereum_types::H160;
-use v1::types::BlockNumber;
+use crate::v1::types::BlockNumber;
 
 /// Trace filter
 #[derive(Debug, PartialEq, Deserialize)]
@@ -71,7 +71,7 @@ impl From<TraceFilter> for client::TraceFilter {
 mod tests {
     use ethereum_types::Address;
     use serde_json;
-    use v1::types::{BlockNumber, TraceFilter};
+    use crate::v1::types::{BlockNumber, TraceFilter};
 
     #[test]
     fn test_empty_trace_filter_deserialize() {

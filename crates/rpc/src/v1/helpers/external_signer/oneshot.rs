@@ -14,11 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with OpenEthereum.  If not, see <http://www.gnu.org/licenses/>.
 
-use jsonrpc_core::{
-    futures::{self, sync::oneshot, Future},
-    Error,
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
 };
-use v1::helpers::errors;
+
+use futures::channel::oneshot;
+use jsonrpc_core::Error;
+use crate::v1::helpers::errors;
 
 pub type Res<T> = Result<T, Error>;
 
@@ -39,26 +42,23 @@ pub struct Receiver<T> {
     receiver: oneshot::Receiver<Res<T>>,
 }
 
-impl<T> Future for Receiver<T> {
-    type Item = T;
-    type Error = Error;
+impl<T: Send> std::future::Future for Receiver<T> {
+    type Output = Res<T>;
 
-    fn poll(&mut self) -> futures::Poll<Self::Item, Self::Error> {
-        let res = self.receiver.poll();
-        match res {
-            Ok(futures::Async::NotReady) => Ok(futures::Async::NotReady),
-            Ok(futures::Async::Ready(Ok(res))) => Ok(futures::Async::Ready(res)),
-            Ok(futures::Async::Ready(Err(err))) => Err(err),
-            Err(e) => {
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match Pin::new(&mut self.receiver).poll(cx) {
+            Poll::Ready(Ok(Ok(res))) => Poll::Ready(Ok(res)),
+            Poll::Ready(Ok(Err(err))) => Poll::Ready(Err(err)),
+            Poll::Ready(Err(e)) => {
                 debug!(target: "rpc", "Responding to a canceled request: {e:?}");
-                Err(errors::internal("Request was canceled by client.", e))
+                Poll::Ready(Err(errors::internal("Request was canceled by client.", e)))
             }
+            Poll::Pending => Poll::Pending,
         }
     }
 }
 
 pub fn oneshot<T>() -> (Sender<T>, Receiver<T>) {
-    let (tx, rx) = futures::oneshot();
-
+    let (tx, rx) = oneshot::channel();
     (Sender { sender: tx }, Receiver { receiver: rx })
 }

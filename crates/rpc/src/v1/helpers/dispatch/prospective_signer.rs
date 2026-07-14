@@ -16,142 +16,58 @@
 
 use std::sync::Arc;
 
-use ethereum_types::U256;
-use jsonrpc_core::{
-    futures::{Async, Future, IntoFuture, Poll},
-    Error, Result,
-};
-use types::transaction::SignedTransaction;
+use jsonrpc_core::{BoxFuture, Error, Result};
+use crate::types::transaction::SignedTransaction;
 
 use super::{Accounts, PostSign, SignWith, WithToken};
-use v1::helpers::{errors, nonce, FilledTransactionRequest};
+use crate::v1::helpers::{errors, nonce, FilledTransactionRequest};
 
-#[derive(Debug, Clone, Copy)]
-enum ProspectiveSignerState {
-    TryProspectiveSign,
-    WaitForPostSign,
-    WaitForNonce,
-}
-
-pub struct ProspectiveSigner<P: PostSign> {
+/// Create a prospective-signing future: attempts to sign early with a prospective
+/// nonce while waiting for the real one, then executes `post_sign`.
+pub fn new<P>(
     signer: Arc<dyn Accounts>,
     filled: FilledTransactionRequest,
     chain_id: Option<u64>,
     reserved: nonce::Reserved,
     password: SignWith,
-    state: ProspectiveSignerState,
-    prospective: Option<WithToken<SignedTransaction>>,
-    ready: Option<nonce::Ready>,
-    post_sign: Option<P>,
-    post_sign_future: Option<<P::Out as IntoFuture>::Future>,
-}
+    post_sign: P,
+) -> BoxFuture<Result<P::Item>>
+where
+    P: PostSign + 'static,
+    P::Out: Send + 'static,
+    P::Item: Send,
+{
+    let prospective_value = *reserved.prospective_value();
+    let supports_prospective = signer.supports_prospective_signing(&filled.from, &password);
 
-impl<P: PostSign> ProspectiveSigner<P> {
-    pub fn new(
-        signer: Arc<dyn Accounts>,
-        filled: FilledTransactionRequest,
-        chain_id: Option<u64>,
-        reserved: nonce::Reserved,
-        password: SignWith,
-        post_sign: P,
-    ) -> Self {
-        let supports_prospective = signer.supports_prospective_signing(&filled.from, &password);
-
-        ProspectiveSigner {
-            signer,
-            filled,
-            chain_id,
-            reserved,
-            password,
-            state: if supports_prospective {
-                ProspectiveSignerState::TryProspectiveSign
+    Box::pin(async move {
+        // Optionally pre-sign with prospective nonce while waiting.
+        let prospective_signed: Option<std::result::Result<WithToken<SignedTransaction>, Error>> =
+            if supports_prospective {
+                Some(signer.sign_transaction(
+                    filled.clone(),
+                    chain_id,
+                    prospective_value,
+                    password.clone(),
+                ))
             } else {
-                ProspectiveSignerState::WaitForNonce
-            },
-            prospective: None,
-            ready: None,
-            post_sign: Some(post_sign),
-            post_sign_future: None,
-        }
-    }
+                None
+            };
 
-    fn sign(&self, nonce: &U256) -> Result<WithToken<SignedTransaction>> {
-        self.signer.sign_transaction(
-            self.filled.clone(),
-            self.chain_id,
-            *nonce,
-            self.password.clone(),
-        )
-    }
+        let nonce = reserved
+            .await
+            .map_err(|()| errors::internal("Nonce reservation failure", ""))?;
 
-    fn poll_reserved(&mut self) -> Poll<nonce::Ready, Error> {
-        self.reserved
-            .poll()
-            .map_err(|()| errors::internal("Nonce reservation failure", ""))
-    }
-}
+        let signed = if supports_prospective && nonce.matches_prospective() {
+            // Reuse prospective signature if nonce matches.
+            prospective_signed
+                .expect("prospective_signed is Some when supports_prospective; qed")?
+        } else {
+            signer.sign_transaction(filled, chain_id, *nonce.value(), password)?
+        };
 
-impl<P: PostSign> Future for ProspectiveSigner<P> {
-    type Item = P::Item;
-    type Error = Error;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        use self::ProspectiveSignerState::{TryProspectiveSign, WaitForNonce, WaitForPostSign};
-
-        loop {
-            match self.state {
-                TryProspectiveSign => {
-                    // Try to poll reserved, it might be ready.
-                    match self.poll_reserved()? {
-                        Async::NotReady => {
-                            self.state = WaitForNonce;
-                            self.prospective = Some(self.sign(self.reserved.prospective_value())?);
-                        }
-                        Async::Ready(nonce) => {
-                            self.state = WaitForPostSign;
-                            self.post_sign_future = Some(
-                                self.post_sign
-                                    .take()
-                                    .expect("post_sign is set on creation; qed")
-                                    .execute(self.sign(nonce.value())?)
-                                    .into_future(),
-                            );
-                            self.ready = Some(nonce);
-                        }
-                    }
-                }
-                WaitForNonce => {
-                    let nonce = try_ready!(self.poll_reserved());
-                    let prospective = match (self.prospective.take(), nonce.matches_prospective()) {
-                        (Some(prospective), true) => prospective,
-                        _ => self.sign(nonce.value())?,
-                    };
-                    self.ready = Some(nonce);
-                    self.state = WaitForPostSign;
-                    self.post_sign_future = Some(
-                        self.post_sign
-                            .take()
-                            .expect("post_sign is set on creation; qed")
-                            .execute(prospective)
-                            .into_future(),
-                    );
-                }
-                WaitForPostSign => {
-                    if let Some(fut) = self.post_sign_future.as_mut() {
-                        match fut.poll()? {
-                            Async::Ready(item) => {
-                                let nonce = self.ready.take().expect(
-                                    "nonce is set before state transitions to WaitForPostSign; qed",
-                                );
-                                nonce.mark_used();
-                                return Ok(Async::Ready(item));
-                            }
-                            Async::NotReady => return Ok(Async::NotReady),
-                        }
-                    }
-                    panic!("Poll after ready.");
-                }
-            }
-        }
-    }
+        let result = post_sign.execute(signed).await?;
+        nonce.mark_used();
+        Ok(result)
+    })
 }

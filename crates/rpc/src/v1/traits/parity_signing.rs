@@ -19,7 +19,7 @@ use jsonrpc_core::{BoxFuture, Result};
 use jsonrpc_derive::rpc;
 
 use ethereum_types::{H160, U256};
-use v1::types::{Bytes, ConfirmationResponse, Either, TransactionRequest};
+use crate::v1::types::{Bytes, ConfirmationResponse, Either, TransactionRequest};
 
 /// Signing methods implementation.
 #[rpc(server)]
@@ -34,7 +34,7 @@ pub trait ParitySigning {
         &self,
         _: Self::Metadata,
         _: TransactionRequest,
-    ) -> BoxFuture<TransactionRequest>;
+    ) -> BoxFuture<Result<TransactionRequest>>;
 
     /// Posts sign request asynchronously.
     /// Will return a confirmation ID for later use with check_transaction.
@@ -44,7 +44,7 @@ pub trait ParitySigning {
         _: Self::Metadata,
         _: H160,
         _: Bytes,
-    ) -> BoxFuture<Either<U256, ConfirmationResponse>>;
+    ) -> BoxFuture<Result<Either<U256, ConfirmationResponse>>>;
 
     /// Posts transaction asynchronously.
     /// Will return a transaction ID for later use with check_transaction.
@@ -53,7 +53,7 @@ pub trait ParitySigning {
         &self,
         _: Self::Metadata,
         _: TransactionRequest,
-    ) -> BoxFuture<Either<U256, ConfirmationResponse>>;
+    ) -> BoxFuture<Result<Either<U256, ConfirmationResponse>>>;
 
     /// Checks the progress of a previously posted request (transaction/sign).
     /// Should be given a valid send_transaction ID.
@@ -63,5 +63,5 @@ pub trait ParitySigning {
     /// Decrypt some ECIES-encrypted message.
     /// First parameter is the address with which it is encrypted, second is the ciphertext.
     #[rpc(meta, name = "parity_decryptMessage")]
-    fn decrypt_message(&self, _: Self::Metadata, _: H160, _: Bytes) -> BoxFuture<Bytes>;
+    fn decrypt_message(&self, _: Self::Metadata, _: H160, _: Bytes) -> BoxFuture<Result<Bytes>>;
 }

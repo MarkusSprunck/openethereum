@@ -37,9 +37,6 @@
 	warn(clippy::indexing_slicing)
 )]
 
-#[macro_use]
-extern crate futures;
-
 extern crate ansi_term;
 extern crate itertools;
 extern crate order_stat;
@@ -48,32 +45,33 @@ extern crate rand;
 extern crate rustc_hex;
 extern crate serde;
 extern crate serde_json;
-extern crate tokio_timer;
 extern crate transient_hashmap;
+
+extern crate futures;
 
 extern crate jsonrpc_core;
 extern crate jsonrpc_derive;
-extern crate jsonrpc_http_server as http;
-extern crate jsonrpc_ipc_server as ipc;
+pub(crate) extern crate jsonrpc_http_server as http;
+pub(crate) extern crate jsonrpc_ipc_server as ipc;
 extern crate jsonrpc_pubsub;
 
-extern crate common_types as types;
+pub(crate) extern crate common_types as types;
 extern crate eip_712;
 extern crate ethash;
 extern crate ethcore;
 extern crate ethcore_logger;
-extern crate ethcore_miner as miner;
-extern crate ethcore_network as network;
-extern crate ethcore_sync as sync;
+pub(crate) extern crate ethcore_miner as miner;
+pub(crate) extern crate ethcore_network as network;
+pub(crate) extern crate ethcore_sync as sync;
 extern crate ethereum_types;
 extern crate ethkey;
 extern crate ethstore;
 extern crate fetch;
-extern crate keccak_hash as hash;
-extern crate parity_bytes as bytes;
-extern crate parity_crypto as crypto;
+pub(crate) extern crate keccak_hash as hash;
+pub(crate) extern crate parity_bytes as bytes;
+pub(crate) extern crate parity_crypto as crypto;
 extern crate parity_runtime;
-extern crate parity_version as version;
+pub(crate) extern crate parity_version as version;
 extern crate rlp;
 extern crate stats;
 extern crate vm;
@@ -132,8 +130,8 @@ pub use ipc::{
 };
 pub use jsonrpc_pubsub::Session as PubSubSession;
 
-pub use authcodes::{AuthCodes, TimeProvider};
-pub use v1::{
+pub use crate::authcodes::{AuthCodes, TimeProvider};
+pub use crate::v1::{
     block_import::{is_major_importing, is_major_importing_or_waiting},
     dispatch,
     extractors::{RpcExtractor, WsDispatcher, WsExtractor, WsStats},

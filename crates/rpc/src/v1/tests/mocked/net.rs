@@ -16,7 +16,7 @@
 
 use jsonrpc_core::IoHandler;
 use std::sync::Arc;
-use v1::{
+use crate::v1::{
     tests::helpers::{Config, TestSyncProvider},
     Net, NetClient,
 };

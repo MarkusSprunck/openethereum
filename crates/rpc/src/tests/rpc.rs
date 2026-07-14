@@ -17,8 +17,8 @@
 use http::{self, hyper};
 use jsonrpc_core::MetaIoHandler;
 use rpc_servers::HttpServer;
-use tests::{helpers::Server, http_client};
-use v1::{extractors, Metadata};
+use crate::tests::{helpers::Server, http_client};
+use crate::v1::{extractors, Metadata};
 
 fn serve(handler: Option<MetaIoHandler<Metadata>>) -> Server<HttpServer> {
     let address = "127.0.0.1:0".parse().unwrap();
@@ -52,12 +52,13 @@ fn request(server: Server<HttpServer>, request: &str) -> http_client::Response {
 mod tests {
     use super::{request, Server};
     use jsonrpc_core::{MetaIoHandler, Value};
-    use v1::Metadata;
+    use rpc_servers::HttpServer;
+    use crate::v1::Metadata;
 
-    fn serve() -> (Server<::HttpServer>, std::net::SocketAddr) {
+    fn serve() -> (Server<HttpServer>, std::net::SocketAddr) {
         let mut io = MetaIoHandler::default();
         io.add_method_with_meta("hello", |_, meta: Metadata| {
-            Ok(Value::String(format!("{}", meta.origin)))
+            futures::future::ready(Ok(Value::String(format!("{}", meta.origin))))
         });
         let server = super::serve(Some(io));
         let address = server.server.address().to_owned();

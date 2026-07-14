@@ -22,15 +22,15 @@ use std::{
 };
 
 use jsonrpc_core::{
-    futures::{self, Future, IntoFuture},
     Error, Result,
 };
+use jsonrpc_core::futures;
 use jsonrpc_pubsub::{
     typed::{Sink, Subscriber},
     SubscriptionId,
 };
 
-use v1::{
+use crate::v1::{
     helpers::{errors, limit_logs, Subscribers},
     metadata::Metadata,
     traits::EthPubSub,
@@ -44,7 +44,7 @@ use ethereum_types::H256;
 use parity_runtime::Executor;
 use parking_lot::RwLock;
 
-use types::{encoded, filter::Filter as EthFilter};
+use crate::types::{encoded, filter::Filter as EthFilter};
 
 type Client = Sink<pubsub::Result>;
 
@@ -138,8 +138,7 @@ where
     where
         F: Fn(EthFilter, &Ex) -> T,
         Ex: Send,
-        T: IntoFuture<Item = Vec<Log>, Error = Error>,
-        T::Future: Send + 'static,
+        T: std::future::Future<Output = std::result::Result<Vec<Log>, Error>> + Send + 'static,
     {
         for (subscriber, filter) in self.logs_subscribers.read().values() {
             let logs = futures::future::join_all(
@@ -149,23 +148,27 @@ where
                         let mut filter = filter.clone();
                         filter.from_block = BlockId::Hash(hash);
                         filter.to_block = filter.from_block;
-                        logs(filter, ex).into_future()
+                        logs(filter, ex)
                     })
                     .collect::<Vec<_>>(),
             );
             let limit = filter.limit;
             let executor = self.executor.clone();
             let subscriber = subscriber.clone();
-            self.executor.spawn(
-                logs.map(move |logs| {
-                    let logs = logs.into_iter().flatten().collect();
-
-                    for log in limit_logs(logs, limit) {
-                        Self::notify(&executor, &subscriber, pubsub::Result::Log(Box::new(log)));
+            self.executor.spawn_03(async move {
+                match logs.await {
+                    logs_vecs => {
+                        let logs: Vec<Log> = logs_vecs
+                            .into_iter()
+                            .filter_map(|r| r.ok())
+                            .flatten()
+                            .collect();
+                        for log in limit_logs(logs, limit) {
+                            Self::notify(&executor, &subscriber, pubsub::Result::Log(Box::new(log)));
+                        }
                     }
-                })
-                .map_err(|e| warn!("Unable to fetch latest logs: {e:?}")),
-            );
+                }
+            });
         }
     }
 
@@ -213,26 +216,29 @@ impl<C: BlockChainClient + EngineInfo> ChainNotify for ChainNotificationHandler<
         self.notify_heads(&headers);
 
         // We notify logs enacting and retracting as the order in route.
-        self.notify_logs(new_blocks.route.route(), |filter, ex| match ex {
-            ChainRouteType::Enacted => Ok(self
-                .client
-                .logs(filter)
-                .unwrap_or_default()
-                .into_iter()
-                .map(Into::into)
-                .collect()),
-            ChainRouteType::Retracted => Ok(self
-                .client
-                .logs(filter)
-                .unwrap_or_default()
-                .into_iter()
-                .map(Into::into)
-                .map(|mut log: Log| {
-                    log.log_type = "removed".into();
-                    log.removed = true;
-                    log
-                })
-                .collect()),
+        self.notify_logs(new_blocks.route.route(), |filter, ex| {
+            let result: std::result::Result<Vec<Log>, Error> = match ex {
+                ChainRouteType::Enacted => Ok(self
+                    .client
+                    .logs(filter)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect()),
+                ChainRouteType::Retracted => Ok(self
+                    .client
+                    .logs(filter)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(Into::into)
+                    .map(|mut log: Log| {
+                        log.log_type = "removed".into();
+                        log.removed = true;
+                        log
+                    })
+                    .collect()),
+            };
+            futures::future::ready(result)
         });
     }
 }

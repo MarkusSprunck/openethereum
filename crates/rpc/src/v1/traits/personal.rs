@@ -19,7 +19,7 @@ use eip_712::EIP712;
 use ethereum_types::{H160, H256, H520, U128};
 use jsonrpc_core::{types::Value, BoxFuture, Result};
 use jsonrpc_derive::rpc;
-use v1::types::{
+use crate::v1::types::{
     Bytes, EIP191Version, RichRawTransaction as RpcRichRawTransaction, TransactionRequest,
 };
 
@@ -45,21 +45,21 @@ pub trait Personal {
     /// Signs the hash of data with given account signature using the given password to unlock the account during
     /// the request.
     #[rpc(name = "personal_sign")]
-    fn sign(&self, _: Bytes, _: H160, _: String) -> BoxFuture<H520>;
+    fn sign(&self, _: Bytes, _: H160, _: String) -> BoxFuture<Result<H520>>;
 
     /// Produces an EIP-712 compliant signature with given account using the given password to unlock the
     /// account during the request.
     #[rpc(name = "personal_signTypedData")]
-    fn sign_typed_data(&self, _: EIP712, _: H160, _: String) -> BoxFuture<H520>;
+    fn sign_typed_data(&self, _: EIP712, _: H160, _: String) -> BoxFuture<Result<H520>>;
 
     /// Signs an arbitrary message based on the version specified
     #[rpc(name = "personal_sign191")]
-    fn sign_191(&self, _: EIP191Version, _: Value, _: H160, _: String) -> BoxFuture<H520>;
+    fn sign_191(&self, _: EIP191Version, _: Value, _: H160, _: String) -> BoxFuture<Result<H520>>;
 
     /// Returns the account associated with the private key that was used to calculate the signature in
     /// `personal_sign`.
     #[rpc(name = "personal_ecRecover")]
-    fn ec_recover(&self, _: Bytes, _: H520) -> BoxFuture<H160>;
+    fn ec_recover(&self, _: Bytes, _: H520) -> BoxFuture<Result<H160>>;
 
     /// Signs transaction. The account is not unlocked in such case.
     #[rpc(meta, name = "personal_signTransaction")]
@@ -68,7 +68,7 @@ pub trait Personal {
         _: Self::Metadata,
         _: TransactionRequest,
         _: String,
-    ) -> BoxFuture<RpcRichRawTransaction>;
+    ) -> BoxFuture<Result<RpcRichRawTransaction>>;
 
     /// Sends transaction and signs it in single call. The account is not unlocked in such case.
     #[rpc(meta, name = "personal_sendTransaction")]
@@ -77,7 +77,7 @@ pub trait Personal {
         _: Self::Metadata,
         _: TransactionRequest,
         _: String,
-    ) -> BoxFuture<H256>;
+    ) -> BoxFuture<Result<H256>>;
 
     /// @deprecated alias for `personal_sendTransaction`.
     #[rpc(meta, name = "personal_signAndSendTransaction")]
@@ -86,5 +86,5 @@ pub trait Personal {
         _: Self::Metadata,
         _: TransactionRequest,
         _: String,
-    ) -> BoxFuture<H256>;
+    ) -> BoxFuture<Result<H256>>;
 }

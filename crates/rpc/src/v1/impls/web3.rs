@@ -16,10 +16,10 @@
 
 //! Web3 rpc implementation.
 use ethereum_types::H256;
-use hash::keccak;
+use crate::hash::keccak;
 use jsonrpc_core::Result;
-use v1::{traits::Web3, types::Bytes};
-use version::version_short;
+use crate::v1::{traits::Web3, types::Bytes};
+use crate::version::version_short;
 
 /// Web3 rpc implementation.
 #[derive(Default)]

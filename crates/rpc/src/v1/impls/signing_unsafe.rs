@@ -20,10 +20,10 @@ use std::sync::Arc;
 
 use ethereum_types::{Address, H160, H256, H520, U256};
 use jsonrpc_core::{
-    futures::{future, Future},
+    futures::future,
     BoxFuture, Result,
 };
-use v1::{
+use crate::v1::{
     helpers::{
         deprecated::{self, DeprecationNotice},
         dispatch::{self, Dispatcher},
@@ -59,74 +59,68 @@ impl<D: Dispatcher + 'static> SigningUnsafeClient<D> {
         &self,
         payload: RpcConfirmationPayload,
         account: Address,
-    ) -> BoxFuture<RpcConfirmationResponse> {
+    ) -> BoxFuture<Result<RpcConfirmationResponse>> {
         let accounts = self.accounts.clone();
-
         let dis = self.dispatcher.clone();
-        Box::new(
-            dispatch::from_rpc(payload, account, &dis)
-                .and_then(move |payload| {
-                    dispatch::execute(dis, &accounts, payload, dispatch::SignWith::Nothing)
-                })
-                .map(dispatch::WithToken::into_value),
-        )
+        Box::pin(async move {
+            let payload = dispatch::from_rpc(payload, account, &dis).await?;
+            let result =
+                dispatch::execute(dis, &accounts, payload, dispatch::SignWith::Nothing).await?;
+            Ok(result.into_value())
+        })
     }
 }
 
 impl<D: Dispatcher + 'static> EthSigning for SigningUnsafeClient<D> {
     type Metadata = Metadata;
 
-    fn sign(&self, _: Metadata, address: H160, data: RpcBytes) -> BoxFuture<H520> {
+    fn sign(&self, _: Metadata, address: H160, data: RpcBytes) -> BoxFuture<Result<H520>> {
         self.deprecation_notice
             .print("eth_sign", deprecated::msgs::ACCOUNTS);
-        Box::new(
-            self.handle(
-                RpcConfirmationPayload::EthSignMessage((address, data).into()),
-                address,
-            )
-            .then(|res| match res {
-                Ok(RpcConfirmationResponse::Signature(signature)) => Ok(signature),
-                Err(e) => Err(e),
+        let fut = self.handle(
+            RpcConfirmationPayload::EthSignMessage((address, data).into()),
+            address,
+        );
+        Box::pin(async move {
+            match fut.await? {
+                RpcConfirmationResponse::Signature(signature) => Ok(signature),
                 e => Err(errors::internal("Unexpected result", e)),
-            }),
-        )
+            }
+        })
     }
 
-    fn send_transaction(&self, _meta: Metadata, request: RpcTransactionRequest) -> BoxFuture<H256> {
+    fn send_transaction(&self, _meta: Metadata, request: RpcTransactionRequest) -> BoxFuture<Result<H256>> {
         self.deprecation_notice
             .print("eth_sendTransaction", deprecated::msgs::ACCOUNTS);
-        Box::new(
-            self.handle(
-                RpcConfirmationPayload::SendTransaction(request),
-                self.accounts.default_account(),
-            )
-            .then(|res| match res {
-                Ok(RpcConfirmationResponse::SendTransaction(hash)) => Ok(hash),
-                Err(e) => Err(e),
+        let fut = self.handle(
+            RpcConfirmationPayload::SendTransaction(request),
+            self.accounts.default_account(),
+        );
+        Box::pin(async move {
+            match fut.await? {
+                RpcConfirmationResponse::SendTransaction(hash) => Ok(hash),
                 e => Err(errors::internal("Unexpected result", e)),
-            }),
-        )
+            }
+        })
     }
 
     fn sign_transaction(
         &self,
         _meta: Metadata,
         request: RpcTransactionRequest,
-    ) -> BoxFuture<RpcRichRawTransaction> {
+    ) -> BoxFuture<Result<RpcRichRawTransaction>> {
         self.deprecation_notice
             .print("eth_signTransaction", deprecated::msgs::ACCOUNTS);
-
-        Box::new(
-            self.handle(
-                RpcConfirmationPayload::SignTransaction(request),
-                self.accounts.default_account(),
-            )
-            .then(|res| match res {
-                Ok(RpcConfirmationResponse::SignTransaction(tx)) => Ok(tx),
-                Err(e) => Err(e),
+        let fut = self.handle(
+            RpcConfirmationPayload::SignTransaction(request),
+            self.accounts.default_account(),
+        );
+        Box::pin(async move {
+            match fut.await? {
+                RpcConfirmationResponse::SignTransaction(tx) => Ok(tx),
                 e => Err(errors::internal("Unexpected result", e)),
-            }),
-        )
+            }
+        })
     }
 }
 
@@ -137,30 +131,28 @@ impl<D: Dispatcher + 'static> ParitySigning for SigningUnsafeClient<D> {
         &self,
         _meta: Metadata,
         transaction: RpcTransactionRequest,
-    ) -> BoxFuture<RpcTransactionRequest> {
+    ) -> BoxFuture<Result<RpcTransactionRequest>> {
         let accounts = self.accounts.clone();
         let default_account = accounts.default_account();
-        Box::new(
-            self.dispatcher
-                .fill_optional_fields(transaction.into(), default_account, true)
-                .map(Into::into),
-        )
+        let fut = self
+            .dispatcher
+            .fill_optional_fields(transaction.into(), default_account, true);
+        Box::pin(async move { fut.await.map(Into::into) })
     }
 
-    fn decrypt_message(&self, _: Metadata, address: H160, data: RpcBytes) -> BoxFuture<RpcBytes> {
+    fn decrypt_message(&self, _: Metadata, address: H160, data: RpcBytes) -> BoxFuture<Result<RpcBytes>> {
         self.deprecation_notice
             .print("parity_decryptMessage", deprecated::msgs::ACCOUNTS);
-        Box::new(
-            self.handle(
-                RpcConfirmationPayload::Decrypt((address, data).into()),
-                address,
-            )
-            .then(|res| match res {
-                Ok(RpcConfirmationResponse::Decrypt(data)) => Ok(data),
-                Err(e) => Err(e),
+        let fut = self.handle(
+            RpcConfirmationPayload::Decrypt((address, data).into()),
+            address,
+        );
+        Box::pin(async move {
+            match fut.await? {
+                RpcConfirmationResponse::Decrypt(data) => Ok(data),
                 e => Err(errors::internal("Unexpected result", e)),
-            }),
-        )
+            }
+        })
     }
 
     fn post_sign(
@@ -168,18 +160,18 @@ impl<D: Dispatcher + 'static> ParitySigning for SigningUnsafeClient<D> {
         _: Metadata,
         _: H160,
         _: RpcBytes,
-    ) -> BoxFuture<RpcEither<U256, RpcConfirmationResponse>> {
+    ) -> BoxFuture<Result<RpcEither<U256, RpcConfirmationResponse>>> {
         // We don't support this in non-signer mode.
-        Box::new(future::err(errors::signer_disabled()))
+        Box::pin(future::err(errors::signer_disabled()))
     }
 
     fn post_transaction(
         &self,
         _: Metadata,
         _: RpcTransactionRequest,
-    ) -> BoxFuture<RpcEither<U256, RpcConfirmationResponse>> {
+    ) -> BoxFuture<Result<RpcEither<U256, RpcConfirmationResponse>>> {
         // We don't support this in non-signer mode.
-        Box::new(future::err(errors::signer_disabled()))
+        Box::pin(future::err(errors::signer_disabled()))
     }
 
     fn check_request(&self, _: U256) -> Result<Option<RpcConfirmationResponse>> {

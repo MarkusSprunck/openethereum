@@ -16,7 +16,7 @@
 
 use jsonrpc_core::IoHandler;
 use std::collections::BTreeMap;
-use v1::{Rpc, RpcClient};
+use crate::v1::{Rpc, RpcClient};
 
 fn rpc_client() -> RpcClient {
     let mut modules = BTreeMap::new();

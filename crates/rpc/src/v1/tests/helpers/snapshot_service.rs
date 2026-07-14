@@ -16,7 +16,7 @@
 
 use ethcore::snapshot::{CreationStatus, ManifestData, RestorationStatus, SnapshotService};
 
-use bytes::Bytes;
+use crate::bytes::Bytes;
 use ethereum_types::H256;
 use parking_lot::Mutex;
 

@@ -21,7 +21,7 @@ use jsonrpc_core::{BoxFuture, Result};
 use jsonrpc_derive::rpc;
 use jsonrpc_pubsub::{typed::Subscriber, SubscriptionId};
 
-use v1::types::{
+use crate::v1::types::{
     Bytes, ConfirmationRequest, ConfirmationResponse, ConfirmationResponseWithToken,
     TransactionModification,
 };
@@ -43,7 +43,7 @@ pub trait Signer {
         _: U256,
         _: TransactionModification,
         _: String,
-    ) -> BoxFuture<ConfirmationResponse>;
+    ) -> BoxFuture<Result<ConfirmationResponse>>;
 
     /// Confirm specific request with token.
     #[rpc(name = "signer_confirmRequestWithToken")]
@@ -52,7 +52,7 @@ pub trait Signer {
         _: U256,
         _: TransactionModification,
         _: String,
-    ) -> BoxFuture<ConfirmationResponseWithToken>;
+    ) -> BoxFuture<Result<ConfirmationResponseWithToken>>;
 
     /// Confirm specific request with already signed data.
     #[rpc(name = "signer_confirmRequestRaw")]

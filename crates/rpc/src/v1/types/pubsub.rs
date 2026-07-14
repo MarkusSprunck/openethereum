@@ -19,7 +19,7 @@
 use ethereum_types::H256;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{from_value, Value};
-use v1::types::{Filter, Log, RichHeader};
+use crate::v1::types::{Filter, Log, RichHeader};
 
 /// Subscription result.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,7 +91,7 @@ impl<'a> Deserialize<'a> for Params {
 mod tests {
     use super::{Kind, Params, Result};
     use serde_json;
-    use v1::types::{filter::VariadicValue, Filter, Header, RichHeader};
+    use crate::v1::types::{filter::VariadicValue, Filter, Header, RichHeader};
 
     #[test]
     fn should_deserialize_kind() {

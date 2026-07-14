@@ -24,7 +24,7 @@ mod signing;
 #[cfg(not(any(test, feature = "accounts")))]
 mod signing {
     use super::*;
-    use v1::helpers::errors;
+    use crate::v1::helpers::errors;
 
     /// Dummy signer implementation
     #[derive(Debug, Clone)]
@@ -81,26 +81,26 @@ mod signing {
 }
 
 pub use self::{full::FullDispatcher, signing::Signer};
-pub use v1::helpers::nonce::Reservations;
+pub use crate::v1::helpers::nonce::Reservations;
 
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 
-use bytes::Bytes;
-use crypto::publickey::Signature;
+use crate::bytes::Bytes;
+use crate::crypto::publickey::Signature;
 use ethcore::{client::BlockChainClient, miner::MinerService};
 use ethereum_types::{Address, H256, H520, U256};
 use ethkey::Password;
-use hash::keccak;
-use types::{
+use crate::hash::keccak;
+use crate::types::{
     transaction::{PendingTransaction, SignedTransaction},
     BlockNumber,
 };
 
 use jsonrpc_core::{
-    futures::{future, Future, IntoFuture},
+    futures::future,
     BoxFuture, Error, Result,
 };
-use v1::{
+use crate::v1::{
     helpers::{ConfirmationPayload, FilledTransactionRequest, TransactionRequest},
     types::{
         Bytes as RpcBytes, ConfirmationPayload as RpcConfirmationPayload, ConfirmationResponse,
@@ -123,7 +123,7 @@ pub trait Dispatcher: Send + Sync + Clone {
         request: TransactionRequest,
         default_sender: Address,
         force_nonce: bool,
-    ) -> BoxFuture<FilledTransactionRequest>;
+    ) -> BoxFuture<Result<FilledTransactionRequest>>;
 
     /// Sign the given transaction request without dispatching, fetching appropriate nonce.
     fn sign<P>(
@@ -132,10 +132,11 @@ pub trait Dispatcher: Send + Sync + Clone {
         signer: &Arc<dyn Accounts>,
         password: SignWith,
         post_sign: P,
-    ) -> BoxFuture<P::Item>
+    ) -> BoxFuture<Result<P::Item>>
     where
         P: PostSign + 'static,
-        <P::Out as futures::future::IntoFuture>::Future: Send;
+        P::Out: Send + 'static,
+        P::Item: Send;
 
     /// Converts a `SignedTransaction` into `RichRawTransaction`
     fn enrich(&self, _: SignedTransaction) -> RpcRichRawTransaction;
@@ -197,28 +198,28 @@ pub trait Accounts: Send + Sync {
 pub trait PostSign: Send {
     /// item that this `PostSign` returns
     type Item: Send;
-    /// incase you need to perform async `PostSign` actions
-    type Out: IntoFuture<Item = Self::Item, Error = Error> + Send;
+    /// async output type for execute
+    type Out: std::future::Future<Output = std::result::Result<Self::Item, Error>> + Send;
     /// perform an action with the signed transaction
     fn execute(self, signer: WithToken<SignedTransaction>) -> Self::Out;
 }
 
 impl PostSign for () {
     type Item = WithToken<SignedTransaction>;
-    type Out = Result<Self::Item>;
+    type Out = future::Ready<std::result::Result<Self::Item, Error>>;
     fn execute(self, signed: WithToken<SignedTransaction>) -> Self::Out {
-        Ok(signed)
+        future::ready(Ok(signed))
     }
 }
 
 impl<F: Send, T: Send> PostSign for F
 where
-    F: FnOnce(WithToken<SignedTransaction>) -> Result<T>,
+    F: FnOnce(WithToken<SignedTransaction>) -> std::result::Result<T, Error>,
 {
     type Item = T;
-    type Out = Result<Self::Item>;
+    type Out = future::Ready<std::result::Result<Self::Item, Error>>;
     fn execute(self, signed: WithToken<SignedTransaction>) -> Self::Out {
-        (self)(signed)
+        future::ready((self)(signed))
     }
 }
 
@@ -317,7 +318,7 @@ pub fn execute<D: Dispatcher + 'static>(
     signer: &Arc<dyn Accounts>,
     payload: ConfirmationPayload,
     pass: SignWith,
-) -> BoxFuture<WithToken<ConfirmationResponse>> {
+) -> BoxFuture<Result<WithToken<ConfirmationResponse>>> {
     match payload {
         ConfirmationPayload::SendTransaction(request) => {
             let condition = request.condition.clone().map(Into::into);
@@ -329,24 +330,21 @@ pub fn execute<D: Dispatcher + 'static>(
                     .dispatch_transaction(signed_transaction)
                     .map(|hash| (hash, token))
             };
-
-            Box::new(
-                dispatcher
-                    .sign(request, signer, pass, post_sign)
-                    .map(|(hash, token)| {
-                        WithToken::from((ConfirmationResponse::SendTransaction(hash), token))
-                    }),
-            )
+            let signer = signer.clone();
+            Box::pin(async move {
+                let (hash, token) = dispatcher.sign(request, &signer, pass, post_sign).await?;
+                Ok(WithToken::from((ConfirmationResponse::SendTransaction(hash), token)))
+            })
         }
-        ConfirmationPayload::SignTransaction(request) => Box::new(
-            dispatcher
-                .sign(request, signer, pass, ())
-                .map(move |result| {
-                    result
-                        .map(move |tx| dispatcher.enrich(tx))
-                        .map(ConfirmationResponse::SignTransaction)
-                }),
-        ),
+        ConfirmationPayload::SignTransaction(request) => {
+            let signer = signer.clone();
+            Box::pin(async move {
+                let result = dispatcher.sign(request, &signer, pass, ()).await?;
+                Ok(result
+                    .map(move |tx| dispatcher.enrich(tx))
+                    .map(ConfirmationResponse::SignTransaction))
+            })
+        }
         ConfirmationPayload::EthSignMessage(address, data) => {
             let res = signer
                 .sign_message(address, pass, SignMessage::Data(data))
@@ -355,8 +353,7 @@ pub fn execute<D: Dispatcher + 'static>(
                         .map(|s| H520(s.into_electrum()))
                         .map(ConfirmationResponse::Signature)
                 });
-
-            Box::new(future::done(res))
+            Box::pin(future::ready(res))
         }
         ConfirmationPayload::SignMessage(address, data) => {
             let res = signer
@@ -366,14 +363,13 @@ pub fn execute<D: Dispatcher + 'static>(
                         .map(|rsv| H520(rsv.into_electrum()))
                         .map(ConfirmationResponse::Signature)
                 });
-
-            Box::new(future::done(res))
+            Box::pin(future::ready(res))
         }
         ConfirmationPayload::Decrypt(address, data) => {
             let res = signer
                 .decrypt(address, pass, data)
                 .map(|result| result.map(RpcBytes).map(ConfirmationResponse::Decrypt));
-            Box::new(future::done(res))
+            Box::pin(future::ready(res))
         }
     }
 }
@@ -420,34 +416,40 @@ where
 }
 
 /// Convert RPC confirmation payload to signer confirmation payload.
-/// May need to resolve in the future to fetch things like gas price.
+/// Convert RPC confirmation payload to signer confirmation payload.
 pub fn from_rpc<D>(
     payload: RpcConfirmationPayload,
     default_account: Address,
     dispatcher: &D,
-) -> BoxFuture<ConfirmationPayload>
+) -> BoxFuture<Result<ConfirmationPayload>>
 where
     D: Dispatcher,
 {
     match payload {
-        RpcConfirmationPayload::SendTransaction(request) => Box::new(
-            dispatcher
-                .fill_optional_fields(request.into(), default_account, false)
-                .map(ConfirmationPayload::SendTransaction),
-        ),
-        RpcConfirmationPayload::SignTransaction(request) => Box::new(
-            dispatcher
-                .fill_optional_fields(request.into(), default_account, false)
-                .map(ConfirmationPayload::SignTransaction),
-        ),
-        RpcConfirmationPayload::Decrypt(RpcDecryptRequest { address, msg }) => Box::new(
-            future::ok(ConfirmationPayload::Decrypt(address, msg.into())),
-        ),
-        RpcConfirmationPayload::EthSignMessage(RpcEthSignRequest { address, data }) => Box::new(
-            future::ok(ConfirmationPayload::EthSignMessage(address, data.into())),
-        ),
+        RpcConfirmationPayload::SendTransaction(request) => {
+            let fut = dispatcher.fill_optional_fields(request.into(), default_account, false);
+            Box::pin(async move { fut.await.map(ConfirmationPayload::SendTransaction) })
+        }
+        RpcConfirmationPayload::SignTransaction(request) => {
+            let fut = dispatcher.fill_optional_fields(request.into(), default_account, false);
+            Box::pin(async move { fut.await.map(ConfirmationPayload::SignTransaction) })
+        }
+        RpcConfirmationPayload::Decrypt(RpcDecryptRequest { address, msg }) => {
+            Box::pin(future::ready(Ok(ConfirmationPayload::Decrypt(
+                address,
+                msg.into(),
+            ))))
+        }
+        RpcConfirmationPayload::EthSignMessage(RpcEthSignRequest { address, data }) => {
+            Box::pin(future::ready(Ok(ConfirmationPayload::EthSignMessage(
+                address,
+                data.into(),
+            ))))
+        }
         RpcConfirmationPayload::EIP191SignMessage(RpcSignRequest { address, data }) => {
-            Box::new(future::ok(ConfirmationPayload::SignMessage(address, data)))
+            Box::pin(future::ready(Ok(ConfirmationPayload::SignMessage(
+                address, data,
+            ))))
         }
     }
 }
