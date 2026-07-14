@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 2.2
+**Version:** 2.4
 **Last Updated:** 2026-07-14
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -21,7 +21,7 @@ This file provides AI coding agents with the essential context to be immediately
 - **Blockchain protocol:** Ethereum (GPL-3.0)
 - **Database:** RocksDB via `kvdb-rocksdb`
 - **Networking:** devp2p (`ethcore-network-devp2p`)
-- **RPC:** `jsonrpc-core` v15 (HTTP `:8545`, WebSocket `:8546`)
+- **RPC:** `jsonrpc-core` v18 (HTTP `:8545`, WebSocket `:8546`)
 - **Async runtime:** Tokio 1.x (`parity-runtime`)
 - **Primary deployment target:** Cert4Trust Leopold Blockchain
 
@@ -293,16 +293,15 @@ docker buildx build \
 - [ ] `atty` replacement is safe (already FIXED 2026-07-13)
 - [ ] `lock_api` CVE backport-fix is in place for kvdb-memorydb chain; jsonrpc chain eliminated (Phase 3 DONE)
 - [ ] `lru` vulnerability in `parity-util-mem` fixed via `parity-util-mem-compat` shim (FIXED 2026-07-14)
+- [ ] `rpassword` upgraded from `1.0.2` to `7.5.0` (GHSA-2p6r-x3vv-xqm2, FIXED 2026-07-14)
 - [ ] New RPC endpoints require auth/CORS review in `crates/rpc-servers/src/`
 
 ### Known Vulnerable Dependencies ⚠️
 
 | Dependency | Current | Fix Available | Blocker |
 |---|---|---|---|
-| `jsonrpc-*` | v18 | ✅ **DONE (2026-07-14)** | Phase 3 complete |
-| `parity-util-mem` | 0.7.0 | 0.11.0 | `ethereum-types` breaking changes (Phase 4); lru CVE fixed via local shim (2026-07-14) |
-| `secp256k1` | 0.17.2 | 0.22.2 | `parity-crypto` chain constraint (Phase 4 blocked) |
-| `term_size` | 1.0.0-beta1 | Replace with `terminal_size = "0.3"` | Unmaintained (Phase 2) |
+| `secp256k1` | 0.17.2 | 0.22.2 (GHSA-969w-q74q-9j8v, MEDIUM) | `parity-crypto` chain constraint (Phase 4 blocked); not exploitable (`preallocated_gen_new` is never called) |
+| `rand` | 0.7.3 | 0.10.1 (GHSA-cq8v-f236-94qc, LOW) | Blocked by `ethereum-types 0.9.2` — Phase 4; not exploitable (no custom logger calling `thread_rng()`) |
 
 ### RPC Security ⭐ IF APPLICABLE
 
@@ -330,7 +329,7 @@ docker buildx build \
 
 - [OpenEthereum Wiki](https://openethereum.github.io/)
 - [Ethereum JSON Tests](https://github.com/ethereum/tests) (submodule at `crates/ethcore/res/json_tests/`)
-- [jsonrpc-core v15 docs](https://docs.rs/jsonrpc-core/15.0.0)
+- [jsonrpc-core v18 docs](https://docs.rs/jsonrpc-core/18.0.0)
 - [Rust rustup toolchain management](https://rust-lang.github.io/rustup/)
 
 ---
@@ -403,11 +402,12 @@ docker buildx build \
 
 ---
 
-**Last Reviewed:** 2026-07-13
+**Last Reviewed:** 2026-07-14
 **Next Review:** Q4 2026
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.4 (2026-07-14): Fixed rpassword vulnerability (GHSA-2p6r-x3vv-xqm2): upgraded `rpassword` from `1.0.2` to `7.5.0` (resolved to `7.5.4`); API change `prompt_password_stdout()` → `prompt_password()` in `cli-signer/src/lib.rs`; corrected version header from 2.2 → 2.3 (changelog was ahead of header); updated Technology Stack to reference `jsonrpc-core` v18 (not v15); updated External Resources link to v18 docs; added rpassword to Security checklist; 0 errors
 - v2.3 (2026-07-14): Phase 3 complete — migrated `jsonrpc-*` from v15 to v18; all RPC code migrated from futures 0.1 to futures 0.3 + async/await; `parity-rpc` edition updated to 2021; removed `tokio 0.1.22`, `hyper 0.12.36`, `h2 0.1.26` (CVE-2023-44487), `crossbeam-utils 0.7.2`, `time 0.1.45` (RUSTSEC-2020-0071), `net2 0.2.39`, `parity-tokio-ipc 0.4`, `parity-ws 0.10.1`, `futures-cpupool` from Cargo.lock; `lock-api-compat` shim no longer needed for jsonrpc chain (still needed for kvdb-memorydb); `cli-signer` migrated to futures 0.3; `ethcore-stratum` updated for v18 API; 0 errors, 0 test regressions
 - v2.2 (2026-07-14): Removed unmaintained `wee_alloc 0.4.5` from `parity-util-mem-compat`: deleted optional dep, removed `weealloc-global` feature, stripped dead cfg-branch from `allocators.rs` and `lib.rs`; `wee_alloc` fully absent from Cargo.lock; 0 warnings 0 errors
 - v2.1 (2026-07-14): Fixed lru RUSTSEC vulnerabilities (Dependabot #12/#18): created `crates/util/parity-util-mem-compat` local fork of `parity-util-mem 0.7.0` with `lru` upgraded from `0.5.3` to `0.7.8`; the `LruCache<K,V,S>` API used (`.iter()`, `.len()`) is identical in both versions so no source changes were required; registered via `[patch.crates-io]` and added to `[workspace] members`; `lru 0.5.3` fully removed from Cargo.lock; 0 warnings 0 errors; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist; updated MAINTENANCE.md § parity-util-mem to mark both Dependabot alerts as FIXED

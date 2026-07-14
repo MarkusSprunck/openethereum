@@ -86,13 +86,17 @@ OpenEthereum is maintained for the Cert4Trust Leopold Blockchain. Testing and de
 
 Further instructions for test configuration can be found in [OpenEthereum Test Client for Leopold Blockchain](.testing/README.md).
 
+---
+
 ## 6.0 Security Vulnerabilities
 
 During the maintenance update in July 2025 (v3.5.0), all vulnerabilities stemming from direct project dependencies (that have a fixed version available) or from transitive dependencies without complex cross-dependencies were fixed through dependency updates.
 
-Resolving all vulnerabilities caused by transitive dependencies will likely require a larger codebase rework:
+Resolving all vulnerabilities caused by transitive dependencies will likely require a larger codebase rework.
 
-### jsonrpc-\*
+### 6.1 Fixed Vulnerabilities
+
+#### jsonrpc-\*
 
 The `jsonrpc` dependencies have been **upgraded from version `15.x.x` to `18.0.0` (2026-07-14, Phase 3 complete)**. This migration removed the entire vulnerable dependency chain:
 
@@ -106,21 +110,55 @@ jsonrpc-* v15 → v18  ✅ DONE
 └───lock_api v0.3.4 (now only from kvdb-memorydb, still shim'd)
 ```
 
-**Why tokio 0.1.22 has been removed:** The full Phase 3 `jsonrpc-*` v15 → v18 migration was completed on 2026-07-14, including migrating all RPC code from futures 0.1 to futures 0.3 and async/await.
+All RPC code was migrated from futures 0.1 to futures 0.3 + async/await as part of this upgrade.
 
-### parity-util-mem
+#### parity-util-mem (lru + wee_alloc)
 
-`parity-util-mem` is a direct dependency of several crates. It is currently used at version `0.7.0` and would need to be upgraded to `0.11.0` for the full migration. As it is pre-1.0, this will likely introduce breaking changes. This will also require upgrading `ethereum-types` (`0.9.2` -> `0.13`), causing additional code changes and version conflicts that need to be resolved.
+`parity-util-mem 0.7.0` is used at version 0.7.0 (a full upgrade to 0.11.0 is a Phase 4 blocker). Two transitive vulnerabilities were fixed via a local compatibility shim (`crates/util/parity-util-mem-compat`):
 
-The transitive `lru 0.5.3` and `wee_alloc 0.4.5` vulnerabilities have been **fixed (2026-07-14)** by forking `parity-util-mem 0.7.0` as a local shim (`crates/util/parity-util-mem-compat`) that upgrades `lru 0.5.3 → 0.7.8` and removes the unmaintained `wee_alloc` optional dependency entirely (the `weealloc-global` feature was never activated in this project), registered via `[patch.crates-io]`.
+- `lru 0.5.3` → `0.7.8`: upgraded inside the shim (Dependabot #12 / #18) — **FIXED (2026-07-14)**
+- `wee_alloc 0.4.5`: removed entirely (the `weealloc-global` feature was never activated) — **FIXED (2026-07-14)**
 
-This upgrade will complete the remaining migration:
+The shim is registered via `[patch.crates-io]` and is a workspace member.
 
 -   https://github.com/MarkusSprunck/openethereum/security/dependabot/12 — **FIXED (2026-07-14)**
 -   https://github.com/MarkusSprunck/openethereum/security/dependabot/18 — **FIXED (2026-07-14)**
 
-### Vulnerable Dependencies Without a Fixed Version
+#### atty (RUSTSEC-2021-0017)
 
-For some vulnerabilities, even after upgrading the dependencies, there is no compatible version that fixes the vulnerability. Since they are moderate and low severity, it is to be decided if a fix/workaround outweighs the efforts for each vulnerability:
+Replaced by the `crates/util/atty-compat` shim backed by `std::io::IsTerminal` — **FIXED (2026-07-13)**
 
--   [secp256k1](https://github.com/MarkusSprunck/openethereum/security/dependabot/23): Used at `0.17.2`, would need `0.22.2`. We use `parity-crypto v0.6.2`, which in its most recent version `v0.9.0` still depends on `secp256k1 v0.20`
+#### tempdir / remove_dir_all (RUSTSEC-2021-0126)
+
+Replaced by `crates/util/tempdir-compat` (tempdir 0.3.7 API backed by tempfile 3.27.0) — **FIXED (2026-07-13)**
+
+#### lock_api (CVE-2020-35910..35914)
+
+Replaced by `crates/util/lock-api-compat` shim (backported Send/Sync bounds from 0.4.2) — **FIXED (2026-07-13)**
+
+#### rpassword (GHSA-2p6r-x3vv-xqm2)
+
+`rpassword` was upgraded from `1.0.2` to `7.5.0` (resolved to `7.5.4`). The partial-password-reveal vulnerability on interrupted input is fixed. API change: `prompt_password_stdout()` → `prompt_password()` in `cli-signer/src/lib.rs` — **FIXED (2026-07-14)**
+
+---
+
+### 6.2 Vulnerable Dependencies — Phase 4 Blockers
+
+The following vulnerabilities cannot be fixed without a coordinated Phase 4 upgrade of `parity-crypto` → `ethereum-types` → `parity-util-mem`. Both are confirmed **not exploitable** in this codebase.
+
+#### secp256k1 (GHSA-969w-q74q-9j8v, MEDIUM)
+
+- **Current:** `0.17.2` (transitive via `parity-crypto 0.6.2`)
+- **Fix requires:** `≥ 0.22.2`
+- **Blocker:** `parity-crypto 0.6.2` → latest `0.9.0` still depends on `secp256k1 0.20`; Phase 4
+- **Exploitability:** ✅ **Not exploitable** — the vulnerable method `Secp256k1::preallocated_gen_new` is never called anywhere in the codebase (confirmed 2026-07-14 via full grep)
+
+#### rand (GHSA-cq8v-f236-94qc, LOW)
+
+- **Current:** `0.7.3` (direct dependency in 6 crates)
+- **Fix requires:** `≥ 0.10.1`
+- **Blocker:** `ethereum-types 0.9.2` implements `Standard: Distribution<H256>` (rand 0.7 API); rand 0.9 renamed `Standard` → `StandardUniform`, breaking the impl. Upgrading `ethereum-types` is Phase 4.
+- **Exploitability:** ✅ **Not exploitable** — two independent conditions both fail:
+  1. rand's `log` feature is **not enabled** (not in `default = ["std"]`, never explicitly activated in any `Cargo.toml`)
+  2. The project logger (`bin/oe/logger/`) does **not call** `rand::thread_rng()` — zero grep matches in all logger source files (confirmed 2026-07-14)
+  Both conditions must be true simultaneously for the CVE to trigger.
