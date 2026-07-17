@@ -1,6 +1,6 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 2.5
+**Version:** 2.6
 **Last Updated:** 2026-07-17
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
@@ -17,7 +17,7 @@ This file provides AI coding agents with the essential context to be immediately
 
 - **Language:** Rust (edition 2021, toolchain pinned to 1.97.1)
 - **Build tool:** Cargo (workspace layout with standalone members)
-- **Rust upgrade:** 1.88 → 1.97.1 (2026-07-10); see `scripts/setup-rust-1.97.sh`
+- **Rust upgrade:** 1.88 → 1.97.1 (2026-07-10); see `scripts/setup-rust-1.97.1.sh`
 - **Blockchain protocol:** Ethereum (GPL-3.0)
 - **Database:** RocksDB via `kvdb-rocksdb`
 - **Networking:** devp2p (`ethcore-network-devp2p`)
@@ -137,7 +137,7 @@ openethereum/
 │   ├── build-artifacts-cli-tools-macos-arm64.sh ← Build CLI tool artifacts (macOS arm64)
 │   ├── build-release.sh                ← cargo build --release --features final
 │   ├── find-native-libraries-required.sh ← Discover native .so/.dylib deps of release binary
-│   ├── setup-rust-1.97.sh              ← Pins exact Rust toolchain (run first)
+│   ├── setup-rust-1.97.1.sh            ← Pins exact Rust toolchain (run first)
 │   ├── test-all-linux-gcc.sh           ← Linux test runner
 │   ├── test-all-macos-arm64.sh         ← macOS test runner with Clang override
 │   └── generate-code-coverage-html.sh  ← Generate HTML coverage report (llvm-cov)
@@ -216,7 +216,7 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 
 ```bash
 # Pin Rust toolchain (required once per environment)
-./scripts/setup-rust-1.97.sh
+./scripts/setup-rust-1.97.1.sh
 
 # Start node (default: mainnet, RPC on :8545/:8546)
 ./target/release/openethereum
@@ -229,7 +229,7 @@ Versions are declared directly in `Cargo.toml` (no Maven-style property substitu
 
 **1. Pin Rust version**
 ```bash
-./scripts/setup-rust-1.97.sh
+./scripts/setup-rust-1.97.1.sh
 ```
 
 **2. Fetch Ethereum JSON test vectors** (required before first test run)
@@ -354,7 +354,7 @@ docker buildx build \
 
 ### If Build Fails
 
-1. Check Rust toolchain: `rustup show` — must be `1.97.1`; fix with `./scripts/setup-rust-1.97.sh`
+1. Check Rust toolchain: `rustup show` — must be `1.97.1`; fix with `./scripts/setup-rust-1.97.1.sh`
 2. Clean and rebuild: `cargo clean && cargo build`
 3. On macOS: confirm `CC=/usr/bin/clang CXX=/usr/bin/clang++` are exported
 4. Submodule missing: `git submodule update --init --recursive`
@@ -367,7 +367,7 @@ docker buildx build \
 ### Quarterly Tasks
 
 - [ ] Review CVE alerts in `MAINTENANCE.md` § 6.0 and GitHub Dependabot
-- [ ] Update Rust toolchain pin in `scripts/setup-rust-1.97.sh` if a new stable is required
+- [ ] Update Rust toolchain pin in `scripts/setup-rust-1.97.1.sh` if a new stable is required
 - [ ] Run full test suite: `git submodule update --init --recursive && cargo test --all`
 - [ ] Review `atty` replacement opportunity (Windows CVE, low effort)
 - [ ] Sync `AGENTS.md` with any structural changes to `bin/oe/` or `crates/`
@@ -407,6 +407,7 @@ docker buildx build \
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.6 (2026-07-17): Fixed script filename: `setup-rust-1.97.sh` → `setup-rust-1.97.1.sh` in Technology Stack, Build & Test, and Emergency Procedures sections (actual file on disk is `scripts/setup-rust-1.97.1.sh` as confirmed by CHANGELOG v3.5.1)
 - v2.5 (2026-07-17): Refreshed dependency guidance after Phase 3 completion: clarified `jsonrpc-*` is already on v18 and updated phased sequence to emphasize remaining Phase 4 blockers (`secp256k1`/`rand`/`ethereum-types`/`parity-util-mem` chain); updated Modular Coding Rules to include `parity-util-mem-compat` in the required `[patch.crates-io]` workspace-shim list; corrected CI-equivalent Docker build command to use `.github/docker/ubuntu-rust-1.97.1/Dockerfile.ci`
 - v2.4 (2026-07-14): Fixed rpassword vulnerability (GHSA-2p6r-x3vv-xqm2): upgraded `rpassword` from `1.0.2` to `7.5.0` (resolved to `7.5.4`); API change `prompt_password_stdout()` → `prompt_password()` in `cli-signer/src/lib.rs`; corrected version header from 2.2 → 2.3 (changelog was ahead of header); updated Technology Stack to reference `jsonrpc-core` v18 (not v15); updated External Resources link to v18 docs; added rpassword to Security checklist; 0 errors
 - v2.3 (2026-07-14): Phase 3 complete — migrated `jsonrpc-*` from v15 to v18; all RPC code migrated from futures 0.1 to futures 0.3 + async/await; `parity-rpc` edition updated to 2021; removed `tokio 0.1.22`, `hyper 0.12.36`, `h2 0.1.26` (CVE-2023-44487), `crossbeam-utils 0.7.2`, `time 0.1.45` (RUSTSEC-2020-0071), `net2 0.2.39`, `parity-tokio-ipc 0.4`, `parity-ws 0.10.1`, `futures-cpupool` from Cargo.lock; `lock-api-compat` shim no longer needed for jsonrpc chain (still needed for kvdb-memorydb); `cli-signer` migrated to futures 0.3; `ethcore-stratum` updated for v18 API; 0 errors, 0 test regressions

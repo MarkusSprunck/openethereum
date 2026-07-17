@@ -1,5 +1,48 @@
 # CHANGELOG
 
+## OpenEthereum v3.5.1
+
+This release is based on v3.5.0 and serves as a maintenance update focused on
+security hardening, major RPC stack modernization, and Rust toolchain upgrade.
+
+Enhancements
+
+* Upgrade Rust toolchain from 1.88 to 1.97.1 (`scripts/setup-rust-1.97.1.sh`)
+* Migrate JSON-RPC stack from `jsonrpc-*` v15 to v18
+* Migrate all RPC code from `futures` 0.1 to `futures` 0.3 + async/await
+* Replace `lru-cache 0.1` with `lru 0.7.8` across all dependent crates
+* Replace `cargo-tarpaulin` (Linux-only) with `cargo-llvm-cov` for cross-platform code coverage with HTML and branch coverage reports
+
+DevOps
+
+* Add CI workflow `docker-ubuntu-latest.yml` (triggered on push to `main`, pushes tag `latest-rust-1.97`)
+* Add CI workflow `docker-ubuntu-release.yml` (triggered on tag `v*`, pushes versioned tags)
+* Remove legacy CI workflows `docker-ubuntu-rust-1.88-latest.yml` and `docker-ubuntu-rust-1.88-release.yml`
+* Add new Docker build image `.github/docker/ubuntu-rust-1.97.1/Dockerfile.ci`
+* Add `.github/dependabot.yml` to prevent Dependabot from breaking the `parity-crypto`/yanked-aes dependency chain
+* Remove CodeQL from both CI workflows (unstable autobuild, non-deterministic results)
+* Add `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/templates/agents.md` for AI coding agent guidance
+
+Cleanup
+
+* Fix 44 Rust 1.97 compiler warnings: `mismatched_lifetime_syntaxes` (38 sites across 23 files), `unused_parens` (5 sites), and `dead_code` (annotated or removed)
+* Migrate `cli-signer` to `futures` 0.3 and `parity-rpc` edition to 2021
+* Remove unmaintained `wee_alloc 0.4.5` from `parity-util-mem-compat`
+* Remove `tokio 0.1.22`, `hyper 0.12.36`, `net2 0.2.39`, `parity-tokio-ipc 0.4`, `parity-ws 0.10.1`, `futures-cpupool` from dependency tree
+
+Security fixes
+
+* Created `crates/util/atty-compat` shim to fix RUSTSEC-2021-0017 (`atty` Windows CVE)
+* Created `crates/util/tempdir-compat` shim to fix RUSTSEC-2021-0126 (`remove_dir_all` TOCTOU on Windows)
+* Created `crates/util/lock-api-compat` shim to fix CVE-2020-35910..35914 (`lock_api` missing Send/Sync bounds)
+* Created `crates/util/parity-util-mem-compat` shim to fix lru RUSTSEC vulnerabilities (Dependabot #12/#18) by upgrading `lru` from 0.5.3 to 0.7.8
+* Upgraded `rpassword` from 1.0.2 to 7.5.0 to fix GHSA-2p6r-x3vv-xqm2
+* Removed `h2 0.1.26` (CVE-2023-44487 HTTP/2 Rapid Reset), `time 0.1.45` (RUSTSEC-2020-0071), and `crossbeam-utils 0.7.2` from dependency tree via jsonrpc-* v18 migration
+
+Bug fixes
+
+* Fix flaky test `should_not_return_pending_external_transactions_with_too_low_priority_fee_if_priority_fees_are_enforced` (allocator-dependent tx eviction on Linux CI)
+
 ## OpenEthereum v3.5.0
 
 This release is based on the last stable version, v3.4.0, and serves as a maintenance
