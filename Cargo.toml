@@ -14,7 +14,7 @@ log = "0.4.33"
 rustc-hex = "1.0.0"
 docopt = "1.1.1"
 clap = "2.34.0"
-term_size = "1.0.0-beta1"
+terminal_size = "0.3"
 textwrap = "0.9.0"
 num_cpus = "1.17.0"
 number_prefix = "0.2.8"  # number_prefix: kept at 0.2.8 intentionally — 0.4.0 changed binary_prefix() to NumberPrefix::binary() and required qualified variant names;
@@ -103,7 +103,7 @@ lock_api = { path = "crates/util/lock-api-compat" }
 # Replaces parity-util-mem 0.7.0 (which depends on lru 0.5.3, RUSTSEC vulnerabilities
 # Dependabot #12/#18) with a local fork that upgrades lru 0.5.3 → 0.7.8.
 # The lru::LruCache<K, V, S> API used (.iter(), .len()) is identical in both versions.
-# Remove when Phase 3 (parity-util-mem 0.11.0 + ethereum-types upgrade) is complete.
+# Remove when Phase 4 (`parity-crypto`/`ethereum-types`/`parity-util-mem`) upgrade is complete.
 parity-util-mem = { path = "crates/util/parity-util-mem-compat" }
 
 [features]
@@ -144,7 +144,7 @@ debug = true
 opt-level = 0
 debug-assertions = true
 overflow-checks = true
-panic = 'abort'
+panic = "abort"
 incremental = true
 
 [profile.release]

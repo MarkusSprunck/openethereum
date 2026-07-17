@@ -17,7 +17,7 @@ env_logger = { version = "0.5", optional = true }
 error-chain = { version = "0.12.4", default-features = true }
 ethabi = "12.0.0"
 ethabi-contract = "11.0.0"
-ethabi-derive = { git = 'https://github.com/rimrakhimov/ethabi', branch = 'rimrakhimov/remove-syn-export-span' }
+ethabi-derive = { git = "https://github.com/rimrakhimov/ethabi", branch = "rimrakhimov/remove-syn-export-span" }
 ethash = { path = "../concensus/ethash" }
 ethcore-blockchain = { path = "./blockchain" }
 ethcore-builtin = { path = "../vm/builtin" }
@@ -68,9 +68,9 @@ stats = { path = "../util/stats" }
 tempfile = { version = "3.27.0", optional = true }
 time-utils = { path = "../util/time-utils" }
 trace-time = "0.1"
-triehash-ethereum = { version = "0.2",  path = "../util/triehash-ethereum" }
+triehash-ethereum = { version = "0.2", path = "../util/triehash-ethereum" }
 unexpected = { path = "../util/unexpected" }
-reth-util = { git = "https://github.com/gnosis/reth.git", rev = "573e128", package="reth-util" }
+reth-util = { git = "https://github.com/gnosis/reth.git", rev = "573e128", package = "reth-util" }
 using_queue = { path = "../concensus/miner/using-queue" }
 vm = { path = "../vm/vm" }
 walkdir = "2.3"

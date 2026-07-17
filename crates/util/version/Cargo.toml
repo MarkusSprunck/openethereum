@@ -6,7 +6,6 @@ version = "3.5.1"
 authors = ["Parity Technologies <admin@parity.io>"]
 build = "build.rs"
 
-[package.metadata]
 
 [dependencies]
 parity-bytes = "0.1.2"

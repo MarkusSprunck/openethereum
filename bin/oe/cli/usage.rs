@@ -149,8 +149,9 @@ macro_rules! usage {
 		use std::collections::HashMap;
 
 		extern crate textwrap;
-		extern crate term_size;
+		extern crate terminal_size;
 		use self::textwrap::{Wrapper};
+		use self::terminal_size::{terminal_size, Width};
 
 		const MAX_TERM_WIDTH: usize = 120;
 
@@ -380,11 +381,9 @@ macro_rules! usage {
 				const TAB: &str = "    ";
 				const TAB_TAB: &str = "        ";
 
-				let term_width = match term_size::dimensions() {
+				let term_width = match terminal_size() {
 					None => MAX_TERM_WIDTH,
-					Some((w, _)) => {
-						cmp::min(w, MAX_TERM_WIDTH)
-					}
+					Some((Width(w), _)) => cmp::min(w as usize, MAX_TERM_WIDTH),
 				};
 
 				let mut help : String = include_str!("./usage_header.txt").to_owned();

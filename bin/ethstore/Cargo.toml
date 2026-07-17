@@ -14,7 +14,7 @@ serde = "1.0.228"
 serde_derive = "1.0.228"
 parking_lot = "0.12.4"
 ethstore = { path = "../../crates/accounts/ethstore" }
-dir = { path = '../../crates/util/dir' }
+dir = { path = "../../crates/util/dir" }
 panic_hook = { path = "../../crates/util/panic-hook" }
 
 [[bin]]

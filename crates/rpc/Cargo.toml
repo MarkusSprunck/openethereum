@@ -6,7 +6,6 @@ version = "1.12.0"
 license = "GPL-3.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 
-[lib]
 
 [dependencies]
 ansi_term = "0.12.1"

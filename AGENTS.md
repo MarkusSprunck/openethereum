@@ -1,7 +1,7 @@
 # GitHub Copilot Agent Instructions
 
-**Version:** 2.4
-**Last Updated:** 2026-07-14
+**Version:** 2.5
+**Last Updated:** 2026-07-17
 **Project:** OpenEthereum v3.5.1 (Fast, Feature-rich Ethereum Client in Rust)
 ---
 
@@ -15,9 +15,9 @@ This file provides AI coding agents with the essential context to be immediately
 
 ### Technology Stack
 
-- **Language:** Rust (edition 2021, toolchain pinned to 1.97)
+- **Language:** Rust (edition 2021, toolchain pinned to 1.97.1)
 - **Build tool:** Cargo (workspace layout with standalone members)
-- **Rust upgrade:** 1.88 → 1.97 (2026-07-10); see `scripts/setup-rust-1.97.sh`
+- **Rust upgrade:** 1.88 → 1.97.1 (2026-07-10); see `scripts/setup-rust-1.97.sh`
 - **Blockchain protocol:** Ethereum (GPL-3.0)
 - **Database:** RocksDB via `kvdb-rocksdb`
 - **Networking:** devp2p (`ethcore-network-devp2p`)
@@ -158,12 +158,12 @@ openethereum/
 
 Read `.github/copilot-instructions.md` before making any dependency changes.
 
-- **DO NOT** upgrade `jsonrpc-*` (v15 → v18) or `parity-util-mem` (0.7.0 → 0.11.0) without a full migration plan — both require coordinated changes across many crates and will introduce breaking `ethereum-types` conflicts
+- **DO NOT** perform further major upgrades of `jsonrpc-*` (currently v18) or upgrade `parity-util-mem` (0.7.0 → 0.11.0) without a full migration plan — both require coordinated changes across many crates and can introduce breaking `ethereum-types` conflicts
 - **DO NOT** upgrade `secp256k1` independently — constrained by `parity-crypto v0.6.2` chain
 - For `term_size` (unmaintained): replace with `terminal_size = "0.3"`
 - **Do NOT upgrade `rayon`** beyond 1.1 without re-testing on macOS — 1.12 introduced EMFILE failures; pinned at 1.1 intentionally
 - **Do NOT upgrade `number_prefix`** beyond 0.2.8 — 0.4.0 changed `binary_prefix()` to `NumberPrefix::binary()` and required qualified variant names
-- Follow the phased dependency upgrade sequence: Phase 2 (term_size→terminal_size), Phase 3 (jsonrpc-* v18, parity-util-mem 0.11), Phase 4 (secp256k1 — blocked by parity-crypto); atty, tempdir and lru-cache are already done (2026-07-13)
+- Follow the phased dependency upgrade sequence: Phase 2 (term_size→terminal_size), Phase 3 (`jsonrpc-*` v18) is complete, Phase 4 (`secp256k1`/`rand`/`ethereum-types`/`parity-util-mem` chain — blocked by `parity-crypto` and type compatibility)
 - Always run `cargo build` after any `Cargo.toml` change to catch breakage early
 - Check `MAINTENANCE.md` § 6.0 for the current CVE status before touching any vulnerable dependency
 
@@ -180,7 +180,7 @@ Read `.github/copilot-instructions.md` before making any dependency changes.
 - Use `extern crate` style even in Rust 2021 crates — this codebase keeps old-style declarations for compatibility with pre-2018 upstream crates
 - New subsystems must be feature-gated in `Cargo.toml` and declared conditionally in `bin/oe/lib.rs`
 - Adding a new workspace member requires updating `[workspace] members` in root `Cargo.toml` only if it is truly standalone (not in main dep tree)
-- `[patch.crates-io]` shims (`atty-compat`, `tempdir-compat`, `lock-api-compat`) also require a `[workspace] members` entry so Cargo resolves them — see existing entries as the pattern
+- `[patch.crates-io]` shims (`atty-compat`, `tempdir-compat`, `lock-api-compat`, `parity-util-mem-compat`) also require a `[workspace] members` entry so Cargo resolves them — see existing entries as the pattern
 - `[patch.crates-io]` overrides must be mirrored for all affected crates to avoid version conflicts
 
 ---
@@ -267,18 +267,18 @@ cargo test --package evmbin -- --nocapture    # with stdout
 
 > **Note:** `[profile.test]` uses `opt-level = 3` — compilation is slow, test execution is fast.
 
-**5. Docker image** (equivalent to CI workflow)
+**5. Docker image** (CI-equivalent build)
 ```bash
 docker buildx build \
   --platform linux/amd64 \
-  -f .github/docker/ubuntu-rust-1.97/Dockerfile \
+  -f .github/docker/ubuntu-rust-1.97.1/Dockerfile.ci \
   -t ihkmunich/openethereum:latest-local \
   .
 ```
 
 > **CI workflows:**
-> - `docker-ubuntu-rust-1.97-latest.yml` — triggered on push to `main`; pushes tag `latest-rust-1.97`; steps: Test Execution → Release Build → Docker build & push
-> - `docker-ubuntu-rust-1.97-release.yml` — triggered on tag `v*`; pushes versioned tags; steps: Test Execution → Release Build → Docker build & push
+> - `docker-ubuntu-latest.yml` — triggered on push to `main`; pushes tag `latest-rust-1.97`; steps: Test Execution → Release Build → Docker build & push
+> - `docker-ubuntu-release.yml` — triggered on tag `v*`; pushes versioned tags; steps: Test Execution → Release Build → Docker build & push
 > - Legacy image base `ubuntu-rust-1.88` remains in `.github/docker/ubuntu-rust-1.88/` for reference
 
 ---
@@ -354,7 +354,7 @@ docker buildx build \
 
 ### If Build Fails
 
-1. Check Rust toolchain: `rustup show` — must be `1.97`; fix with `./scripts/setup-rust-1.97.sh`
+1. Check Rust toolchain: `rustup show` — must be `1.97.1`; fix with `./scripts/setup-rust-1.97.sh`
 2. Clean and rebuild: `cargo clean && cargo build`
 3. On macOS: confirm `CC=/usr/bin/clang CXX=/usr/bin/clang++` are exported
 4. Submodule missing: `git submodule update --init --recursive`
@@ -402,16 +402,17 @@ docker buildx build \
 
 ---
 
-**Last Reviewed:** 2026-07-14
+**Last Reviewed:** 2026-07-17
 **Next Review:** Q4 2026
 **Maintained by:** Markus Sprunck
 
 **Changelog:**
+- v2.5 (2026-07-17): Refreshed dependency guidance after Phase 3 completion: clarified `jsonrpc-*` is already on v18 and updated phased sequence to emphasize remaining Phase 4 blockers (`secp256k1`/`rand`/`ethereum-types`/`parity-util-mem` chain); updated Modular Coding Rules to include `parity-util-mem-compat` in the required `[patch.crates-io]` workspace-shim list; corrected CI-equivalent Docker build command to use `.github/docker/ubuntu-rust-1.97.1/Dockerfile.ci`
 - v2.4 (2026-07-14): Fixed rpassword vulnerability (GHSA-2p6r-x3vv-xqm2): upgraded `rpassword` from `1.0.2` to `7.5.0` (resolved to `7.5.4`); API change `prompt_password_stdout()` → `prompt_password()` in `cli-signer/src/lib.rs`; corrected version header from 2.2 → 2.3 (changelog was ahead of header); updated Technology Stack to reference `jsonrpc-core` v18 (not v15); updated External Resources link to v18 docs; added rpassword to Security checklist; 0 errors
 - v2.3 (2026-07-14): Phase 3 complete — migrated `jsonrpc-*` from v15 to v18; all RPC code migrated from futures 0.1 to futures 0.3 + async/await; `parity-rpc` edition updated to 2021; removed `tokio 0.1.22`, `hyper 0.12.36`, `h2 0.1.26` (CVE-2023-44487), `crossbeam-utils 0.7.2`, `time 0.1.45` (RUSTSEC-2020-0071), `net2 0.2.39`, `parity-tokio-ipc 0.4`, `parity-ws 0.10.1`, `futures-cpupool` from Cargo.lock; `lock-api-compat` shim no longer needed for jsonrpc chain (still needed for kvdb-memorydb); `cli-signer` migrated to futures 0.3; `ethcore-stratum` updated for v18 API; 0 errors, 0 test regressions
 - v2.2 (2026-07-14): Removed unmaintained `wee_alloc 0.4.5` from `parity-util-mem-compat`: deleted optional dep, removed `weealloc-global` feature, stripped dead cfg-branch from `allocators.rs` and `lib.rs`; `wee_alloc` fully absent from Cargo.lock; 0 warnings 0 errors
 - v2.1 (2026-07-14): Fixed lru RUSTSEC vulnerabilities (Dependabot #12/#18): created `crates/util/parity-util-mem-compat` local fork of `parity-util-mem 0.7.0` with `lru` upgraded from `0.5.3` to `0.7.8`; the `LruCache<K,V,S>` API used (`.iter()`, `.len()`) is identical in both versions so no source changes were required; registered via `[patch.crates-io]` and added to `[workspace] members`; `lru 0.5.3` fully removed from Cargo.lock; 0 warnings 0 errors; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist; updated MAINTENANCE.md § parity-util-mem to mark both Dependabot alerts as FIXED
-- v2.0 (2026-07-13): Removed CodeQL entirely from both CI workflows (unstable autobuild, non-deterministic results); deleted `.github/codeql/codeql-config.yml` and `.github/codeql/` directory; removed `security-events: write` permission from both workflow files; restored `Test Execution` to its original position (before Release Build) in `docker-ubuntu-rust-1.97-latest.yml`; cleaned up all CodeQL references in AGENTS.md; fixed flaky test `should_not_return_pending_external_transactions_with_too_low_priority_fee_if_priority_fees_are_enforced` by replacing `new_queue()` (max_mem_usage=100, enough for 3 txs only) with an inline queue using `max_mem_usage: usize::MAX` to prevent allocator-dependent eviction of tx2 on Linux CI
+- v2.0 (2026-07-13): Removed CodeQL entirely from both CI workflows (unstable autobuild, non-deterministic results); deleted `.github/codeql/codeql-config.yml` and `.github/codeql/` directory; removed `security-events: write` permission from both workflow files; restored `Test Execution` to its original position (before Release Build) in `docker-ubuntu-latest.yml`; cleaned up all CodeQL references in AGENTS.md; fixed flaky test `should_not_return_pending_external_transactions_with_too_low_priority_fee_if_priority_fees_are_enforced` by replacing `new_queue()` (max_mem_usage=100, enough for 3 txs only) with an inline queue using `max_mem_usage: usize::MAX` to prevent allocator-dependent eviction of tx2 on Linux CI
 - v1.9 (2026-07-13): Replaced `lru-cache = "0.1"` with `lru = "0.7.8"` across all 4 dependent crates (`memory-cache`, `ethcore`, `network-devp2p`, `node-filter`); migrated all call sites: `.insert()→.put()`, `.remove()→.pop()`, `.remove_lru()→.pop_lru()`, `.capacity()→.cap()`, `.set_capacity()→.resize()`; rewrote `clone_all()` in `state/account.rs` to manually copy LruCache entries since lru 0.7.x does not implement Clone; updated CVE table, Dep Management bullet, Phase sequence
 - v1.8 (2026-07-13): Fixed lock_api CVEs (CVE-2020-35910..35914): created `crates/util/lock-api-compat` shim (fork of lock_api 0.3.4 with backported Send/Sync bounds from 0.4.2); registered via `[patch.crates-io]`; fixes transitive chain kvdb-memorydb→parking_lot 0.9.0 and jsonrpc-*→parking_lot 0.10.2; added `.github/dependabot.yml` to prevent Dependabot from breaking the `parity-crypto`/yanked-aes dependency chain; updated CVE table, Key Components, project structure tree, Modular Coding Rules, and Security checklist
 - v1.7 (2026-07-13): Fixed atty CVE (RUSTSEC-2021-0017): `crates/util/atty-compat` shim (backed by `std::io::IsTerminal`) already registered via `[patch.crates-io]` — AGENTS.md was still showing it as pending Phase 2; updated CVE table, Dep Management atty bullet, Phase 2 sequence, Key Components (CVE patch shims note), project structure tree (added `atty-compat/` and `tempdir-compat/` entries), and Modular Coding Rules (`[patch.crates-io]` shims require workspace member entry)
@@ -419,5 +420,5 @@ docker buildx build \
 - v1.5 (2026-07-13): Removed references to non-existent `UPDATE_PLAN.md`; fixed version header (1.3→1.4); added `.testing/README.md` reference; inlined Phase 2–4 upgrade sequence
 - v1.4 (2026-07-10): Fixed 44 Rust 1.97 compiler warnings: mismatched_lifetime_syntaxes (added explicit `'_` to 38 return types across 23 crates/files), unused_parens (5 sites in vm/access_list.rs and db/db.rs), dead_code (is_global_s annotated with #[allow(dead_code)] in network-devp2p/ip_utils.rs, useless self-assignment and unused mut removed in rpc/transaction.rs)
 - v1.3 (2026-07-10): Corrected version to 3.5.1; fixed Rust upgrade note (1.88→1.97); added release Docker workflow; documented macOS EMFILE/rayon pin; expanded Known Vulnerable Dependencies table with lru-cache, tempdir, remove_dir_all, term_size; added rayon and number_prefix pin warnings
-- v1.2 (2026-07-10): Upgraded Rust toolchain from 1.97 to 1.97; added setup-rust-1.97.sh, .github/docker/ubuntu-rust-1.97/Dockerfile, and .github/workflows/docker-ubuntu-rust-1.97-latest.yml
+- v1.2 (2026-07-10): Upgraded Rust toolchain from 1.97 to 1.97; added setup-rust-1.97.sh, .github/docker/ubuntu-rust-1.97.1/Dockerfile, and .github/workflows/docker-ubuntu-latest.yml
 - v1.1 (2026-07-10): Added missing scripts, UPDATE_PLAN.md references, and Phase 1 completion status
